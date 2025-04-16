@@ -1,0 +1,18 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Head outline -->
+  <path d="M100 180C144.183 180 180 144.183 180 100C180 55.8172 144.183 20 100 20C55.8172 20 20 55.8172 20 100C20 144.183 55.8172 180 100 180Z" stroke="black" stroke-width="6"/>
+  
+  <!-- Middle dividing line -->
+  <path d="M100 20L100 180" stroke="black" stroke-width="6"/>
+  
+  <!-- Left side (Robot) -->
+  <circle cx="70" cy="80" r="15" stroke="black" stroke-width="6"/>
+  <rect x="40" y="65" width="10" height="30" stroke="black" stroke-width="4"/>
+  <path d="M40 110C50 130 70 130 80 110" stroke="black" stroke-width="4"/>
+  
+  <!-- Right side (Human) -->
+  <path d="M130 70C125 75 125 85 130 90" stroke="black" stroke-width="4"/> <!-- Eye -->
+  <path d="M120 110C130 120 150 120 160 110" stroke="black" stroke-width="4"/> <!-- Mouth -->
+  <path d="M140 40C130 50 130 70 140 90C150 110 150 130 140 140" stroke="black" stroke-width="4"/> <!-- Hair -->
+</svg> 
+ 
