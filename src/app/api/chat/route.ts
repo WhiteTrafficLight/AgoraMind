@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources';
+import { cookies } from 'next/headers';
 
 // API Key 로깅 (디버깅용, 실제 코드에서는 전체 키 출력하지 않는 것이 안전)
 const apiKey = process.env.OPENAI_API_KEY || '';
@@ -72,6 +73,42 @@ const philosopherProfiles: Record<string, PhilosopherProfile> = {
   }
 };
 
+// Fetch a response from Ollama API
+async function fetchOllamaResponse(messages: any[], model: string, ollamaEndpoint: string = 'http://localhost:11434') {
+  console.log(`💬 Calling Ollama API with model: ${model}`);
+  console.log(`💬 Message count:`, messages.length);
+  console.log(`💬 Using Ollama endpoint: ${ollamaEndpoint}`);
+  
+  try {
+    const response = await fetch(`${ollamaEndpoint}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: messages,
+        stream: false,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Ollama API error: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    console.log('✅ Ollama API response received');
+    
+    // 원본 응답 로깅은 유지하되, 반환 값은 콘텐츠만 반환
+    const content = data.message?.content || '';
+    return content;
+  } catch (error) {
+    console.error('❌ Error in Ollama API call:', error);
+    throw error;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     // API 키 확인 - 강화된 검증
@@ -117,11 +154,8 @@ export async function POST(req: NextRequest) {
     // 최근 메시지만 사용
     const recentMessages = messages.slice(-10);
     
-    // OpenAI API 형식으로 메시지 변환
-    const formattedMessages: ChatCompletionMessageParam[] = [
-      {
-        role: 'system',
-        content: `You are an AI that simulates a philosophical conversation between the user and the following philosophers: ${npcs.join(', ')}. 
+    // LLM 공통 시스템 프롬프트
+    const systemPrompt = `You are an AI that simulates a philosophical conversation between the user and the following philosophers: ${npcs.join(', ')}. 
                  The topic of discussion is: "${topic}".
                  ${context ? `Additional context: ${context}` : ''}
                  
@@ -134,9 +168,126 @@ export async function POST(req: NextRequest) {
                  6. IMPORTANT: If the user's message is in Korean, respond in Korean
                  7. Match the language of your response to the language used by the user
                  
-                 Format your response with a JSON structure:
-                 {"sender": "Philosopher Name", "text": "The philosophical response..."}
-                 `
+                 VERY IMPORTANT: Format your response as valid JSON with this exact structure:
+                 {"sender": "Philosopher Name", "text": "The philosophical response..."}`;
+                 
+    // 클라이언트 요청의 헤더에서 LLM 설정 정보 확인
+    const llmProvider = req.headers.get('x-llm-provider') || 'openai';
+    const llmModel = req.headers.get('x-llm-model') || '';
+    const ollamaEndpoint = req.headers.get('x-ollama-endpoint') || 'http://localhost:11434';
+    
+    console.log(`Using LLM Provider: ${llmProvider}`);
+    
+    // Ollama API 사용
+    if (llmProvider === 'ollama') {
+      try {
+        // Ollama에서 사용할 모델
+        const ollamaModel = llmModel || 'llama3';
+        console.log(`Using Ollama model: ${ollamaModel}`);
+        
+        // Ollama API 형식으로 메시지 변환
+        const ollamaMessages = [
+          { role: 'system', content: systemPrompt }
+        ];
+        
+        // 대화 히스토리 추가
+        recentMessages.forEach(msg => {
+          if (msg.isUser) {
+            ollamaMessages.push({
+              role: 'user',
+              content: msg.text
+            });
+          } else if (msg.sender !== 'System') {
+            ollamaMessages.push({
+              role: 'assistant',
+              content: `{"sender": "${msg.sender}", "text": "${msg.text.replace(/"/g, '\\"')}"}`
+            });
+          }
+        });
+        
+        // Ollama API 호출
+        const responseContent = await fetchOllamaResponse(ollamaMessages, ollamaModel, ollamaEndpoint);
+        console.log('Raw API response:', responseContent);
+        
+        // 응답 파싱 및 처리
+        let parsedResponse;
+        try {
+          // JSON 형식으로 응답이 왔는지 확인
+          if (responseContent.trim().startsWith('{') && responseContent.trim().endsWith('}')) {
+            parsedResponse = JSON.parse(responseContent);
+          } else {
+            // JSON이 아닌 경우, 첫 번째 NPC의 응답으로 간주
+            parsedResponse = {
+              sender: npcs[0],
+              text: responseContent
+            };
+          }
+        } catch (error) {
+          console.error('Error parsing JSON from Ollama response:', error);
+          // JSON 파싱 실패 시 텍스트에서 필요한 부분 추출 시도
+          const sender = responseContent.match(/["']sender["']\s*:\s*["']([^"']+)["']/)?.[1] || npcs[0];
+          const text = responseContent.match(/["']text["']\s*:\s*["']([^"']+)["']/)?.[1] || responseContent;
+          
+          parsedResponse = {
+            sender: sender,
+            text: text
+          };
+        }
+        
+        // 응답 검증
+        if (!parsedResponse.sender || !parsedResponse.text) {
+          throw new Error('Invalid response format from Ollama API');
+        }
+        
+        // 참여 NPC인지 확인
+        if (!npcs.includes(parsedResponse.sender)) {
+          console.warn(`Warning: Ollama API returned non-participant NPC: ${parsedResponse.sender}`);
+          parsedResponse.sender = npcs[0];
+        }
+        
+        // text 필드가 JSON 문자열이 아닌지 확인
+        try {
+          if (typeof parsedResponse.text === 'string' && 
+              parsedResponse.text.trim().startsWith('{') && 
+              parsedResponse.text.trim().endsWith('}')) {
+            // text 필드 안에 JSON이 있는 경우 (중첩 JSON)
+            const innerJson = JSON.parse(parsedResponse.text);
+            if (innerJson.text) {
+              parsedResponse.text = innerJson.text;
+            }
+          }
+        } catch (e) {
+          // JSON 파싱 실패해도 원래 텍스트 유지
+        }
+        
+        // 응답 형식 만들기
+        const aiMessage = {
+          id: `api-${Date.now()}`,
+          text: parsedResponse.text,
+          sender: parsedResponse.sender,
+          isUser: false,
+          timestamp: new Date()
+        };
+        
+        return NextResponse.json(aiMessage);
+      } catch (error: any) {
+        console.error('❌ Error in Ollama chat API:', error);
+        
+        // 오류 발생 시 OpenAI로 폴백
+        console.log('⚠️ Falling back to OpenAI API due to Ollama error');
+        // 폴백 처리는 아래 OpenAI 코드를 계속 실행
+      }
+    }
+    
+    // OpenAI API 사용 (기본값 또는 폴백)
+    // OpenAI에서 사용할 모델
+    const openaiModel = llmModel || 'gpt-4o';
+    
+    // OpenAI API 형식으로 메시지 변환
+    const formattedMessages: ChatCompletionMessageParam[] = [
+      {
+        role: 'system',
+        content: systemPrompt
       }
     ];
     
@@ -157,12 +308,12 @@ export async function POST(req: NextRequest) {
     
     try {
       // OpenAI API 호출 전 디버깅 정보
-      console.log('💬 Calling OpenAI API with model: gpt-4o');
+      console.log(`💬 Calling OpenAI API with model: ${openaiModel}`);
       console.log('💬 Message count:', formattedMessages.length);
       
       // OpenAI API 호출
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: openaiModel,
         messages: formattedMessages,
         temperature: 0.75,
         max_tokens: 800,

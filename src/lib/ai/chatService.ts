@@ -359,11 +359,33 @@ class ChatService {
           // Generate a unique message ID before making the API call
           const messageId = this.generateUniqueId('api-');
           
+          // Get LLM settings from localStorage
+          let llmProvider = 'openai';
+          let llmModel = '';
+          let ollamaEndpoint = 'http://localhost:11434';
+          
+          // Browser check for localStorage
+          if (typeof window !== 'undefined' && window.localStorage) {
+            llmProvider = localStorage.getItem('llmProvider') || 'openai';
+            
+            if (llmProvider === 'openai') {
+              llmModel = localStorage.getItem('openaiModel') || 'gpt-4o';
+            } else if (llmProvider === 'ollama') {
+              llmModel = localStorage.getItem('ollamaModel') || 'llama3';
+              ollamaEndpoint = localStorage.getItem('ollamaEndpoint') || 'http://localhost:11434';
+            }
+          }
+          
+          console.log(`🔄 Using LLM provider: ${llmProvider}, model: ${llmModel}`);
+          
           // Call the actual API
           const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'x-llm-provider': llmProvider,
+              'x-llm-model': llmModel,
+              'x-ollama-endpoint': ollamaEndpoint
             },
             body: JSON.stringify({
               messages: room.messages,

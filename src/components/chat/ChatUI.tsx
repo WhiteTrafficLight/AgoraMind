@@ -350,7 +350,18 @@ const ChatUI: React.FC<ChatUIProps> = ({
                       {/* Message text */}
                       <div className="relative z-10">
                         <p className="text-sm mb-1 break-words whitespace-pre-wrap overflow-hidden text-wrap">
-                          {msg.text}
+                          {(() => {
+                            // JSON 형식인지 확인하고 파싱
+                            try {
+                              if (msg.text.trim().startsWith('{') && msg.text.trim().endsWith('}')) {
+                                const parsed = JSON.parse(msg.text);
+                                return parsed.text || msg.text;
+                              }
+                              return msg.text;
+                            } catch (e) {
+                              return msg.text;
+                            }
+                          })()}
                         </p>
                         
                         {/* Time stamp - 조건부 렌더링으로 유효하지 않은 timestamp 처리 */}
