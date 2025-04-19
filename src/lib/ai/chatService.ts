@@ -18,6 +18,7 @@ export interface ChatRoom {
   totalParticipants: number;
   lastActivity: string;
   messages?: ChatMessage[];
+  isPublic: boolean;
 }
 
 export interface ChatRoomCreationParams {
@@ -25,80 +26,68 @@ export interface ChatRoomCreationParams {
   context?: string;
   maxParticipants: number;
   npcs: string[];
+  isPublic?: boolean;
+  currentUser?: string;
+}
+
+// 디버그 모드 설정 - 로깅 제어용
+const DEBUG = false;
+
+// 로그 출력 함수 - 디버그 모드에서만 출력
+function log(...args: any[]) {
+  if (DEBUG) {
+    console.log(...args);
+  }
 }
 
 // Updated service that can use real API calls
 class ChatService {
-  private chatRooms: ChatRoom[] = [
-    {
-      id: 1,
-      title: 'The Nature of Consciousness',
-      context: 'Exploring the philosophical aspects of consciousness and its relationship to the brain.',
-      participants: {
-        users: ['User123', 'User456'],
-        npcs: ['Socrates', 'Kant']
-      },
-      totalParticipants: 4,
-      lastActivity: '2 hours ago',
-    },
-    {
-      id: 2,
-      title: 'Ethics in the Digital Age',
-      context: 'Discussing the moral implications of technology and its impacts on society.',
-      participants: {
-        users: ['User789'],
-        npcs: ['Plato', 'Nietzsche']
-      },
-      totalParticipants: 3,
-      lastActivity: '4 hours ago',
-    },
-    {
-      id: 3,
-      title: 'Free Will and Determinism',
-      context: 'Debating whether humans truly have agency or if our actions are predetermined.',
-      participants: {
-        users: ['User321', 'User654', 'User987'],
-        npcs: ['Aristotle', 'Simone de Beauvoir']
-      },
-      totalParticipants: 5,
-      lastActivity: '1 day ago',
-    },
-    {
-      id: 4,
-      title: 'The Meaning of Existence',
-      context: 'Exploring existentialist perspectives on purpose and meaning in life.',
-      participants: {
-        users: ['User234'],
-        npcs: ['Sartre', 'Camus']
-      },
-      totalParticipants: 3,
-      lastActivity: '2 days ago',
-    },
-    {
-      id: 5,
-      title: 'Political Philosophy and Justice',
-      context: 'Examining concepts of fairness, rights, and governance in society.',
-      participants: {
-        users: ['User567', 'User890'],
-        npcs: ['Rousseau', 'Marx']
-      },
-      totalParticipants: 4,
-      lastActivity: '3 days ago',
-    },
-  ];
-
-  // Flag to determine whether to use the API or mock responses
+  // API 기반으로 동작하도록 변경 - mock 데이터 제거
+  private chatRooms: ChatRoom[] = [];
   private useAPI: boolean = true;
 
+  // 생성자 - API 사용 여부 설정 가능
   constructor(useAPI: boolean = true) {
     this.useAPI = useAPI;
   }
 
-  // Get all chat rooms
+  // Get all chat rooms - API 요청으로 대체
   async getChatRooms(): Promise<ChatRoom[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return [...this.chatRooms];
+    try {
+      log('Fetching chat rooms from API...');
+      const response = await fetch('/api/rooms');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chat rooms: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      log(`Fetched ${data.length} chat rooms from API`);
+      
+      // 중복 ID 제거 (동일한 ID의 첫 번째 채팅방만 유지)
+      const uniqueRooms = data.reduce((acc: ChatRoom[], room: ChatRoom) => {
+        // 이미 같은 ID의 방이 있는지 확인
+        const exists = acc.some((r: ChatRoom) => String(r.id) === String(room.id));
+        if (!exists) {
+          acc.push(room);
+        } else {
+          console.warn(`중복 채팅방 ID 발견: ${room.id}, 제목: ${room.title}`);
+        }
+        return acc;
+      }, [] as ChatRoom[]);
+      
+      // 유니크한 채팅방 ID 로깅
+      const uniqueIds = uniqueRooms.map((room: ChatRoom) => room.id);
+      console.log(`유니크한 채팅방 ID: ${uniqueIds.join(', ')}`);
+      
+      // API 응답으로 로컬 캐시 업데이트
+      this.chatRooms = uniqueRooms;
+      
+      return uniqueRooms;
+    } catch (error) {
+      console.error('Error fetching chat rooms:', error);
+      return this.chatRooms; // 오류 시 캐싱된 데이터 반환
+    }
   }
 
   // Helper to generate a unique ID
@@ -110,113 +99,117 @@ class ChatService {
     return `${prefix}${timestamp}-${randomStr}-${randomStr2}`;
   }
 
-  // Get a specific chat room by ID - 완전 수정
+  // Get a specific chat room by ID
   async getChatRoomById(id: string | number): Promise<ChatRoom | null> {
-    console.log('\n=======================================');
-    console.log('🔍 FETCHING CHAT ROOM');
-    console.log('ID:', id);
+    log('\n=======================================');
+    log('🔍 FETCHING CHAT ROOM');
+    log('ID:', id);
+    log('ID type:', typeof id);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // 채팅방 찾기
-    const room = this.chatRooms.find(room => room.id.toString() === id.toString());
-    
-    // 채팅방이 없으면 종료
-    if (!room) {
-      console.log('❌ Room not found');
-      console.log('=======================================\n');
-      return null;
-    }
-    
-    console.log('Room Title:', room.title);
-    console.log('Participants:', room.participants);
-    
-    // 1. 참여자 유효성 검사
-    if (!room.participants || !room.participants.npcs || room.participants.npcs.length === 0) {
-      console.error('❌ ERROR: Room has no participants!');
+    try {
+      // API에서 특정 채팅방 데이터 가져오기
+      const numericId = typeof id === 'string' ? parseInt(id) : id;
+      const response = await fetch(`/api/rooms?id=${numericId}`);
       
-      // 참여자가 없는 방은 사용할 수 없음을 명확히 함
-      return {
-        ...room,
-        messages: [{
-          id: this.generateUniqueId('error-'),
-          text: 'This chat room has no philosopher participants.',
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chat room: ${response.status}`);
+      }
+      
+      const room = await response.json();
+      
+      // 채팅방이 없으면 종료
+      if (!room) {
+        log('❌ Room not found');
+        log('=======================================\n');
+        return null;
+      }
+      
+      log('✅ Room found!');
+      log('Room Title:', room.title);
+      log('Participants:', room.participants);
+      
+      // 채팅방 ID 확인 - 잘못된 채팅방이 반환되는 것을 방지
+      if (room.id && String(room.id) !== String(id)) {
+        console.error(`❌ ERROR: Room ID mismatch! Requested ${id}, but got ${room.id}`);
+        return null;
+      }
+      
+      // 1. 참여자 유효성 검사
+      if (!room.participants || !room.participants.npcs || room.participants.npcs.length === 0) {
+        console.error('❌ ERROR: Room has no participants!');
+        
+        // 참여자가 없는 방은 사용할 수 없음을 명확히 함
+        return {
+          ...room,
+          messages: [{
+            id: this.generateUniqueId('error-'),
+            text: 'This chat room has no philosopher participants.',
+            sender: 'System',
+            isUser: false,
+            timestamp: new Date()
+          }]
+        };
+      }
+      
+      // 2. 이 채팅방에 등록된 철학자 목록 (복사본 생성)
+      const registeredPhilosophers = [...room.participants.npcs];
+      log('Registered philosophers:', registeredPhilosophers);
+      
+      // 3. 메시지 초기화 (아직 없는 경우)
+      if (!room.messages || room.messages.length === 0) {
+        log('📝 Initializing messages for new room');
+        room.messages = [{
+          id: this.generateUniqueId('sys-'),
+          text: `Welcome to the philosophical dialogue on "${room.title}".`,
           sender: 'System',
           isUser: false,
           timestamp: new Date()
-        }]
-      };
-    }
-    
-    // 2. 이 채팅방에 등록된 철학자 목록 (복사본 생성)
-    const registeredPhilosophers = [...room.participants.npcs];
-    console.log('Registered philosophers:', registeredPhilosophers);
-    
-    // 3. 메시지 초기화 (아직 없는 경우)
-    if (!room.messages) {
-      console.log('📝 Initializing messages for new room');
-      room.messages = [{
-        id: this.generateUniqueId('sys-'),
-        text: `Welcome to the philosophical dialogue on "${room.title}".`,
-        sender: 'System',
-        isUser: false,
-        timestamp: new Date()
-      }];
-      
-      // 등록된 철학자가 있는 경우 첫 번째 철학자가 인사 메시지 보냄
-      if (registeredPhilosophers.length > 0) {
-        const firstPhilosopher = registeredPhilosophers[0];
-        room.messages.push({
-          id: this.generateUniqueId(`npc-${firstPhilosopher.toLowerCase()}-`),
-          text: this.getInitialPrompt(room.title, room.context),
-          sender: firstPhilosopher,
-          isUser: false,
-          timestamp: new Date(Date.now() - 60000)
-        });
-        console.log(`📝 Added welcome message from ${firstPhilosopher}`);
-      }
-    }
-    
-    // 4. 메시지 검증 (중요: 모든 NPC 메시지의 발신자가 참여자 목록에 있는지 확인)
-    let messagesFixed = false;
-    if (room.messages && room.messages.length > 0) {
-      console.log('🔍 Validating message senders...');
-      
-      for (let i = 0; i < room.messages.length; i++) {
-        const msg = room.messages[i];
+        }];
         
-        // NPC 메시지이면서 참여자가 아닌 경우 수정
-        if (!msg.isUser && msg.sender !== 'System' && !registeredPhilosophers.includes(msg.sender)) {
-          // 발신자가 참여자 목록에 없는 경우
-          console.warn(`⚠️ WARNING: Found message from non-participant: ${msg.sender}`);
-          console.warn('Message:', msg.text);
-          
-          // 메시지 발신자를 첫 번째 참여자로 대체
-          const originalSender = msg.sender;
-          msg.sender = registeredPhilosophers[0];
-          msg.text = `[Original message by ${originalSender}] ${msg.text}`;
-          
-          console.log(`✅ Fixed: Changed sender to ${msg.sender}`);
-          messagesFixed = true;
+        // 등록된 철학자가 있는 경우 첫 번째 철학자가 인사 메시지 보냄
+        if (registeredPhilosophers.length > 0) {
+          const firstPhilosopher = registeredPhilosophers[0];
+          room.messages.push({
+            id: this.generateUniqueId(`npc-${firstPhilosopher.toLowerCase()}-`),
+            text: this.getInitialPrompt(room.title, room.context),
+            sender: firstPhilosopher,
+            isUser: false,
+            timestamp: new Date(Date.now() - 60000)
+          });
+          log(`📝 Added welcome message from ${firstPhilosopher}`);
         }
       }
       
-      if (!messagesFixed) {
-        console.log('✅ All message senders are valid');
+      // 로컬 캐시 업데이트
+      const existingRoomIndex = this.chatRooms.findIndex(r => String(r.id) === String(id));
+      if (existingRoomIndex >= 0) {
+        this.chatRooms[existingRoomIndex] = room;
       } else {
-        console.log('⚠️ Some message senders were fixed');
+        this.chatRooms.push(room);
       }
+      
+      log('✅ Room fetched successfully');
+      log('=======================================\n');
+      
+      return room;
+    } catch (error) {
+      console.error('Error fetching chat room:', error);
+      
+      // API 실패 시 로컬 캐시에서 검색
+      log('Falling back to local cache...');
+      const idStr = String(id);
+      const cachedRoom = this.chatRooms.find(room => String(room.id) === idStr);
+      
+      if (!cachedRoom) {
+        log('❌ Room not found in local cache');
+        return null;
+      }
+      
+      return JSON.parse(JSON.stringify(cachedRoom));
     }
-    
-    console.log('✅ Room fetched successfully');
-    console.log('=======================================\n');
-    
-    // 5. 깊은 복사본 반환 (원본 변경 방지)
-    return JSON.parse(JSON.stringify(room));
   }
 
-  // Create a new chat room - 완전히 새로 작성
+  // Create a new chat room
   async createChatRoom(params: ChatRoomCreationParams): Promise<ChatRoom> {
     console.log('\n=======================================');
     console.log('🏗️ CREATING NEW CHAT ROOM');
@@ -229,80 +222,38 @@ class ChatService {
     
     if (!params.npcs || !Array.isArray(params.npcs) || params.npcs.length === 0) {
       console.error('❌ ERROR: At least one philosopher (NPC) is required');
-      throw new Error('At least one philosopher (NPC) is required');
+      throw new Error('At least one philosopher is required');
     }
     
-    // 2. 각 NPC가 유효한 철학자인지 확인 
-    const invalidPhilosophers = params.npcs.filter(npc => !this.AVAILABLE_PHILOSOPHERS.includes(npc));
-    if (invalidPhilosophers.length > 0) {
-      console.warn(`⚠️ WARNING: Invalid philosophers requested: ${invalidPhilosophers.join(', ')}`);
-    }
-    
-    // 3. 인증된 철학자 목록만 가져오기 (정확히 요청한 철학자만 포함, 불변성 보장)
-    const selectedPhilosophers = [...params.npcs];
-    
-    console.log('Title:', params.title);
-    console.log('Philosophers:', selectedPhilosophers);
-    console.log('Context:', params.context || '[none]');
-    
-    // API 지연 시뮬레이션
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // 4. 새 채팅방 ID 생성 (시간 기반으로 고유 ID 보장)
-    const newId = this.generateUniqueId('room-');
-    
-    // 5. 현재 사용자 (실제 앱에서는 로그인한 사용자 정보 사용)
-    const currentUser = 'User123';
-    
-    // 6. 새 채팅방 객체 생성
-    const newRoom: ChatRoom = {
-      id: newId,
-      title: params.title,
-      context: params.context || '',
-      participants: {
-        users: [currentUser],
-        npcs: selectedPhilosophers // 선택한 철학자만 정확히 포함
-      },
-      totalParticipants: 1 + selectedPhilosophers.length,
-      lastActivity: 'Just now',
-      messages: [
-        {
-          id: this.generateUniqueId('sys-'),
-          text: `Welcome to the philosophical dialogue on "${params.title}".`,
-          sender: 'System',
-          isUser: false,
-          timestamp: new Date()
-        }
-      ]
-    };
-    
-    // 7. 첫 번째 철학자의 인사 메시지 추가
-    if (selectedPhilosophers.length > 0 && newRoom.messages) {
-      const firstPhilosopher = selectedPhilosophers[0];
-      
-      newRoom.messages.push({
-        id: this.generateUniqueId(`npc-${firstPhilosopher.toLowerCase()}-`),
-        text: this.getInitialPrompt(params.title, params.context),
-        sender: firstPhilosopher,
-        isUser: false,
-        timestamp: new Date(Date.now() - 60000)
+    try {
+      // API 요청으로 채팅방 생성
+      const response = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
       });
       
-      console.log(`📝 First message from: ${firstPhilosopher}`);
+      if (!response.ok) {
+        throw new Error(`Failed to create chat room: ${response.status}`);
+      }
+      
+      const newRoom = await response.json();
+      console.log('✅ Created room:', newRoom.id, newRoom.title);
+      
+      // 로컬 캐시에 추가
+      this.chatRooms.push(newRoom);
+      
+      return newRoom;
+    } catch (error) {
+      console.error('❌ Error creating chat room:', error);
+      throw error;
     }
-    
-    // 8. 채팅방 목록에 추가
-    this.chatRooms.push(newRoom);
-    
-    console.log(`✅ Chat room created with ID: ${newId}`);
-    console.log('=======================================\n');
-    
-    // 9. 새 채팅방 객체 반환 (깊은 복사본으로 원본과 분리)
-    return JSON.parse(JSON.stringify(newRoom));
   }
 
   // Send a message in a chat room
-  async sendMessage(roomId: string | number, messageText: string): Promise<ChatMessage> {
+  async sendMessage(roomId: string | number, messageText: string, senderName?: string): Promise<ChatMessage> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
     
@@ -317,7 +268,7 @@ class ChatService {
     const userMessage: ChatMessage = {
       id: this.generateUniqueId('user-'),
       text: messageText,
-      sender: 'You',
+      sender: senderName || 'You',
       isUser: true,
       timestamp: new Date()
     };
@@ -331,9 +282,9 @@ class ChatService {
 
   // Get an AI response to a user message - 에러 처리 개선
   async getAIResponse(roomId: string | number): Promise<ChatMessage> {
-    console.log('\n==========================================');
-    console.log('🤖 GENERATING AI RESPONSE');
-    console.log('Room ID:', roomId);
+    log('\n==========================================');
+    log('🤖 GENERATING AI RESPONSE');
+    log('Room ID:', roomId);
     
     try {
       // Get the room
@@ -348,13 +299,13 @@ class ChatService {
         throw new Error('No message history found');
       }
       
-      console.log('Room Title:', room.title);
-      console.log('Participant NPCs:', room.participants.npcs);
+      log('Room Title:', room.title);
+      log('Participant NPCs:', room.participants.npcs);
 
       // 실제 API 호출 시도
       if (this.useAPI) {
         try {
-          console.log('🔄 Attempting to use real API...');
+          log('🔄 Attempting to use real API...');
           
           // Generate a unique message ID before making the API call
           const messageId = this.generateUniqueId('api-');
@@ -376,7 +327,7 @@ class ChatService {
             }
           }
           
-          console.log(`🔄 Using LLM provider: ${llmProvider}, model: ${llmModel}`);
+          log(`🔄 Using LLM provider: ${llmProvider}, model: ${llmModel}`);
           
           // Call the actual API
           const response = await fetch('/api/chat', {
@@ -408,7 +359,7 @@ class ChatService {
             }
             
             console.error(`❌ API error: Status ${errorStatus}`, errorData);
-            console.log('⚠️ Falling back to mock response...');
+            log('⚠️ Falling back to mock response...');
             // 폴백 처리로 이동
             throw new Error(`API request failed with status ${errorStatus}`);
           }
@@ -427,7 +378,7 @@ class ChatService {
           // 응답 검증 - 누락된 필드 확인
           if (!aiMessage.text || !aiMessage.sender) {
             console.error('❌ API returned incomplete message:', aiMessage);
-            console.log('⚠️ Falling back to mock response...');
+            log('⚠️ Falling back to mock response...');
             throw new Error('API returned incomplete message');
           }
           
@@ -436,7 +387,7 @@ class ChatService {
             console.warn(`⚠️ API returned message from non-participant: ${aiMessage.sender}`);
             // 메시지의 발신자를 첫 번째 참여자로 교체
             aiMessage.sender = room.participants.npcs[0];
-            console.log(`✅ Fixed: Changed sender to ${aiMessage.sender}`);
+            log(`✅ Fixed: Changed sender to ${aiMessage.sender}`);
           }
           
           // Check if this message is already in the room (prevent duplicates)
@@ -451,18 +402,18 @@ class ChatService {
             room.messages.push(aiMessage);
           }
           
-          console.log('✅ AI response generated via API');
-          console.log('==========================================\n');
+          log('✅ AI response generated via API');
+          log('==========================================\n');
           return aiMessage;
         } catch (error) {
           console.error('❌ Error getting AI response from API:', error);
-          console.log('⚠️ Falling back to mock response...');
+          log('⚠️ Falling back to mock response...');
           // Fall back to mock response if API fails
           return this.getMockAIResponse(room);
         }
       } else {
         // Use mock response instead of API
-        console.log('🔄 Using mock response as configured');
+        log('🔄 Using mock response as configured');
         await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate thinking time
         return this.getMockAIResponse(room);
       }
@@ -478,8 +429,8 @@ class ChatService {
         timestamp: new Date()
       };
       
-      console.log('⚠️ Returning emergency response');
-      console.log('==========================================\n');
+      log('⚠️ Returning emergency response');
+      log('==========================================\n');
       return emergencyResponse;
     }
   }
@@ -494,10 +445,10 @@ class ChatService {
 
   // Helper method to get a mock AI response - 완전히 다시 작성
   private getMockAIResponse(room: ChatRoom): ChatMessage {
-    console.log('\n==========================================');
-    console.log('💬 GENERATING AI RESPONSE');
-    console.log('Room ID:', room.id);
-    console.log('Room Title:', room.title);
+    log('\n==========================================');
+    log('💬 GENERATING AI RESPONSE');
+    log('Room ID:', room.id);
+    log('Room Title:', room.title);
     
     // 1. 채팅방 참여자 검증
     if (!room.participants || !room.participants.npcs || room.participants.npcs.length === 0) {
@@ -506,7 +457,7 @@ class ChatService {
     
     // 2. 등록된 NPC 목록 (불변성 보장)
     const registeredNPCs = [...room.participants.npcs];
-    console.log('✅ Registered NPCs:', registeredNPCs);
+    log('✅ Registered NPCs:', registeredNPCs);
     
     // 3. 참여자 검증 - 모든 NPC가 유효한지 확인
     const invalidNPCs = registeredNPCs.filter(npc => !this.AVAILABLE_PHILOSOPHERS.includes(npc));
@@ -517,7 +468,7 @@ class ChatService {
     // 4. 최근 메시지 가져오기
     const recentMessages = (room.messages || []).slice(-5);
     const lastUserMessage = [...recentMessages].reverse().find(msg => msg.isUser);
-    console.log('Last user message:', lastUserMessage?.text);
+    log('Last user message:', lastUserMessage?.text);
     
     // 5. 응답할 철학자 결정 로직 개선
     let respondingPhilosopher = '';
@@ -530,7 +481,7 @@ class ChatService {
         // 언급된 철학자 찾기 (참여자만)
         if (userMessageLower.includes(npc.toLowerCase())) {
           respondingPhilosopher = npc;
-          console.log(`👉 User mentioned NPC: ${npc}`);
+          log(`👉 User mentioned NPC: ${npc}`);
           break;
         }
       }
@@ -538,7 +489,7 @@ class ChatService {
     
     // 5.2. 사용자가 특정 철학자를 언급하지 않았다면 번갈아가며 대답
     if (!respondingPhilosopher) {
-      console.log('No specific philosopher mentioned, alternating...');
+      log('No specific philosopher mentioned, alternating...');
       
       // 마지막 NPC 메시지 찾기 (이 room의 참여자 중에서만)
       const lastNpcMessage = [...recentMessages].reverse().find(msg => 
@@ -553,11 +504,11 @@ class ChatService {
         const lastIndex = registeredNPCs.indexOf(lastNpcMessage.sender);
         const nextIndex = (lastIndex + 1) % registeredNPCs.length;
         respondingPhilosopher = registeredNPCs[nextIndex];
-        console.log(`👉 Alternating NPCs: Last=${lastNpcMessage.sender} → Next=${respondingPhilosopher}`);
+        log(`👉 Alternating NPCs: Last=${lastNpcMessage.sender} → Next=${respondingPhilosopher}`);
       } else {
         // 마지막으로 대화에 참여한 NPC가 없거나 참여 NPC가 하나뿐이면 첫 번째 참여자 선택
         respondingPhilosopher = registeredNPCs[0];
-        console.log(`👉 Defaulting to first philosopher: ${respondingPhilosopher}`);
+        log(`👉 Defaulting to first philosopher: ${respondingPhilosopher}`);
       }
     }
     
@@ -569,15 +520,15 @@ class ChatService {
       
       // 첫 번째 등록된 철학자로 강제 교체
       respondingPhilosopher = registeredNPCs[0];
-      console.log(`👉 Forced fallback to: ${respondingPhilosopher}`);
+      log(`👉 Forced fallback to: ${respondingPhilosopher}`);
     }
     
     // 7. 선택된 철학자의 응답 생성
     const response = this.generatePhilosopherResponse(respondingPhilosopher, room.title, recentMessages);
     
     // 8. 결과 로깅
-    console.log(`✅ Final responding philosopher: ${respondingPhilosopher}`);
-    console.log('==========================================\n');
+    log(`✅ Final responding philosopher: ${respondingPhilosopher}`);
+    log('==========================================\n');
     
     // 9. 생성된 메시지 객체 반환
     const aiMessage: ChatMessage = {

@@ -2,15 +2,63 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { ChatCompletionMessageParam } from 'openai/resources';
 import { cookies } from 'next/headers';
+import fs from 'fs';
+import path from 'path';
+import chatRoomDB from '@/lib/db/chatRoomDB';
 
-// API Key 로깅 (디버깅용, 실제 코드에서는 전체 키 출력하지 않는 것이 안전)
-const apiKey = process.env.OPENAI_API_KEY || '';
+// .env.local 파일에서 직접 API 키를 로드하는 함수
+function loadEnvLocal() {
+  try {
+    // 프로젝트 루트 디렉토리 경로
+    const rootDir = process.cwd();
+    const envPath = path.join(rootDir, '.env.local');
+    
+    // .env.local 파일이 존재하는지 확인
+    if (fs.existsSync(envPath)) {
+      console.log('📁 .env.local 파일을 찾았습니다.');
+      // 파일 내용 읽기
+      const fileContent = fs.readFileSync(envPath, 'utf-8');
+      // 각 줄을 파싱하여 환경 변수로 설정
+      const vars = fileContent.split('\n')
+        .filter(line => line && !line.startsWith('#'))
+        .map(line => line.split('='))
+        .reduce((acc, [key, value]) => {
+          if (key && value) {
+            acc[key.trim()] = value.trim();
+          }
+          return acc;
+        }, {} as Record<string, string>);
+      
+      console.log('✅ .env.local 파일에서 설정을 로드했습니다.');
+      return vars;
+    } else {
+      console.error('❌ .env.local 파일을 찾을 수 없습니다.');
+      return {};
+    }
+  } catch (error) {
+    console.error('❌ .env.local 파일 로드 중 오류 발생:', error);
+    return {};
+  }
+}
+
+// .env.local에서 설정 로드
+const envVars = loadEnvLocal();
+
+// API Key 설정 - .env.local에서 가져온 값을 우선 사용
+const apiKey = envVars.OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+console.log('API Key source:', apiKey === envVars.OPENAI_API_KEY ? '.env.local 파일' : 'system 환경 변수');
 console.log('API Key check:', apiKey ? `${apiKey.substring(0, 7)}...${apiKey.substring(apiKey.length - 4)}` : 'MISSING');
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: apiKey,
-});
+// Initialize OpenAI client - 헤더로 전달된 API 키를 사용할 수 있도록 수정
+// 대신 effectiveApiKey가 설정된 후에 클라이언트를 생성하는 방식으로 변경
+let openai: OpenAI;
+
+// OpenAI 클라이언트 초기화 함수 - 유효한 API 키를 인자로 받음
+function initializeOpenAIClient(apiKeyToUse: string) {
+  return new OpenAI({
+    apiKey: apiKeyToUse,
+  });
+}
 
 // Define philosopher profile type
 interface PhilosopherProfile {
@@ -111,9 +159,15 @@ async function fetchOllamaResponse(messages: any[], model: string, ollamaEndpoin
 
 export async function POST(req: NextRequest) {
   try {
+    // 헤더에서 API 키 추출 (소켓 서버에서 보낸 경우)
+    const headerApiKey = req.headers.get('x-api-key');
+    
+    // 헤더 API 키가 있으면 우선 사용, 없으면 환경 변수 사용
+    const effectiveApiKey = headerApiKey || apiKey;
+    
     // API 키 확인 - 강화된 검증
-    if (!apiKey) {
-      console.error("❌ OPENAI_API_KEY is not set");
+    if (!effectiveApiKey) {
+      console.error("❌ OpenAI API key is not set (neither in headers nor in environment)");
       return NextResponse.json(
         { error: "OpenAI API key is not configured" },
         { status: 500 }
@@ -121,13 +175,16 @@ export async function POST(req: NextRequest) {
     }
 
     // API 키 길이 확인
-    if (apiKey.length < 20) {
-      console.error("❌ OPENAI_API_KEY appears to be invalid (too short)");
+    if (effectiveApiKey.length < 20) {
+      console.error("❌ OpenAI API key appears to be invalid (too short)");
       return NextResponse.json(
         { error: "OpenAI API key appears to be invalid" },
         { status: 500 }
       );
     }
+    
+    // API 키 출처 로깅
+    console.log(`Using API key from: ${headerApiKey ? 'request header' : 'environment variable'}`);
 
     // 요청 데이터 파싱
     const { messages, roomId, topic, context, participants } = await req.json();
@@ -153,6 +210,9 @@ export async function POST(req: NextRequest) {
     
     // 최근 메시지만 사용
     const recentMessages = messages.slice(-10);
+    
+    // 최신 사용자 메시지 가져오기 (저장하기 위함)
+    const latestUserMessage = messages[messages.length - 1];
     
     // LLM 공통 시스템 프롬프트
     const systemPrompt = `You are an AI that simulates a philosophical conversation between the user and the following philosophers: ${npcs.join(', ')}. 
@@ -269,6 +329,27 @@ export async function POST(req: NextRequest) {
           timestamp: new Date()
         };
         
+        // 사용자 메시지와 AI 응답 MongoDB에 저장
+        if (roomId) {
+          try {
+            // 사용자 메시지 먼저 저장 (아직 저장되지 않았다면)
+            if (latestUserMessage && latestUserMessage.isUser) {
+              console.log(`💾 사용자 메시지 저장: ${latestUserMessage.text.substring(0, 30)}...`);
+              await chatRoomDB.addMessage(roomId, latestUserMessage);
+            }
+            
+            // AI 응답 저장
+            console.log(`💾 AI 응답 저장: ${aiMessage.text.substring(0, 30)}...`);
+            await chatRoomDB.addMessage(roomId, aiMessage);
+            console.log('✅ 메시지가 MongoDB에 저장되었습니다.');
+          } catch (dbError) {
+            console.error('MongoDB 저장 오류:', dbError);
+            // 저장 실패해도 메시지는 반환
+          }
+        } else {
+          console.warn('메시지 저장 건너뜀: roomId가 제공되지 않음');
+        }
+        
         return NextResponse.json(aiMessage);
       } catch (error: any) {
         console.error('❌ Error in Ollama chat API:', error);
@@ -311,6 +392,9 @@ export async function POST(req: NextRequest) {
       console.log(`💬 Calling OpenAI API with model: ${openaiModel}`);
       console.log('💬 Message count:', formattedMessages.length);
       
+      // 유효한 API 키로 OpenAI 클라이언트 초기화
+      const openai = initializeOpenAIClient(effectiveApiKey);
+
       // OpenAI API 호출
       const response = await openai.chat.completions.create({
         model: openaiModel,
@@ -362,6 +446,27 @@ export async function POST(req: NextRequest) {
         isUser: false,
         timestamp: new Date()
       };
+      
+      // 사용자 메시지와 AI 응답 MongoDB에 저장
+      if (roomId) {
+        try {
+          // 사용자 메시지 먼저 저장 (아직 저장되지 않았다면)
+          if (latestUserMessage && latestUserMessage.isUser) {
+            console.log(`💾 사용자 메시지 저장: ${latestUserMessage.text.substring(0, 30)}...`);
+            await chatRoomDB.addMessage(roomId, latestUserMessage);
+          }
+          
+          // AI 응답 저장
+          console.log(`💾 AI 응답 저장: ${aiMessage.text.substring(0, 30)}...`);
+          await chatRoomDB.addMessage(roomId, aiMessage);
+          console.log('✅ 메시지가 MongoDB에 저장되었습니다.');
+        } catch (dbError) {
+          console.error('MongoDB 저장 오류:', dbError);
+          // 저장 실패해도 메시지는 반환
+        }
+      } else {
+        console.warn('메시지 저장 건너뜀: roomId가 제공되지 않음');
+      }
       
       return NextResponse.json(aiMessage);
     } catch (error: any) {

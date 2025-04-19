@@ -8,7 +8,8 @@ import chatService, { ChatRoom } from '@/lib/ai/chatService';
 export default function ChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const chatId = searchParams.get('id');
+  // 컴포넌트 초기화 시 한 번만 id 값을 추출하고 null 체크
+  const chatIdParam = searchParams ? searchParams.get('id') : null;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chatData, setChatData] = useState<ChatRoom | null>(null);
@@ -25,10 +26,19 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (!chatId) {
+    if (!chatIdParam) {
       setError('No chat ID provided');
       setLoading(false);
       return;
+    }
+
+    console.log('Chat page received ID:', chatIdParam, typeof chatIdParam);
+
+    // 숫자형 ID로 변환 시도
+    let chatId: string | number = chatIdParam;
+    if (!isNaN(Number(chatIdParam))) {
+      chatId = Number(chatIdParam);
+      console.log('Converted ID to number:', chatId);
     }
 
     const loadChatData = async () => {
@@ -36,12 +46,23 @@ export default function ChatPage() {
         setLoading(true);
         setError(null);
         
+        console.log('Fetching chat room with ID:', chatId, typeof chatId);
         const room = await chatService.getChatRoomById(chatId);
         
         if (!room) {
+          console.error('Room not found for ID:', chatId);
           setError('Chat room not found');
           return;
         }
+        
+        // ID 일치 여부 확인 - 중요!
+        if (room.id && String(room.id) !== String(chatId)) {
+          console.error(`ID mismatch: requested=${chatId}, received=${room.id}`);
+          setError('Incorrect chat room loaded');
+          return;
+        }
+        
+        console.log('Successfully loaded room:', room.id, room.title, 'with', room.messages?.length || 0, 'messages');
         
         // Check if room has any users (excluding NPCs)
         if (room.participants.users.length === 0) {
@@ -60,7 +81,7 @@ export default function ChatPage() {
     };
     
     loadChatData();
-  }, [chatId, router]);
+  }, [chatIdParam, router]);
 
   const handleBackToOpenChat = () => {
     router.push('/open-chat');

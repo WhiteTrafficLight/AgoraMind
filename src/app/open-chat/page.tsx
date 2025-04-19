@@ -1,10 +1,32 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import chatService, { ChatRoom, ChatRoomCreationParams } from '@/lib/ai/chatService';
+import { io, Socket } from 'socket.io-client';
+
+// Declare global window properties for TypeScript
+declare global {
+  interface Window {
+    _debug?: {
+      getSocket: () => Socket | null;
+      socketConnected: boolean;
+      getActiveChats: () => ChatRoom[];
+      reloadRooms: () => Promise<void>;
+      roomsCount: number;
+      forceReconnect: () => void;
+    };
+    _socketDebug?: {
+      socketId?: string;
+      connected?: boolean;
+      url?: string;
+      error?: string;
+      disconnectReason?: string;
+    };
+  }
+}
 
 export default function OpenChatPage() {
   const router = useRouter();
@@ -15,29 +37,218 @@ export default function OpenChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeChats, setActiveChats] = useState<ChatRoom[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
   
   // Create chat form state
   const [newChatTitle, setNewChatTitle] = useState('');
   const [newChatContext, setNewChatContext] = useState('');
   const [maxParticipants, setMaxParticipants] = useState(5);
   const [selectedNPCs, setSelectedNPCs] = useState<string[]>([]);
+  const [isPublic, setIsPublic] = useState(true);
   
-  // Load chat rooms on component mount
+  // 채팅룸 목록 로드 함수
+  const loadChatRooms = async () => {
+    try {
+      setIsLoading(true);
+      const rooms = await chatService.getChatRooms();
+      setActiveChats(rooms);
+    } catch (error) {
+      console.error('Failed to load chat rooms:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // 소켓 초기화 함수
+  const initializeSocket = async () => {
+    try {
+      // 1. 서버 소켓 핸들러 초기화
+      console.log('Initializing Socket.IO server...');
+      const res = await fetch('/api/socket');
+      if (!res.ok) {
+        throw new Error(`Failed to initialize socket server: ${res.status}`);
+      }
+      console.log('✅ Socket server initialized');
+      
+      // 2. Socket.IO 클라이언트 연결 설정 (아직 연결은 하지 않음)
+      socketRef.current = io('/', {
+        path: '/api/socket/io',
+        autoConnect: false, // 수동으로 연결할 것임
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
+      
+      // 3. 이벤트 리스너 먼저 등록 (중요: 연결 전에 리스너 등록)
+      const socket = socketRef.current;
+      
+      // 연결 상태 이벤트
+      socket.on('connect', () => {
+        console.log('✅ Socket.IO connected!');
+        setSocketConnected(true);
+      });
+      
+      socket.on('disconnect', () => {
+        console.log('Socket.IO disconnected');
+        setSocketConnected(false);
+      });
+      
+      socket.on('connect_error', (err) => {
+        console.error('Socket.IO connection error:', err);
+        setSocketConnected(false);
+      });
+      
+      // room-created 이벤트 리스너
+      socket.on('room-created', (newRoom: ChatRoom) => {
+        console.log('🔔 New chat room created:', newRoom.title);
+        
+        // 새 방을 활성 채팅룸 목록에 추가 (중복 방지)
+        setActiveChats(prev => {
+          // 이미 같은 ID의 방이 있는지 확인
+          const exists = prev.some(room => room.id === newRoom.id);
+          if (exists) {
+            console.log('Room already exists in state, not adding duplicate');
+            return prev;
+          }
+          
+          console.log('Adding new room to state:', newRoom.title);
+          // 새 방을 목록 맨 위에 추가
+          return [newRoom, ...prev];
+        });
+      });
+      
+      // 4. 이제 리스너 등록 완료 후 연결 시작
+      socket.connect();
+      console.log('Socket connect() called');
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize socket:', error);
+      return false;
+    }
+  };
+  
+  // 컴포넌트 마운트 시 소켓 초기화 및 채팅룸 로드
   useEffect(() => {
-    const loadChatRooms = async () => {
-      try {
-        setIsLoading(true);
-        const rooms = await chatService.getChatRooms();
-        setActiveChats(rooms);
-      } catch (error) {
-        console.error('Failed to load chat rooms:', error);
-      } finally {
-        setIsLoading(false);
+    // 초기화 순서 보장: 소켓 먼저 초기화 후 데이터 로드
+    const init = async () => {
+      // 1. 소켓 초기화
+      await initializeSocket();
+      
+      // 2. 채팅룸 데이터 로드
+      await loadChatRooms();
+
+      // 3. 디버깅용: 전역 창에 소켓 참조 노출
+      if (typeof window !== 'undefined') {
+        console.log('🔄 소켓 디버깅 변수 설정');
+        // @ts-ignore
+        window._debug = {
+          getSocket: () => socketRef.current,
+          socketConnected,
+          getActiveChats: () => activeChats,
+          reloadRooms: loadChatRooms,
+          roomsCount: activeChats.length,
+          // 새 디버깅 함수 추가
+          forceReconnect: () => {
+            if (socketRef.current) {
+              console.log("수동으로 소켓 재연결 시도");
+              socketRef.current.disconnect();
+              setTimeout(() => {
+                socketRef.current?.connect();
+              }, 500);
+            } else {
+              console.log("소켓 참조가 없습니다. 초기화 부터 다시 시도합니다.");
+              initializeSocket();
+            }
+          }
+        };
+        console.log('🔍 디버깅: window._debug로 소켓 상태를 확인할 수 있습니다');
+        console.log('🔍 사용 예: window._debug.socketConnected');
+        console.log('🔍 채팅룸 새로고침: window._debug.reloadRooms()');
+        console.log('🔍 소켓 재연결: window._debug.forceReconnect()');
+        
+        // 소켓 디버깅 정보도 함께 체크
+        // @ts-ignore
+        if (window._socketDebug) {
+          console.log('Socket.IO 디버깅 정보:', window._socketDebug);
+          // 소켓 연결 상태 동기화
+          // @ts-ignore
+          if (window._socketDebug.connected !== undefined) {
+            setSocketConnected(window._socketDebug.connected);
+          }
+        }
       }
     };
     
-    loadChatRooms();
+    init();
+    
+    // 컴포넌트 언마운트 시 소켓 연결 해제
+    return () => {
+      if (socketRef.current) {
+        console.log('Disconnecting socket');
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
   }, []);
+  
+  // 소켓 연결 상태가 변경될 때마다 디버깅 변수 업데이트
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window._debug) {
+      // @ts-ignore
+      window._debug.socketConnected = socketConnected;
+    }
+    
+    // 소켓이 연결되면 채팅룸 목록을 새로고침 (최초 1회만)
+    if (socketConnected && !isLoading && activeChats.length === 0) {
+      console.log('🔄 소켓 연결됨 - 최초 채팅룸 목록 로드');
+      loadChatRooms();
+    }
+  }, [socketConnected, isLoading, activeChats.length]);
+  
+  // 소켓 디버그 정보가 변경될 때 소켓 연결 상태 업데이트 (주기 10초로 증가)
+  useEffect(() => {
+    const checkSocketDebug = () => {
+      // @ts-ignore
+      if (typeof window !== 'undefined' && window._socketDebug) {
+        // @ts-ignore
+        const connected = window._socketDebug.connected;
+        if (connected !== undefined && connected !== socketConnected) {
+          console.log('소켓 디버그 정보에서 연결 상태 업데이트:', connected);
+          setSocketConnected(connected);
+        }
+      }
+    };
+    
+    // 주기적으로 소켓 디버그 정보 확인 (10초마다)
+    const intervalId = setInterval(checkSocketDebug, 10000);
+    
+    // 초기 체크
+    checkSocketDebug();
+    
+    return () => clearInterval(intervalId);
+  }, [socketConnected]);
+  
+  // 채팅룸 목록 업데이트를 위한 폴링 설정 (1분마다)
+  useEffect(() => {
+    // 1분마다 채팅룸 목록 갱신
+    const intervalId = setInterval(() => {
+      if (socketConnected && !isLoading && !showCreateChatModal) {
+        // 콘솔 로그 제거
+        loadChatRooms();
+      }
+    }, 60000); // 1분마다
+    
+    return () => clearInterval(intervalId);
+  }, [socketConnected, isLoading, showCreateChatModal]);
+  
+  // 채팅룸 목록이 변경될 때마다 디버깅 변수 업데이트
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window._debug) {
+      // @ts-ignore
+      window._debug.roomsCount = activeChats.length;
+    }
+  }, [activeChats]);
   
   // 모달 상태에 따라 body 클래스를 관리하는 useEffect 추가
   useEffect(() => {
@@ -60,12 +271,13 @@ export default function OpenChatPage() {
   ];
   
   // Filter chats based on search query
-  const filteredChats = activeChats.filter(chat =>
-    chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    [...chat.participants.users, ...chat.participants.npcs].some(
-      p => p.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+  const filteredChats = activeChats
+    .filter(chat =>
+      chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      [...chat.participants.users, ...chat.participants.npcs].some(
+        p => p.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    );
 
   // Toggle NPC selection
   const toggleNPC = (npc: string) => {
@@ -89,22 +301,25 @@ export default function OpenChatPage() {
         title: newChatTitle,
         context: newChatContext,
         maxParticipants,
-        npcs: selectedNPCs
+        npcs: selectedNPCs,
+        isPublic: isPublic,
+        currentUser: `User_${Math.floor(Math.random() * 10000)}` // 랜덤 사용자 이름 생성
       };
       
+      // 서버 API를 통해 채팅룸 생성
+      console.log('Creating new chat room:', chatParams.title);
       const newChat = await chatService.createChatRoom(chatParams);
+      console.log('Chat room created successfully:', newChat.id);
       
-      // Update local chat list
-      setActiveChats(prev => [newChat, ...prev]);
-      
-      // Reset form and close modal
+      // 폼 초기화 및 모달 닫기
       setNewChatTitle('');
       setNewChatContext('');
       setMaxParticipants(5);
       setSelectedNPCs([]);
+      setIsPublic(true);
       setShowCreateChatModal(false);
       
-      // Navigate to the newly created chat
+      // 방금 생성한 채팅방으로 이동
       router.push(`/chat?id=${newChat.id}`);
     } catch (error) {
       console.error('Failed to create chat room:', error);
@@ -115,29 +330,52 @@ export default function OpenChatPage() {
   };
 
   // Handle joining a chat
-  const handleJoinChat = (chatId: number) => {
+  const handleJoinChat = (chatId: string | number) => {
+    console.log('Joining chat with ID:', chatId, typeof chatId);
     // Navigate to the chat page
     router.push(`/chat?id=${chatId}`);
   };
 
-  // Create New Chat 버튼 클릭 핸들러 수정
+  // Create New Chat 버튼 클릭 핸들러
   const handleCreateChatClick = () => {
-    // 팝업 창 대신 모달을 표시합니다
     setShowCreateChatModal(true);
+  };
+
+  // 소켓 연결 상태 표시기를 렌더링
+  const renderSocketStatus = () => {
+    if (!socketConnected) {
+      return (
+        <div className="fixed top-0 left-0 right-0 bg-red-500 text-white p-1 text-center text-sm z-50">
+          Socket disconnected. Real-time updates may not work.
+          <button 
+            onClick={() => initializeSocket()} 
+            className="ml-2 px-2 py-0.5 bg-white text-red-500 rounded text-xs font-bold"
+          >
+            Reconnect
+          </button>
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
     <>
+      {renderSocketStatus()}
+      
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Open Philosophical Dialogues</h1>
-          <button 
-            onClick={handleCreateChatClick}
-            className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Create New Chat
-          </button>
+          <div className="flex items-center gap-2">
+            <div className={`h-3 w-3 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <button 
+              onClick={handleCreateChatClick}
+              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
+            >
+              <PlusIcon className="h-5 w-5" />
+              Create New Chat
+            </button>
+          </div>
         </div>
         
         <div className="bg-white border border-black p-4 rounded-md mb-6">
@@ -156,11 +394,18 @@ export default function OpenChatPage() {
             <button className="border border-black px-3 py-1 rounded-md hover:bg-gray-100">Active</button>
             <button className="border border-black px-3 py-1 rounded-md hover:bg-gray-100">Recent</button>
             <button className="border border-black px-3 py-1 rounded-md hover:bg-gray-100">Popular</button>
+            <button 
+              onClick={loadChatRooms} 
+              className="ml-auto border border-black px-3 py-1 rounded-md hover:bg-gray-100 flex items-center gap-1"
+            >
+              <span>Refresh</span>
+              {isLoading && <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full"></div>}
+            </button>
           </div>
         </div>
         
         <div className="space-y-4">
-          {isLoading ? (
+          {isLoading && activeChats.length === 0 ? (
             <div className="py-20">
               <div className="flex justify-center">
                 <div className="animate-spin h-10 w-10 border-4 border-black border-t-transparent rounded-full"></div>
@@ -169,7 +414,7 @@ export default function OpenChatPage() {
             </div>
           ) : filteredChats.length > 0 ? (
             filteredChats.map(chat => (
-              <div key={chat.id} className="bg-white border border-black p-4 rounded-md hover:shadow-md transition-shadow">
+              <div key={`chat-${chat.id}`} className="bg-white border border-black p-4 rounded-md hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-center">
                   <div 
                     className="block flex-grow cursor-pointer"
@@ -325,6 +570,32 @@ export default function OpenChatPage() {
                       max="10"
                       className="w-full p-4 text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                     />
+                  </div>
+                  
+                  <div className="mb-6">
+                    <label className="block mb-3 font-medium text-lg">Chat Visibility</label>
+                    <div className="flex gap-6">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="visibility"
+                          checked={isPublic}
+                          onChange={() => setIsPublic(true)}
+                          className="mr-2 h-5 w-5"
+                        />
+                        <span className="text-lg">Public (anyone can join)</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="visibility"
+                          checked={!isPublic}
+                          onChange={() => setIsPublic(false)}
+                          className="mr-2 h-5 w-5"
+                        />
+                        <span className="text-lg">Private (invite only)</span>
+                      </label>
+                    </div>
                   </div>
                   
                   <div className="mb-8">
