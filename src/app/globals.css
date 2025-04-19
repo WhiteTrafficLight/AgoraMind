@@ -92,6 +92,90 @@ header {
   animation: fadeIn 0.5s ease-out;
 }
 
+/* 새 채팅 말풍선 스타일 */
+.chat-message-bubble {
+  position: relative;
+  border-radius: 18px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  max-width: 70%;
+  width: fit-content;
+  margin-bottom: 0.75rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 내 메시지 (회색) */
+.chat-message-bubble-mine {
+  background-color: #e5e7eb;
+  color: #111827;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+/* 내 메시지의 말풍선 꼬리 */
+.chat-message-bubble-mine::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: -8px;
+  width: 16px;
+  height: 16px;
+  background-color: #e5e7eb;
+  transform: rotate(45deg);
+  border-bottom-right-radius: 4px;
+}
+
+/* 다른 사용자 메시지 (파란색) */
+.chat-message-bubble-other-user {
+  background-color: #3b82f6;
+  color: white;
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+}
+
+/* 다른 사용자 메시지의 말풍선 꼬리 */
+.chat-message-bubble-other-user::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  background-color: #3b82f6;
+  transform: rotate(45deg);
+  border-bottom-left-radius: 4px;
+}
+
+/* NPC 메시지 (초록색) */
+.chat-message-bubble-npc {
+  background-color: #10b981;
+  color: white;
+  margin-right: auto;
+  border-bottom-left-radius: 4px;
+}
+
+/* NPC 메시지의 말풍선 꼬리 */
+.chat-message-bubble-npc::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  background-color: #10b981;
+  transform: rotate(45deg);
+  border-bottom-left-radius: 4px;
+}
+
+/* 메시지 시간 스타일 */
+.chat-message-time {
+  font-size: 0.65rem;
+  opacity: 0.7;
+  text-align: right;
+  margin-top: 0.25rem;
+}
+
 .user-message .message-content {
   background-color: #eaeaea;
   max-width: 85%;

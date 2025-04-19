@@ -245,11 +245,13 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
             console.log(`📢 메시지 브로드캐스트 [방 ${roomId}]: ${JSON.stringify({ id: message.id, text: message.text.substring(0, 20) + '...', sender: message.sender })}`);
             console.log(`📊 현재 방(${roomId})에 연결된 클라이언트 수: ${io.sockets.adapter.rooms.get(roomId)?.size || 0}명`);
             
-            io.to(roomId).emit('new-message', {
+            // 발신자 자신에게는 메시지를 다시 보내지 않음
+            // socket.broadcast.to(roomId)로 변경하여 자신을 제외한 방의 다른 사용자들에게만 브로드캐스트
+            socket.broadcast.to(roomId).emit('new-message', {
               roomId: roomId,
               message: message
             });
-            console.log(`✅ 브로드캐스트 완료 - 방의 클라이언트 수: ${io.sockets.adapter.rooms.get(roomId)?.size || 0}명`);
+            console.log(`✅ 브로드캐스트 완료 - 발신자 제외 방송`);
             
             // AI 응답 생성
             try {
@@ -337,7 +339,7 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
                     roomId: roomId,
                     message: aiMessage
                   });
-                  console.log(`✅ AI 응답 브로드캐스트 완료 - 발신자: ${aiMessage.sender}`);
+                  console.log(`✅ AI 응답 브로드캐스트 완료 - 모든 클라이언트에게 전송됨`);
                 } else if (responseData && responseData.message) {
                   // 이전 형식(message 필드 내부에 메시지가 있는 경우) - 하위 호환성 유지
                   const aiMessage = responseData.message;
@@ -382,6 +384,7 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
                   roomId: roomId,
                   message: errorMessage
                 });
+                console.log(`✅ 오류 메시지 브로드캐스트 완료 - 모든 클라이언트에게 전송됨`);
               } catch (msgError) {
                 console.error('Failed to send error message:', msgError);
               }

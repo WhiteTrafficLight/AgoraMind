@@ -39,6 +39,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [socketClientInstance, setSocketClientInstance] = useState<SocketClient | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sentMessageIds, setSentMessageIds] = useState<string[]>([]);
   
   // Prompt for username if not already set
   useEffect(() => {
@@ -51,10 +52,26 @@ const ChatUI: React.FC<ChatUIProps> = ({
   }, [username]);
   
   // Process and deduplicate messages
-  const processedMessages = messages.filter((msg, index, self) => 
-    // Keep the message if it's the first occurrence of its ID
-    index === self.findIndex(m => m.id === msg.id)
-  );
+  const processedMessages = messages.filter((msg, index, self) => {
+    // 이전 메시지와 동일한 내용과 발신자를 가진 메시지 제거 (5초 이내 발송된 경우)
+    if (index > 0) {
+      const prevMsg = self[index - 1];
+      const timeDiff = new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime();
+      
+      // 같은 사람이 5초 이내에 동일한 텍스트를 보낸 경우 중복으로 간주
+      if (
+        msg.sender === prevMsg.sender && 
+        msg.text === prevMsg.text && 
+        msg.isUser === prevMsg.isUser && 
+        timeDiff < 5000
+      ) {
+        return false;
+      }
+    }
+    
+    // 동일한 ID를 가진 첫 번째 메시지만 유지
+    return index === self.findIndex(m => m.id === msg.id);
+  });
 
   // 채팅방 입장 시 최신 메시지 로드 기능 추가
   useEffect(() => {
@@ -202,19 +219,10 @@ const ChatUI: React.FC<ChatUIProps> = ({
       // Handle new messages received through socket
       const onNewMessage = (data: { roomId: string, message: ChatMessage }) => {
         console.log('🔍 새 메시지 수신:', data);
-        console.log('🏠 현재 채팅방 ID:', chatId, typeof chatId);
-        console.log('📨 수신된 메시지 방 ID:', data.roomId, typeof data.roomId);
-        
-        // ⚡️ Socket.IO 디버깅 - 추가 정보 출력
-        console.log('📡 Socket 연결 상태:', instance.isConnected() ? '연결됨' : '연결안됨');
-        console.log('🔌 Socket ID:', instance.isConnected() ? '연결됨' : '연결안됨');
-        console.log('👤 참여 사용자명:', instance.getUsername());
         
         // 해당 방의 메시지인지 확인 - 문자열 변환하여 비교
         const currentRoomId = String(chatId);
         const receivedRoomId = String(data.roomId);
-        
-        console.log('📋 비교: 현재방=', currentRoomId, '수신방=', receivedRoomId, '일치여부=', currentRoomId === receivedRoomId);
         
         if (currentRoomId !== receivedRoomId) {
           console.log(`❌ 메시지 무시: 다른 방의 메시지 (${receivedRoomId} != ${currentRoomId})`);
@@ -227,16 +235,39 @@ const ChatUI: React.FC<ChatUIProps> = ({
           return;
         }
         
-        console.log('✅ 유효한 메시지임, UI에 추가:', data.message);
+        console.log('✅ 유효한 메시지임, UI에 추가 검토:', data.message);
         
-        // 중복 메시지 확인 (ID로 비교)
-        setMessages(prev => {
-          // 이미 존재하는 메시지인지 확인
-          const existingMessageIndex = prev.findIndex(msg => msg.id === data.message.id);
+        // sentMessageIds에 있는 메시지 ID인지 확인 (내가 보낸 메시지가 서버에서 다시 오는 경우)
+        if (sentMessageIds.includes(data.message.id)) {
+          console.log('⚠️ 내가 보낸 메시지가 서버에서 다시 왔습니다. 무시합니다:', data.message.id);
+          return;
+        }
+        
+        // 메시지가 현재 사용자의 것이고, 이미 로컬에 표시된 경우 (ID는 다르지만 내용이 같은 경우)
+        if (data.message.isUser && data.message.sender === username) {
+          // 최근 5초 이내에 보낸 동일한 내용의 메시지가 있는지 확인
+          const now = new Date().getTime();
+          const existingSimilarMessage = messages.some(msg => 
+            msg.sender === data.message.sender && 
+            msg.text === data.message.text && 
+            msg.isUser === data.message.isUser &&
+            now - new Date(msg.timestamp).getTime() < 5000
+          );
           
-          if (existingMessageIndex !== -1) {
-            // 이미 존재하는 메시지가 있으면 업데이트하지 않음
-            console.log('⚠️ 중복 메시지 무시:', data.message.id);
+          if (existingSimilarMessage) {
+            console.log('⚠️ 이미 표시된 유사한 메시지입니다. 무시합니다:', data.message.text);
+            return;
+          }
+        }
+        
+        // 이미 UI에 있는 메시지인지 확인 (중복 방지)
+        setMessages(prev => {
+          // 이미 존재하는 메시지인지 확인 (ID로 비교)
+          const isDuplicate = prev.some(msg => msg.id === data.message.id);
+          
+          // 이미 존재하는 메시지면 무시
+          if (isDuplicate) {
+            console.log('⚠️ 중복 메시지 무시 (ID 일치):', data.message.id);
             return prev;
           }
           
@@ -256,6 +287,16 @@ const ChatUI: React.FC<ChatUIProps> = ({
             endOfMessagesRef.current.scrollIntoView({ behavior: 'smooth' });
           }
         }, 100);
+        
+        // 주기적으로 오래된 sentMessageIds 정리 (30초 이상 지난 ID 제거)
+        setSentMessageIds(prev => {
+          const thirtySecondsAgo = Date.now() - 30000;
+          return prev.filter(id => {
+            // ID에서 타임스탬프 추출 (형식: user-1234567890)
+            const timestamp = parseInt(id.split('-')[1]);
+            return isNaN(timestamp) || timestamp > thirtySecondsAgo;
+          });
+        });
       };
       
       // Handle thinking state for AI responses
@@ -448,11 +489,24 @@ const ChatUI: React.FC<ChatUIProps> = ({
       console.log('✅ 디버깅: socketClientInstance 존재 여부:', !!socketClientInstance);
       console.log('✅ 디버깅: 실제 연결 상태:', socketClientInstance?.isConnected() ? '연결됨' : '연결안됨');
       
+      // 메시지 내용 지우기 및 UI 업데이트
+      setMessage('');
+      // Reset textarea height
+      if (inputRef.current) {
+        inputRef.current.style.height = 'auto';
+      }
+      
       // Try socket path first, but allow API fallback
       let socketSucceeded = false;
       
       if (socketClientInstance && socketClientInstance.isConnected()) {
         console.log('⚡️ 소켓이 연결되어 있어 socket.io로 전송 시도');
+        
+        // 소켓으로 메시지를 보내기 전에 메시지 ID를 기록하여 중복 표시 방지 
+        setSentMessageIds(prev => [...prev, userMessage.id]);
+        
+        // 메시지 ID가 기록되기 전에 UI에 메시지 추가 (사용자 경험 향상을 위함)
+        setMessages(prev => [...prev, userMessage]);
         
         // Try socket emission
         const success = socketClientInstance.sendMessage(chatId, message);
@@ -460,15 +514,9 @@ const ChatUI: React.FC<ChatUIProps> = ({
         socketSucceeded = success;
         
         if (success) {
-          // Socket succeeded, update UI
-          setMessages(prev => [...prev, userMessage]);
-          setMessage('');
+          // Socket succeeded, no need for API fallback
           setIsThinking(true);
-          
-          if (inputRef.current) {
-            inputRef.current.style.height = 'auto';
-          }
-          return; // Socket succeeded, no need for API fallback
+          return;
         }
         // If socket failed, continue to API fallback
       }
@@ -476,13 +524,11 @@ const ChatUI: React.FC<ChatUIProps> = ({
       // Socket failed or not connected, use API fallback
       console.log('⚠️ 소켓 메시지 전송 실패 또는 소켓 미연결 - API로 전송');
       
-      // 먼저 UI에 메시지 추가
-      setMessages(prev => [...prev, userMessage]);
-      setMessage('');
-      
-      // Reset textarea height
-      if (inputRef.current) {
-        inputRef.current.style.height = 'auto';
+      // 소켓 실패 시 UI에 메시지 추가 (소켓이 이미 추가했다면 수행되지 않음)
+      // 중복 메시지가 있는지 확인
+      const messageExists = messages.some(msg => msg.id === userMessage.id);
+      if (!messageExists) {
+        setMessages(prev => [...prev, userMessage]);
       }
       
       // Show thinking indicator
@@ -1125,30 +1171,30 @@ Namespace: ${rawSocket.nsp || '/'}
                   )}
                   
                   {/* Message bubble */}
-                  <div className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'} mb-3`}>
+                  <div className={`flex ${
+                    // 현재 사용자(나)의 메시지만 오른쪽에 표시
+                    msg.isUser && msg.sender === username ? 'justify-end' : 'justify-start'
+                  } mb-3`}>
                     <div className="flex flex-col" style={{ maxWidth: '70%', width: 'auto' }}>
-                      {/* Sender name - only show for NPCs and only once per consecutive messages */}
-                      {!msg.isUser && (index === 0 || filteredList[index-1].sender !== msg.sender) && (
+                      {/* Sender name - 메시지를 보낸 사람의 이름 표시 (내 메시지 제외) */}
+                      {(msg.sender !== username || !msg.isUser) && 
+                        (index === 0 || filteredList[index-1].sender !== msg.sender) && (
                         <span className="text-xs font-medium text-gray-600 ml-2 mb-1">
-                          {msg.sender}
+                          {msg.isUser ? msg.sender : msg.sender}
                         </span>
                       )}
                       
-                      <div className={`relative px-4 py-3 rounded-2xl ${
+                      {/* 간소화된 말풍선 UI - CSS 클래스 사용 */}
+                      <div className={`chat-message-bubble ${
                         msg.isUser 
-                          ? 'bg-gray-300 text-black rounded-br-none' 
-                          : 'bg-blue-500 text-white rounded-bl-none'
-                      } shadow-sm`} style={{ width: 'fit-content', maxWidth: '100%' }}>
-                        {/* Triangle for bubble effect */}
-                        <div className={`absolute bottom-0 w-4 h-4 ${
-                          msg.isUser 
-                            ? 'right-0 translate-x-1/3 bg-gray-300' 
-                            : 'left-0 -translate-x-1/3 bg-blue-500'
-                        } transform rotate-45`}></div>
-                        
+                          ? (msg.sender === username 
+                              ? 'chat-message-bubble-mine' // 내 메시지: 회색
+                              : 'chat-message-bubble-other-user')  // 다른 사용자: 파란색
+                          : 'chat-message-bubble-npc' // NPC: 초록색
+                      }`}>
                         {/* Message text */}
-                        <div className="relative z-10">
-                          <p className="text-sm mb-1 break-words whitespace-pre-wrap overflow-hidden text-wrap">
+                        <div>
+                          <p className="break-words whitespace-pre-wrap overflow-hidden text-wrap">
                             {(() => {
                               // JSON 형식인지 확인하고 파싱
                               try {
@@ -1165,7 +1211,7 @@ Namespace: ${rawSocket.nsp || '/'}
                           
                           {/* Time stamp - 조건부 렌더링으로 유효하지 않은 timestamp 처리 */}
                           {msg.timestamp && !isNaN(new Date(msg.timestamp).getTime()) && (
-                            <p className={`text-[10px] ${msg.isUser ? 'text-gray-600' : 'text-gray-200'} text-right mt-1`}>
+                            <p className="chat-message-time">
                               {formatTime(msg.timestamp)}
                             </p>
                           )}
@@ -1183,12 +1229,9 @@ Namespace: ${rawSocket.nsp || '/'}
                   <span className="text-xs font-medium text-gray-600 ml-2 mb-1">
                     {participants.npcs[0]}
                   </span>
-                  <div className="relative px-4 py-3 rounded-2xl bg-blue-500 text-white rounded-bl-none shadow-sm">
-                    {/* Triangle for bubble effect */}
-                    <div className="absolute bottom-0 left-0 -translate-x-1/3 w-4 h-4 bg-blue-500 transform rotate-45"></div>
-                    
+                  <div className="chat-message-bubble chat-message-bubble-npc">
                     {/* Thinking dots */}
-                    <div className="relative z-10 flex space-x-2 py-1">
+                    <div className="flex space-x-2 py-1">
                       <div className="bg-white rounded-full w-2.5 h-2.5 animate-bounce" style={{ animationDelay: '0ms' }}></div>
                       <div className="bg-white rounded-full w-2.5 h-2.5 animate-bounce" style={{ animationDelay: '150ms' }}></div>
                       <div className="bg-white rounded-full w-2.5 h-2.5 animate-bounce" style={{ animationDelay: '300ms' }}></div>
