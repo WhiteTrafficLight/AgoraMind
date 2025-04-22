@@ -92,10 +92,7 @@ export default function Home() {
                 }`}
               >
                 <span className="relative">
-                  Agora
-                  <span className="relative">
-                    <span className="blur-effect">Mind</span>
-                  </span>
+                  AgoraMind
                 </span>
               </h1>
               
@@ -105,27 +102,13 @@ export default function Home() {
                 }`}
               >
                 <h2 className="text-[3.5rem] md:text-[4rem] font-medium text-black leading-tight tracking-tight">
-                  <span>Virtual </span>
-                  <span className="blur-effect-strong">Restoration</span>
-                  <span> of the </span>
-                  <span className="blur-effect">Ancient</span>
-                  <span> Agora</span>
+                  <span>Virtual Restoration of the Ancient Agora</span>
                 </h2>
                 <p className="text-[2.5rem] md:text-[3rem] text-black font-light leading-snug pl-6">
-                  AgoraMind 
-                  <span className="blur-effect-strong"> revives </span>
-                  the intellectual culture of the 
-                  <span className="blur-effect"> ancient Agora </span>
-                  in a digital space.
+                  AgoraMind revives the intellectual culture of the ancient Agora in a digital space.
                 </p>
                 <p className="text-[2.5rem] md:text-[3rem] text-black font-light leading-snug pl-6">
-                  A new 
-                  <span className="blur-effect"> public square </span>
-                  where 
-                  <span className="blur-effect-strong"> AI </span>
-                  and 
-                  <span className="blur-effect"> humans </span>
-                  create knowledge together.
+                  A new public square where AI and humans create knowledge together.
                 </p>
               </div>
             </div>
@@ -136,9 +119,7 @@ export default function Home() {
         <section className="min-h-screen w-full flex items-center snap-start">
           <div className="container px-6 py-12 mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold mb-8 text-black">
-              <span>How to Deal with </span>
-              <span className="blur-effect">Betrayal</span>
-              <span> by a Close Friend?</span>
+              <span>How to Deal with Betrayal by a Close Friend?</span>
             </h2>
             
             <div className="w-full max-w-4xl mx-auto mt-12 chat-container h-[70vh] rounded-2xl overflow-hidden relative">

@@ -73,10 +73,35 @@ const ChatUI: React.FC<ChatUIProps> = ({
     return index === self.findIndex(m => m.id === msg.id);
   });
 
+  // 채팅방 ID가 변경될 때마다 완전히 새로운 채팅방으로 초기화
+  useEffect(() => {
+    // chatId가 변경되면 메시지와 상태를 완전히 초기화
+    console.log(`🔄 채팅방 ID 변경: ${chatId}`);
+    
+    // 이전 메시지 상태 초기화
+    setMessages([]);
+    setIsThinking(false);
+    setIsSending(false);
+    setError(null);
+    
+    // 채팅방 별 고유한 ID로 빈 메시지 배열 초기화
+    if (initialMessages && initialMessages.length > 0) {
+      console.log(`⚡ 채팅방 ${chatId}에 대한 ${initialMessages.length}개 초기 메시지 설정`);
+      setMessages([...initialMessages]);
+    }
+    
+    // 화면 스크롤 초기화
+    setTimeout(() => {
+      if (endOfMessagesRef.current) {
+        endOfMessagesRef.current.scrollIntoView({ behavior: 'auto' });
+      }
+    }, 100);
+  }, [chatId, initialMessages]);
+
   // 채팅방 입장 시 최신 메시지 로드 기능 추가
   useEffect(() => {
-    // 이전 메시지가 없을 때만 API에서 메시지 로드
-    const shouldLoadMessages = initialMessages.length === 0 || messages.length === 0;
+    // 메시지가 없을 때만 API에서 메시지 로드
+    const shouldLoadMessages = initialMessages.length === 0 && messages.length === 0;
     
     if (chatId && shouldLoadMessages && !loading) {
       const loadLatestMessages = async () => {
@@ -86,13 +111,19 @@ const ChatUI: React.FC<ChatUIProps> = ({
           const roomData = await chatService.getChatRoomById(chatId);
           
           // 잘못된 채팅방 필터링
-          if (roomData && String(roomData.id) !== String(chatId)) {
+          if (!roomData) {
+            console.error(`Chat room not found: ${chatId}`);
+            setError('Chat room not found');
+            return;
+          }
+          
+          if (String(roomData.id) !== String(chatId)) {
             console.error(`Chat ID mismatch: requested=${chatId}, received=${roomData.id}`);
             setError('Loaded incorrect chat room');
             return;
           }
           
-          if (roomData && roomData.messages && roomData.messages.length > 0) {
+          if (roomData.messages && roomData.messages.length > 0) {
             console.log(`Loaded ${roomData.messages.length} messages from API for room ID ${chatId}`);
             
             // 이전 메시지 지우고 새로 로드된 메시지로 설정
@@ -105,10 +136,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
               }
             }, 100);
           } else {
-            console.log('No messages found for room or room not found');
-            if (!roomData) {
-              setError('Chat room not found');
-            }
+            console.log('No messages found for room');
           }
         } catch (error) {
           console.error('Failed to load messages:', error);

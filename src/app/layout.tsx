@@ -1,15 +1,15 @@
-import React from 'react';
+import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import './globals.css';
 import Header from '@/components/ui/Header';
+import { Providers } from './providers';
 // import Footer from '@/components/ui/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'AgoraMind - Philosophical Dialogue Platform',
-  description: 'A platform for collaborative knowledge creation through philosophical dialogues between humans and AI.',
+  title: 'AgoraMind',
+  description: 'AI-powered chat application',
 };
 
 export default function RootLayout({
@@ -20,9 +20,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} flex flex-col min-h-screen`}>
+        <Providers>
         <Header />
         <main className="flex-grow">{children}</main>
         {/* <Footer /> */}
+        </Providers>
       </body>
     </html>
   );

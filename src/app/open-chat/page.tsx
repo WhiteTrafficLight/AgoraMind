@@ -43,16 +43,29 @@ export default function OpenChatPage() {
   // Create chat form state
   const [newChatTitle, setNewChatTitle] = useState('');
   const [newChatContext, setNewChatContext] = useState('');
+  const [contextUrl, setContextUrl] = useState('');
+  const [contextFile, setContextFile] = useState<File | null>(null);
+  const [contextFileContent, setContextFileContent] = useState('');
+  const [activeContextTab, setActiveContextTab] = useState<'text' | 'url' | 'file'>('text');
   const [maxParticipants, setMaxParticipants] = useState(5);
   const [selectedNPCs, setSelectedNPCs] = useState<string[]>([]);
   const [isPublic, setIsPublic] = useState(true);
+  const [isLoadingContext, setIsLoadingContext] = useState(false);
   
   // 채팅룸 목록 로드 함수
   const loadChatRooms = async () => {
     try {
       setIsLoading(true);
       const rooms = await chatService.getChatRooms();
-      setActiveChats(rooms);
+      
+      // 중복 ID 처리 (동일한 ID가 있는 경우 최신 버전 유지)
+      const uniqueRooms: { [key: string]: ChatRoom } = {};
+      rooms.forEach(room => {
+        uniqueRooms[String(room.id)] = room;
+      });
+      
+      // 고유한 채팅방 배열로 변환
+      setActiveChats(Object.values(uniqueRooms));
     } catch (error) {
       console.error('Failed to load chat rooms:', error);
     } finally {
@@ -105,10 +118,13 @@ export default function OpenChatPage() {
         // 새 방을 활성 채팅룸 목록에 추가 (중복 방지)
         setActiveChats(prev => {
           // 이미 같은 ID의 방이 있는지 확인
-          const exists = prev.some(room => room.id === newRoom.id);
+          const exists = prev.some(room => String(room.id) === String(newRoom.id));
           if (exists) {
             console.log('Room already exists in state, not adding duplicate');
-            return prev;
+            // ID가 같은 방이 있으면 해당 방만 업데이트
+            return prev.map(room => 
+              String(room.id) === String(newRoom.id) ? newRoom : room
+            );
           }
           
           console.log('Adding new room to state:', newRoom.title);
@@ -297,9 +313,25 @@ export default function OpenChatPage() {
     try {
       setIsCreating(true);
       
+      // 컨텍스트 데이터 선택
+      let finalContext = '';
+      let contextUrl = '';
+      let contextFileContent = '';
+      
+      // 활성 탭에 따라 컨텍스트 설정
+      if (activeContextTab === 'text') {
+        finalContext = newChatContext;
+      } else if (activeContextTab === 'url') {
+        finalContext = newChatContext;
+      } else if (activeContextTab === 'file') {
+        finalContext = newChatContext;
+      }
+      
       const chatParams: ChatRoomCreationParams = {
         title: newChatTitle,
-        context: newChatContext,
+        context: finalContext,
+        contextUrl: contextUrl || undefined,
+        contextFileContent: contextFileContent || undefined,
         maxParticipants,
         npcs: selectedNPCs,
         isPublic: isPublic,
@@ -311,16 +343,38 @@ export default function OpenChatPage() {
       const newChat = await chatService.createChatRoom(chatParams);
       console.log('Chat room created successfully:', newChat.id);
       
+      // 방금 생성한 채팅방 ID 확인
+      const newChatId = newChat.id;
+      if (!newChatId) {
+        console.error('Error: New chat has no ID');
+        alert('Failed to create chat room - no ID returned.');
+        setIsCreating(false);
+        return;
+      }
+      
+      // 명확한 ID 로깅
+      console.log(`✅ 새로 생성된 채팅방 ID: ${newChatId} (${typeof newChatId})`);
+      
       // 폼 초기화 및 모달 닫기
       setNewChatTitle('');
       setNewChatContext('');
+      setContextUrl('');
+      setContextFile(null);
+      setContextFileContent('');
+      setActiveContextTab('text');
       setMaxParticipants(5);
       setSelectedNPCs([]);
       setIsPublic(true);
       setShowCreateChatModal(false);
       
-      // 방금 생성한 채팅방으로 이동
-      router.push(`/chat?id=${newChat.id}`);
+      // 방금 생성한 채팅방으로 이동 - ID를 문자열로 확실하게 변환
+      const chatIdStr = String(newChatId);
+      console.log(`✅ 이동할 채팅방 URL: /chat?id=${chatIdStr}`);
+      
+      // 약간의 지연 후 이동 (상태가 모두 초기화될 시간을 주기 위해)
+      setTimeout(() => {
+        router.push(`/chat?id=${chatIdStr}`);
+      }, 100);
     } catch (error) {
       console.error('Failed to create chat room:', error);
       alert('Failed to create chat room. Please try again.');
@@ -359,6 +413,110 @@ export default function OpenChatPage() {
     return null;
   };
 
+  // URL에서 컨텍스트 가져오기
+  const fetchContextFromUrl = async () => {
+    if (!contextUrl.trim()) return;
+    
+    try {
+      setIsLoadingContext(true);
+      
+      // API 엔드포인트를 통해 URL 내용 가져오기
+      const response = await fetch('/api/context/fetch-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url: contextUrl })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch context: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // 가져온 컨텍스트를 텍스트 영역에 설정
+      if (data.content) {
+        setNewChatContext(data.content);
+        setActiveContextTab('text'); // 텍스트 탭으로 전환
+      }
+    } catch (error) {
+      console.error('Error fetching context from URL:', error);
+      alert('Failed to load context from the URL. Please check the URL or try a different source.');
+    } finally {
+      setIsLoadingContext(false);
+    }
+  };
+  
+  // 파일 업로드 처리
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // 지원되는 파일 형식 확인 (txt, pdf, docx 등)
+    const supportedTypes = ['text/plain', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+    if (!supportedTypes.includes(file.type)) {
+      alert('Only txt, pdf, and docx files are supported.');
+      return;
+    }
+    
+    setContextFile(file);
+    
+    // 파일 내용 읽기
+    const reader = new FileReader();
+    
+    reader.onload = async (event) => {
+      const content = event.target?.result;
+      
+      if (typeof content === 'string') {
+        // 텍스트 파일인 경우 직접 설정
+        setContextFileContent(content);
+      } else if (file.type === 'application/pdf' || file.type.includes('docx')) {
+        // PDF나 DOCX는 서버 측 처리 필요
+        try {
+          setIsLoadingContext(true);
+          
+          // FormData 생성
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          // 파일 내용 추출 API 호출
+          const response = await fetch('/api/context/extract-file', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to extract file content: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.content) {
+            setContextFileContent(data.content);
+          }
+        } catch (error) {
+          console.error('Error extracting file content:', error);
+          alert('Failed to extract content from the file. Please try a different file.');
+        } finally {
+          setIsLoadingContext(false);
+        }
+      }
+    };
+    
+    reader.onerror = () => {
+      console.error('Error reading file');
+      alert('Error reading file. Please try again or use a different file.');
+    };
+    
+    if (file.type === 'text/plain') {
+      reader.readAsText(file);
+    } else {
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
   return (
     <>
       {renderSocketStatus()}
@@ -370,7 +528,7 @@ export default function OpenChatPage() {
             <div className={`h-3 w-3 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
             <button 
               onClick={handleCreateChatClick}
-              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 bg-black bg-opacity-85 text-white px-4 py-2 rounded-full hover:bg-gray-800 hover:bg-opacity-95 transition-colors backdrop-filter backdrop-blur-sm"
             >
               <PlusIcon className="h-5 w-5" />
               Create New Chat
@@ -390,13 +548,13 @@ export default function OpenChatPage() {
           </div>
           
           <div className="flex gap-2 mb-4 flex-wrap">
-            <button className="bg-black text-white px-3 py-1 rounded-md">All</button>
-            <button className="border border-black px-3 py-1 rounded-md hover:bg-gray-100">Active</button>
-            <button className="border border-black px-3 py-1 rounded-md hover:bg-gray-100">Recent</button>
-            <button className="border border-black px-3 py-1 rounded-md hover:bg-gray-100">Popular</button>
+            <button className="bg-black bg-opacity-85 text-white px-3 py-1 rounded-full">All</button>
+            <button className="border border-black border-opacity-80 bg-white bg-opacity-85 px-3 py-1 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors">Active</button>
+            <button className="border border-black border-opacity-80 bg-white bg-opacity-85 px-3 py-1 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors">Recent</button>
+            <button className="border border-black border-opacity-80 bg-white bg-opacity-85 px-3 py-1 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors">Popular</button>
             <button 
               onClick={loadChatRooms} 
-              className="ml-auto border border-black px-3 py-1 rounded-md hover:bg-gray-100 flex items-center gap-1"
+              className="ml-auto border border-black border-opacity-80 bg-white bg-opacity-85 px-3 py-1 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors flex items-center gap-1"
             >
               <span>Refresh</span>
               {isLoading && <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full"></div>}
@@ -413,8 +571,8 @@ export default function OpenChatPage() {
               <p className="text-center mt-4 text-gray-500">Loading chats...</p>
             </div>
           ) : filteredChats.length > 0 ? (
-            filteredChats.map(chat => (
-              <div key={`chat-${chat.id}`} className="bg-white border border-black p-4 rounded-md hover:shadow-md transition-shadow">
+            filteredChats.map((chat, index) => (
+              <div key={`chat-${chat.id}-${index}`} className="bg-white border border-black p-4 rounded-md hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-center">
                   <div 
                     className="block flex-grow cursor-pointer"
@@ -476,13 +634,13 @@ export default function OpenChatPage() {
                       <div className="flex justify-center gap-3">
                         <button 
                           onClick={() => setShowJoinConfirmation(null)}
-                          className="px-4 py-2 border border-black rounded-md hover:bg-gray-100"
+                          className="px-4 py-2 border border-black border-opacity-80 bg-white bg-opacity-85 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors"
                         >
                           Cancel
                         </button>
                         <button 
                           onClick={() => handleJoinChat(typeof chat.id === 'string' ? parseInt(chat.id) : chat.id)}
-                          className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800"
+                          className="px-4 py-2 bg-black bg-opacity-85 text-white rounded-full hover:bg-gray-800 hover:bg-opacity-95 transition-colors"
                         >
                           Yes, Join Chat
                         </button>
@@ -552,12 +710,132 @@ export default function OpenChatPage() {
                   
                   <div className="mb-6">
                     <label className="block mb-3 font-medium text-lg">Context</label>
-                    <textarea
-                      value={newChatContext}
-                      onChange={(e) => setNewChatContext(e.target.value)}
-                      placeholder="Provide some context for the discussion..."
-                      className="w-full p-4 text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent h-36"
-                    />
+                    
+                    {/* 컨텍스트 입력 타입 선택 탭 */}
+                    <div className="flex border-b border-gray-200 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setActiveContextTab('text')}
+                        className={`px-4 py-2 font-medium ${
+                          activeContextTab === 'text'
+                            ? 'border-b-2 border-black text-black'
+                            : 'text-gray-500 hover:text-black'
+                        }`}
+                      >
+                        Text
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveContextTab('url')}
+                        className={`px-4 py-2 font-medium ${
+                          activeContextTab === 'url'
+                            ? 'border-b-2 border-black text-black'
+                            : 'text-gray-500 hover:text-black'
+                        }`}
+                      >
+                        URL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveContextTab('file')}
+                        className={`px-4 py-2 font-medium ${
+                          activeContextTab === 'file'
+                            ? 'border-b-2 border-black text-black'
+                            : 'text-gray-500 hover:text-black'
+                        }`}
+                      >
+                        File
+                      </button>
+                    </div>
+                    
+                    {/* 텍스트 입력 */}
+                    {activeContextTab === 'text' && (
+                      <textarea
+                        value={newChatContext}
+                        onChange={(e) => setNewChatContext(e.target.value)}
+                        placeholder="Provide some context for the discussion..."
+                        className="w-full p-4 text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent h-36"
+                      />
+                    )}
+                    
+                    {/* URL 입력 */}
+                    {activeContextTab === 'url' && (
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={contextUrl}
+                            onChange={(e) => setContextUrl(e.target.value)}
+                            placeholder="Enter a URL to extract context from..."
+                            className="flex-1 p-4 text-lg border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                          />
+                          <button
+                            type="button"
+                            onClick={fetchContextFromUrl}
+                            disabled={isLoadingContext || !contextUrl.trim()}
+                            className="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 disabled:bg-gray-400"
+                          >
+                            {isLoadingContext ? (
+                              <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            ) : (
+                              'Load'
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          Enter a URL to extract content from a webpage. Supported formats: web pages, articles, blogs.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* 파일 업로드 */}
+                    {activeContextTab === 'file' && (
+                      <div className="space-y-4">
+                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
+                          <input
+                            type="file"
+                            id="context-file"
+                            accept=".txt,.pdf,.docx"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                          {contextFile ? (
+                            <div className="space-y-2">
+                              <p className="text-lg">File selected: <span className="font-medium">{contextFile.name}</span></p>
+                              <p className="text-sm text-gray-500">
+                                {isLoadingContext ? 'Extracting content...' : 'File content extracted'}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setContextFile(null);
+                                  setContextFileContent('');
+                                }}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                              >
+                                Remove File
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <label
+                                htmlFor="context-file"
+                                className="block cursor-pointer space-y-2"
+                              >
+                                <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H2m15-8a4 4 0 11-8 0 4 4 0 018 0zm16 0a4 4 0 11-8 0 4 4 0 018 0z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                <span className="text-lg font-medium">Click to upload a file</span>
+                                <span className="text-sm text-gray-500">or drag and drop</span>
+                              </label>
+                            </>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          Upload a file to extract context. Supported formats: .txt, .pdf, .docx
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="mb-6">

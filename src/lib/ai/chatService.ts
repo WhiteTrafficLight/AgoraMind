@@ -24,6 +24,8 @@ export interface ChatRoom {
 export interface ChatRoomCreationParams {
   title: string;
   context?: string;
+  contextUrl?: string;
+  contextFileContent?: string;
   maxParticipants: number;
   npcs: string[];
   isPublic?: boolean;
@@ -180,18 +182,30 @@ class ChatService {
         }
       }
       
-      // 로컬 캐시 업데이트
+      // 로컬 캐시에서 기존 채팅방 가져오기
       const existingRoomIndex = this.chatRooms.findIndex(r => String(r.id) === String(id));
+      
+      // 이 채팅방을 위한 새 객체 생성 (완전히 격리된 참조)
+      const isolatedRoom: ChatRoom = JSON.parse(JSON.stringify(room));
+      
+      // 로컬 캐시 업데이트 (중복 제거)
       if (existingRoomIndex >= 0) {
-        this.chatRooms[existingRoomIndex] = room;
+        // ID가 일치하는 채팅방이 있으면 완전히 새 채팅방으로 교체
+        this.chatRooms[existingRoomIndex] = isolatedRoom;
+        log(`✅ Updated existing room in cache (ID: ${id})`);
       } else {
-        this.chatRooms.push(room);
+        // 캐시에 없으면 새로 추가
+        this.chatRooms.push(isolatedRoom);
+        log(`✅ Added new room to cache (ID: ${id})`);
       }
       
+      // 채팅방 ID 로깅
+      log(`✅ Room IDs in cache: ${this.chatRooms.map(r => r.id).join(', ')}`);
       log('✅ Room fetched successfully');
       log('=======================================\n');
       
-      return room;
+      // 새로 생성된 격리된 객체 반환 (기존 객체가 아닌)
+      return isolatedRoom;
     } catch (error) {
       console.error('Error fetching chat room:', error);
       
@@ -205,6 +219,7 @@ class ChatService {
         return null;
       }
       
+      // 캐시된 객체의 복사본 반환 (원본 변경 방지)
       return JSON.parse(JSON.stringify(cachedRoom));
     }
   }
@@ -239,11 +254,47 @@ class ChatService {
         throw new Error(`Failed to create chat room: ${response.status}`);
       }
       
-      const newRoom = await response.json();
-      console.log('✅ Created room:', newRoom.id, newRoom.title);
+      // 서버 응답 받기
+      const rawRoomData = await response.json();
+      console.log('✅ Server created room:', rawRoomData.id, rawRoomData.title);
       
-      // 로컬 캐시에 추가
-      this.chatRooms.push(newRoom);
+      // 새 채팅방 객체 복제하여 완전히 격리된 새 객체 생성
+      const newRoom: ChatRoom = JSON.parse(JSON.stringify(rawRoomData));
+      
+      // 메시지 초기화 (항상 새 메시지 배열 생성)
+      newRoom.messages = [{
+        id: this.generateUniqueId('sys-'),
+        text: `Welcome to the philosophical dialogue on "${newRoom.title}".`,
+        sender: 'System',
+        isUser: false,
+        timestamp: new Date()
+      }];
+      
+      // 첫 번째 철학자의 인사 메시지 추가
+      if (newRoom.participants && newRoom.participants.npcs && newRoom.participants.npcs.length > 0) {
+        const firstPhilosopher = newRoom.participants.npcs[0];
+        newRoom.messages.push({
+          id: this.generateUniqueId(`npc-${firstPhilosopher.toLowerCase()}-`),
+          text: this.getInitialPrompt(newRoom.title, newRoom.context),
+          sender: firstPhilosopher,
+          isUser: false,
+          timestamp: new Date(Date.now() - 60000)
+        });
+        console.log(`✅ Added welcome message from ${firstPhilosopher}`);
+      }
+      
+      // 로컬 캐시 업데이트 - 기존 모든 채팅방과 완전히 독립된 객체
+      const existingIndex = this.chatRooms.findIndex(room => String(room.id) === String(newRoom.id));
+      if (existingIndex >= 0) {
+        console.log(`⚠️ 경고: 이미 존재하는 채팅방 ID ${newRoom.id} - 새 데이터로 교체합니다`);
+        this.chatRooms[existingIndex] = newRoom;
+      } else {
+        console.log(`✅ 새 채팅방 캐시에 추가: ${newRoom.id}`);
+        this.chatRooms.push(newRoom);
+      }
+      
+      console.log(`✅ 캐시된 총 채팅방 수: ${this.chatRooms.length}`);
+      console.log(`✅ 캐시된 채팅방 ID 목록: ${this.chatRooms.map(r => r.id).join(', ')}`);
       
       return newRoom;
     } catch (error) {

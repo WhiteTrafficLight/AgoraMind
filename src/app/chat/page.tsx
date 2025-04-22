@@ -26,6 +26,11 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
+    // 마운트 시 상태 초기화
+    setLoading(true);
+    setError(null);
+    setChatData(null);
+    
     if (!chatIdParam) {
       setError('No chat ID provided');
       setLoading(false);
@@ -46,7 +51,8 @@ export default function ChatPage() {
         setLoading(true);
         setError(null);
         
-        console.log('Fetching chat room with ID:', chatId, typeof chatId);
+        // URL의 chatId와 함께 실행되는 요청임을 명확히 로깅
+        console.log(`🔍 CHAT PAGE: Fetching chat room with ID: ${chatId}, (type: ${typeof chatId})`);
         const room = await chatService.getChatRoomById(chatId);
         
         if (!room) {
@@ -62,16 +68,28 @@ export default function ChatPage() {
           return;
         }
         
-        console.log('Successfully loaded room:', room.id, room.title, 'with', room.messages?.length || 0, 'messages');
+        // 채팅방 메시지 상태 확인
+        const messageCount = room.messages?.length || 0;
+        console.log(`🔍 CHAT PAGE: Successfully loaded room #${room.id} (${room.title}) with ${messageCount} messages`);
+        
+        if (messageCount > 0 && room.messages) {
+          // 메시지 내용 간략히 로깅
+          console.log(`🔍 CHAT PAGE: First message: "${room.messages[0].text.substring(0, 30)}..."`);
+          if (messageCount > 1) {
+            console.log(`🔍 CHAT PAGE: Last message: "${room.messages[messageCount-1].text.substring(0, 30)}..."`);
+          }
+        }
         
         // Check if room has any users (excluding NPCs)
         if (room.participants.users.length === 0) {
           // No users left in the chat room, redirect to open chat page
+          console.log('🔍 CHAT PAGE: No users in room, redirecting to open chat');
           router.push('/open-chat');
           return;
         }
         
-        setChatData(room);
+        // 이전 상태와 완전히 다른 새 객체로 설정하여 상태 격리
+        setChatData(JSON.parse(JSON.stringify(room)));
       } catch (error) {
         console.error('Failed to load chat:', error);
         setError('Failed to load chat data. Please try again.');

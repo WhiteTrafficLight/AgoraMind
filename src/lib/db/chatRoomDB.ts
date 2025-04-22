@@ -94,14 +94,79 @@ class ChatRoomDB {
       const client = await clientPromise;
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
-      // 자동 증가 ID 구현
-      const counter = await db.collection('counters').findOneAndUpdate(
-        { _id: 'roomId' },
-        { $inc: { seq: 1 } },
-        { upsert: true, returnDocument: 'after' }
-      );
+      // 자동 증가 ID 구현 - 수정된 부분
+      let roomId = 1;
       
-      const roomId = counter.value?.seq || 1;
+      try {
+        // 기존 카운터를 먼저 확인
+        const counterDoc = await db.collection('counters').findOne({ _id: 'roomId' });
+        
+        if (counterDoc) {
+          // 카운터가 있으면 증가시키기
+          const updatedCounter = await db.collection('counters').findOneAndUpdate(
+            { _id: 'roomId' },
+            { $inc: { seq: 1 } },
+            { returnDocument: 'after' }
+          );
+          
+          if (updatedCounter.value) {
+            roomId = updatedCounter.value.seq;
+            console.log(`카운터 증가됨: ${roomId}`);
+          } else {
+            // 업데이트된 값이 없으면 새로 생성
+            await db.collection('counters').insertOne({ _id: 'roomId', seq: 1 });
+            console.log('카운터 초기화: 1');
+          }
+        } else {
+          // 카운터가 없으면 생성
+          await db.collection('counters').insertOne({ _id: 'roomId', seq: 1 });
+          console.log('카운터 생성: 1');
+        }
+        
+        // 이미 해당 ID의 채팅방이 있는지 확인
+        const existingRoom = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId });
+        if (existingRoom) {
+          // 충돌 발생 - 최대 ID + 1 사용
+          const maxIdRoom = await db.collection<DBChatRoom>('chatRooms')
+            .find({})
+            .sort({ roomId: -1 })
+            .limit(1)
+            .toArray();
+          
+          if (maxIdRoom.length > 0 && maxIdRoom[0].roomId) {
+            roomId = maxIdRoom[0].roomId + 1;
+            
+            // 카운터도 업데이트
+            await db.collection('counters').updateOne(
+              { _id: 'roomId' },
+              { $set: { seq: roomId } }
+            );
+            
+            console.log(`ID 충돌 해결: 새 ID = ${roomId}`);
+          }
+        }
+      } catch (counterError) {
+        console.error('카운터 생성 실패:', counterError);
+        
+        // 카운터 실패 시 최대 ID + 1 사용
+        try {
+          const maxIdRoom = await db.collection<DBChatRoom>('chatRooms')
+            .find({})
+            .sort({ roomId: -1 })
+            .limit(1)
+            .toArray();
+          
+          if (maxIdRoom.length > 0 && maxIdRoom[0].roomId) {
+            roomId = maxIdRoom[0].roomId + 1;
+            console.log(`최대 ID 기반 생성: ${roomId}`);
+          }
+        } catch (maxIdError) {
+          console.error('최대 ID 조회 실패:', maxIdError);
+          // 기본값 유지 (roomId = 1)
+        }
+      }
+      
+      console.log(`새 채팅방에 할당된 ID: ${roomId}`);
       
       // DB에 저장할 채팅룸 객체 변환
       const dbRoom: DBChatRoom = {
