@@ -55,51 +55,60 @@ const Modal: React.FC<ModalProps> = ({
   
   // Create portal for modal
   return createPortal(
-    <div className="modal-wrapper">
-      {/* Backdrop */}
-      <div 
-        className="modal-backdrop fixed inset-0 bg-black bg-opacity-80 backdrop-blur-md"
-        onClick={onClose}
-        style={{ zIndex: 9998 }}
-      ></div>
-      
-      {/* Modal */}
-      <div 
-        className="modal-container fixed w-[95%] sm:w-[90%] md:w-[85%] max-w-[900px] max-h-[90vh] bg-white rounded-3xl overflow-hidden"
-        style={{ 
-          zIndex: 9999,
+    <div
+      className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center pointer-events-auto"
+      onClick={onClose}
+    >
+      {/* Modal container styled like philosopher details modal */}
+      <div
+        className="fixed bg-white rounded-2xl w-full max-h-[80vh] overflow-y-auto z-[101]"
+        style={{
           position: 'fixed',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
+          backgroundColor: 'white',
+          borderRadius: '16px',
+          padding: '20px',
+          boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)',
+          width: '90%',
+          maxWidth: '1000px'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal header */}
-        <div className="modal-header px-8 py-6 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-3xl">
-          <h2 className="text-2xl font-bold">{title}</h2>
-          <button 
+        {/* Close button */}
+        <div className="flex justify-end">
+          <button
             onClick={onClose}
-            className="text-gray-500 hover:text-black transition-colors p-2 rounded-full hover:bg-gray-200"
+            className="text-gray-500 hover:text-gray-800 absolute top-3 right-3 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+            style={{
+              fontSize: '16px',
+              fontWeight: 'bold',
+              border: 'none',
+              transition: 'all 0.2s',
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%'
+            }}
           >
-            <XMarkIcon className="h-8 w-8" />
+            ✕
           </button>
         </div>
-        
-        {/* Modal content */}
-        <div className="modal-content p-8 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 160px)' }}>
+        {/* Title */}
+        <div className="flex items-center mb-4">
+          <h2 className="text-2xl font-bold">{title}</h2>
+        </div>
+        {/* Content */}
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(80vh - 120px)' }}>
           {children}
         </div>
-        
-        {/* Modal footer */}
+        {/* Footer */}
         {footer && (
-          <div className="modal-footer px-8 py-6 border-t border-gray-200 bg-gray-50">
+          <div className="mt-5 flex justify-end">
             {footer}
           </div>
         )}
       </div>
-      
       <style jsx global>{`
         body.modal-open {
           overflow: hidden;

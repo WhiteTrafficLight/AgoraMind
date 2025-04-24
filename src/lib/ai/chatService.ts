@@ -270,17 +270,76 @@ class ChatService {
         timestamp: new Date()
       }];
       
-      // 첫 번째 철학자의 인사 메시지 추가
+      // 첫 번째 철학자의 인사 메시지 추가 - sapiens_engine API 사용
       if (newRoom.participants && newRoom.participants.npcs && newRoom.participants.npcs.length > 0) {
         const firstPhilosopher = newRoom.participants.npcs[0];
-        newRoom.messages.push({
-          id: this.generateUniqueId(`npc-${firstPhilosopher.toLowerCase()}-`),
-          text: this.getInitialPrompt(newRoom.title, newRoom.context),
-          sender: firstPhilosopher,
-          isUser: false,
-          timestamp: new Date(Date.now() - 60000)
-        });
-        console.log(`✅ Added welcome message from ${firstPhilosopher}`);
+        
+        try {
+          // sapiens_engine API 호출하여 철학자 응답 생성
+          console.log(`🔄 Requesting initial message from ${firstPhilosopher} via sapiens_engine API`);
+          
+          // LLM 설정 가져오기
+          let llmProvider = 'openai';
+          let llmModel = '';
+          
+          // 브라우저에서 localStorage 확인
+          if (typeof window !== 'undefined' && window.localStorage) {
+            llmProvider = localStorage.getItem('llmProvider') || 'openai';
+            llmModel = llmProvider === 'openai' 
+              ? (localStorage.getItem('openaiModel') || 'gpt-4o')
+              : (localStorage.getItem('ollamaModel') || 'llama3');
+          }
+          
+          // API 엔드포인트 호출
+          const initialMessageResponse = await fetch('/api/chat/initial', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-llm-provider': llmProvider,
+              'x-llm-model': llmModel
+            },
+            body: JSON.stringify({
+              philosopher: firstPhilosopher,
+              topic: newRoom.title,
+              context: newRoom.context || ""
+            })
+          });
+          
+          if (initialMessageResponse.ok) {
+            const initialMessage = await initialMessageResponse.json();
+            // 생성된 메시지 추가
+            newRoom.messages.push({
+              id: this.generateUniqueId(`npc-${firstPhilosopher.toLowerCase()}-`),
+              text: initialMessage.text,
+              sender: firstPhilosopher,
+              isUser: false,
+              timestamp: new Date(Date.now() - 60000)
+            });
+            console.log(`✅ Added sapiens_engine generated welcome message from ${firstPhilosopher}`);
+          } else {
+            // API 호출 실패 시 폴백으로 기본 메시지 사용
+            console.error(`❌ Failed to get initial message from API: ${initialMessageResponse.status}`);
+            newRoom.messages.push({
+              id: this.generateUniqueId(`npc-${firstPhilosopher.toLowerCase()}-`),
+              text: this.getInitialPrompt(newRoom.title, newRoom.context),
+              sender: firstPhilosopher, 
+              isUser: false,
+              timestamp: new Date(Date.now() - 60000)
+            });
+            console.log(`⚠️ Using fallback welcome message for ${firstPhilosopher}`);
+          }
+        } catch (error) {
+          // 예외 발생 시 폴백으로 기본 메시지 사용
+          console.error('❌ Error getting initial message:', error);
+          newRoom.messages.push({
+            id: this.generateUniqueId(`npc-${firstPhilosopher.toLowerCase()}-`),
+            text: this.getInitialPrompt(newRoom.title, newRoom.context),
+            sender: firstPhilosopher,
+            isUser: false,
+            timestamp: new Date(Date.now() - 60000)
+          });
+          console.log(`⚠️ Using fallback welcome message for ${firstPhilosopher}`);
+        }
       }
       
       // 로컬 캐시 업데이트 - 기존 모든 채팅방과 완전히 독립된 객체

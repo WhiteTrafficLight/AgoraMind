@@ -124,13 +124,13 @@ export default function Home() {
             
             <div className="w-full max-w-4xl mx-auto mt-12 chat-container h-[70vh] rounded-2xl overflow-hidden relative">
               <div className="absolute inset-0 w-full h-full">
-                <Image 
+        <Image
                   src="/blur_effect.jpg" 
                   alt="Background" 
                   fill 
                   className="object-cover opacity-15"
-                  priority 
-                />
+          priority
+        />
               </div>
               <div className="relative z-10 h-full overflow-y-auto px-8 py-10 space-y-10">
                 {dialogMessages.slice(0, chatStep).map((message, index) => (
@@ -196,7 +196,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
+    </div>
     </>
   );
 }

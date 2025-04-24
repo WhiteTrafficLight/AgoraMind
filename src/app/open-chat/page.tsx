@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { UserIcon, PlusIcon, XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import chatService, { ChatRoom, ChatRoomCreationParams } from '@/lib/ai/chatService';
 import { io, Socket } from 'socket.io-client';
 
@@ -26,6 +26,17 @@ declare global {
       disconnectReason?: string;
     };
   }
+}
+
+// Philosopher 타입 정의 추가
+interface Philosopher {
+  id: string;
+  name: string;
+  period?: string; 
+  nationality?: string;
+  description?: string;
+  key_concepts?: string[];
+  portrait_url?: string;
 }
 
 export default function OpenChatPage() {
@@ -51,6 +62,11 @@ export default function OpenChatPage() {
   const [selectedNPCs, setSelectedNPCs] = useState<string[]>([]);
   const [isPublic, setIsPublic] = useState(true);
   const [isLoadingContext, setIsLoadingContext] = useState(false);
+  
+  // 철학자 정보 관련 state 추가
+  const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
+  const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
+  const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
   
   // 채팅룸 목록 로드 함수
   const loadChatRooms = async () => {
@@ -390,9 +406,10 @@ export default function OpenChatPage() {
     router.push(`/chat?id=${chatId}`);
   };
 
-  // Create New Chat 버튼 클릭 핸들러
-  const handleCreateChatClick = () => {
-    setShowCreateChatModal(true);
+  // Create New Chat 모달 닫기 핸들러에 철학자 정보 모달 닫기도 추가
+  const handleCloseCreateChatModal = () => {
+    setShowCreateChatModal(false);
+    setShowPhilosopherDetails(false);
   };
 
   // 소켓 연결 상태 표시기를 렌더링
@@ -515,6 +532,184 @@ export default function OpenChatPage() {
     } else {
       reader.readAsArrayBuffer(file);
     }
+  };
+
+  // 철학자 목록 로드 함수 추가
+  const fetchPhilosophers = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/philosophers');
+      if (response.ok) {
+        const data = await response.json();
+        setPhilosophers(data.philosophers || []);
+      } else {
+        console.error('Failed to fetch philosophers');
+      }
+    } catch (error) {
+      console.error('Error fetching philosophers:', error);
+      // 기본 철학자 목록으로 대체
+      setPhilosophers(availableNPCs.map(name => ({ id: name.toLowerCase(), name })));
+    }
+  };
+
+  // 컴포넌트 마운트 시 철학자 목록 로드
+  useEffect(() => {
+    fetchPhilosophers();
+  }, []);
+
+  // 철학자 정보 로드 함수
+  const loadPhilosopherDetails = async (philosopherId: string) => {
+    try {
+      // 이미 로드한 정보가 있다면 재활용
+      const existingPhil = philosophers.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
+      if (existingPhil && existingPhil.description) {
+        setSelectedPhilosopherDetails(existingPhil);
+        setShowPhilosopherDetails(true);
+        return;
+      }
+      
+      // API 호출로 상세정보 가져오기
+      const response = await fetch(`http://localhost:8000/api/philosophers/${philosopherId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedPhilosopherDetails(data);
+        setShowPhilosopherDetails(true);
+      } else {
+        console.error(`Failed to fetch details for philosopher: ${philosopherId}`);
+      }
+    } catch (error) {
+      console.error('Error fetching philosopher details:', error);
+    }
+  };
+
+  // 철학자 세부 정보 모달 컴포넌트
+  const PhilosopherDetailsModal = () => {
+    if (!selectedPhilosopherDetails) return null;
+    
+    // 기본 아바타 생성 함수
+    const getDefaultAvatar = () => {
+      const name = selectedPhilosopherDetails.name || 'Philosopher';
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128&font-size=0.5`;
+    };
+
+    return (
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-30 z-[9999] transition-opacity opacity-100 pointer-events-auto flex items-center justify-center"
+        onClick={() => setShowPhilosopherDetails(false)}
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+      >
+        <div 
+          className="fixed bg-white rounded-2xl w-full max-h-[80vh] overflow-y-auto z-[10000]"
+          onClick={e => e.stopPropagation()}
+          style={{ 
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'white', 
+            borderRadius: '16px',
+            padding: '20px',
+            boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)',
+            width: '90%',
+            maxWidth: '500px'
+          }}
+        >
+          <div className="flex justify-end">
+            <button 
+              className="text-gray-500 hover:text-gray-800 absolute top-3 right-3 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200" 
+              onClick={() => setShowPhilosopherDetails(false)}
+              style={{ 
+                fontSize: '16px', 
+                fontWeight: 'bold',
+                border: 'none', 
+                transition: 'all 0.2s',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                position: 'absolute',
+                right: '12px',
+                left: 'auto'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="flex items-center mb-4 mt-2">
+            <div className="mr-10 flex-shrink-0">
+              <img
+                src={selectedPhilosopherDetails.portrait_url ?? getDefaultAvatar()}
+                alt={selectedPhilosopherDetails.name || 'Philosopher'}
+                width={144}
+                height={144}
+                style={{ objectFit: 'cover', objectPosition: 'top center', borderRadius: '50%' }}
+                onError={(e) => {
+                  // 이미지 로드 실패 시 기본 아바타로 대체
+                  (e.target as HTMLImageElement).src = getDefaultAvatar();
+                }}
+              />
+            </div>
+            <div>
+              <h3 className="text-4xl font-bold" style={{ color: 'black' }}>{selectedPhilosopherDetails.name}</h3>
+              <div className="text-sm text-gray-500">
+                {selectedPhilosopherDetails.period && <div>{selectedPhilosopherDetails.nationality} • {selectedPhilosopherDetails.period}</div>}
+              </div>
+            </div>
+          </div>
+          
+          {selectedPhilosopherDetails.description && (
+            <div 
+              className="mt-3 text-gray-700 text-sm"
+              style={{ color: '#374151', lineHeight: '1.5' }}
+            >
+              {selectedPhilosopherDetails.description}
+            </div>
+          )}
+          
+          {selectedPhilosopherDetails.key_concepts && selectedPhilosopherDetails.key_concepts.length > 0 && (
+            <div className="mt-4">
+              <h4 className="font-medium mb-2 text-sm" style={{ color: '#111827' }}>Key Concepts</h4>
+              <div className="flex flex-wrap gap-1">
+                {selectedPhilosopherDetails.key_concepts.map((concept, index) => (
+                  <span 
+                    key={index} 
+                    className="bg-gray-100 px-2 py-1 rounded-full text-xs"
+                    style={{ backgroundColor: '#f3f4f6', borderRadius: '9999px', padding: '4px 8px' }}
+                  >
+                    {concept}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className="mt-5 flex justify-end">
+            <button 
+              className="px-3 py-1.5 bg-gray-800 text-white rounded-full hover:bg-gray-700 transition text-sm"
+              style={{ 
+                backgroundColor: '#1f2937', 
+                color: 'white', 
+                borderRadius: '9999px', 
+                padding: '6px 12px',
+                transition: 'all 0.2s'
+              }}
+              onClick={() => {
+                toggleNPC(selectedPhilosopherDetails.id);
+                setShowPhilosopherDetails(false);
+              }}
+            >
+              {selectedNPCs.includes(selectedPhilosopherDetails.id) 
+                ? 'Remove from Chat' 
+                : 'Add to Chat'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Create New Chat 버튼 클릭 핸들러
+  const handleCreateChatClick = () => {
+    setShowCreateChatModal(true);
   };
 
   return (
@@ -663,38 +858,55 @@ export default function OpenChatPage() {
             {/* 배경 오버레이 */}
             <div 
               className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-md z-[9000]"
-              onClick={() => setShowCreateChatModal(false)}
+              onClick={handleCloseCreateChatModal}
               style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
             ></div>
             
             {/* 모달 컨테이너 */}
             <div 
-              className="fixed w-[95%] sm:w-[90%] md:w-[85%] max-w-[900px] max-h-[90vh] bg-white rounded-3xl z-[9001] overflow-hidden"
+              className="fixed bg-white rounded-2xl w-full max-h-[90vh] overflow-y-auto z-[9001]"
               style={{ 
                 position: 'fixed',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
-                animation: 'modalAppear 0.4s ease-out',
                 backgroundColor: 'white',
-                isolation: 'isolate'
+                borderRadius: '16px',
+                padding: '20px',
+                boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)',
+                width: '90%',
+                maxWidth: '900px'
               }}
               onClick={(e) => e.stopPropagation()}
             >
+              {/* 철학자 정보 모달 - 상위 모달 내부에 배치 */}
+              {showPhilosopherDetails && <PhilosopherDetailsModal />}
+              
               {/* 모달 헤더 */}
-              <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-3xl">
+              <div className="relative flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold">Create New Chat</h2>
                 <button 
-                  onClick={() => setShowCreateChatModal(false)}
-                  className="text-gray-500 hover:text-black transition-colors p-2 rounded-full hover:bg-gray-200"
+                  onClick={handleCloseCreateChatModal}
+                  className="text-gray-500 hover:text-gray-800 absolute top-3 right-3 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                  style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 'bold',
+                    border: 'none', 
+                    transition: 'all 0.2s',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    position: 'absolute',
+                    right: '12px',
+                    left: 'auto'
+                  }}
                 >
-                  <XMarkIcon className="h-8 w-8" />
+                  ✕
                 </button>
               </div>
               
               {/* 모달 내용 */}
-              <div className="p-8 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 90px)' }}>
+              <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
                 <form onSubmit={handleCreateChat}>
                   <div className="mb-6">
                     <label className="block mb-3 font-medium text-lg">Chat Title</label>
@@ -879,53 +1091,96 @@ export default function OpenChatPage() {
                   <div className="mb-8">
                     <label className="block mb-3 font-medium text-lg">Select NPCs</label>
                     
-                    {/* Selected NPCs display */}
-                    {selectedNPCs.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {selectedNPCs.map((npc) => (
-                          <div 
-                            key={`selected-${npc}`}
-                            className="flex items-center bg-black text-white px-3 py-2 rounded-lg"
-                          >
-                            <span>{npc}</span>
-                            <button 
-                              type="button"
-                              onClick={() => toggleNPC(npc)}
-                              className="ml-2 text-white hover:text-gray-200"
+                    {/* NPC selection grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                      {philosophers.map(philosopher => (
+                        <div 
+                          key={philosopher.id}
+                          className="relative group"
+                        >
+                          <div className="flex items-center">
+                            <div 
+                              onClick={() => toggleNPC(philosopher.id)}
+                              className={`p-2 text-sm rounded cursor-pointer text-center transition flex-grow 
+                              ${selectedNPCs.includes(philosopher.id) 
+                                ? 'bg-black text-white border-black font-medium' 
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'}`}
                             >
-                              <XMarkIcon className="h-5 w-5" />
+                              {philosopher.name}
+                            </div>
+                            <button
+                              type="button"
+                              className="ml-1 text-gray-400 hover:text-gray-600 p-1"
+                              onClick={() => loadPhilosopherDetails(philosopher.id)}
+                            >
+                              ⓘ
                             </button>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* NPC selection grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-3 border border-gray-300 rounded-xl p-4 bg-gray-50">
-                      {availableNPCs.map((npc) => (
-                        <div 
-                          key={npc}
-                          onClick={() => toggleNPC(npc)}
-                          className={`border p-4 rounded-xl cursor-pointer text-center transition-all text-lg ${
-                            selectedNPCs.includes(npc) 
-                              ? 'bg-black text-white border-black font-medium' 
-                              : 'bg-white hover:bg-gray-100 border-gray-300'
-                          }`}
-                        >
-                          {npc}
-                          {selectedNPCs.includes(npc) && (
-                            <span className="ml-2 inline-block">✓</span>
-                          )}
                         </div>
                       ))}
                     </div>
+                    
+                    {/* Selected NPCs display - moved below the grid */}
+                    {selectedNPCs.length > 0 && (
+                      <div className="mt-6 flex flex-wrap gap-4">
+                        {selectedNPCs.map(npcId => {
+                          const phil = philosophers.find(p => p.id === npcId);
+                          if (!phil) return null;
+                          const avatarUrl = phil.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(phil.name)}&background=random&size=128&font-size=0.5`;
+                          return (
+                            <div key={npcId} className="relative flex flex-col items-center" style={{ width: '144px' }}>
+                              <img
+                                src={avatarUrl}
+                                alt={phil.name}
+                                width={144}
+                                height={144}
+                                style={{
+                                  objectFit: 'cover',
+                                  objectPosition: 'top center',
+                                  borderRadius: '50%',
+                                  boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)'
+                                }}
+                                onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(phil.name)}&background=random&size=128&font-size=0.5`; }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => toggleNPC(npcId)}
+                                aria-label="Remove influence"
+                                style={{
+                                  position: 'absolute',
+                                  top: '4px',
+                                  right: '4px',
+                                  width: '28px',
+                                  height: '28px',
+                                  backgroundColor: 'white',
+                                  borderRadius: '50%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '16px',
+                                  color: '#4B5563',
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                  border: 'none',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                &times;
+                              </button>
+                              <span style={{ marginTop: '4px', fontSize: '12px', textAlign: 'center', color: '#374151', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                                {phil.name}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   
                   {/* 모달 푸터 */}
                   <div className="mt-8 flex justify-end gap-4">
                     <button
                       type="button"
-                      onClick={() => setShowCreateChatModal(false)}
+                      onClick={handleCloseCreateChatModal}
                       className="px-6 py-4 text-lg border border-gray-300 rounded-xl hover:bg-gray-100 transition-colors"
                     >
                       Cancel
