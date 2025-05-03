@@ -65,6 +65,7 @@ export default function OpenChatPage() {
   
   // 철학자 정보 관련 state 추가
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
+  const [customNpcs, setCustomNpcs] = useState<Philosopher[]>([]);
   const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
   
@@ -320,7 +321,7 @@ export default function OpenChatPage() {
     }
   };
 
-  // Handle chat creation
+  // 채팅방 생성 핸들러 개선
   const handleCreateChat = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -331,8 +332,6 @@ export default function OpenChatPage() {
       
       // 컨텍스트 데이터 선택
       let finalContext = '';
-      let contextUrl = '';
-      let contextFileContent = '';
       
       // 활성 탭에 따라 컨텍스트 설정
       if (activeContextTab === 'text') {
@@ -343,6 +342,18 @@ export default function OpenChatPage() {
         finalContext = newChatContext;
       }
       
+      // LLM 설정 가져오기 (로컬 스토리지)
+      let llmProvider = 'openai';
+      let llmModel = 'gpt-4o';
+      
+      if (typeof window !== 'undefined' && window.localStorage) {
+        llmProvider = localStorage.getItem('llmProvider') || 'openai';
+        llmModel = llmProvider === 'openai' 
+          ? (localStorage.getItem('openaiModel') || 'gpt-4o')
+          : (localStorage.getItem('ollamaModel') || 'llama3');
+      }
+      
+      // 통합된 채팅방 생성 API 호출
       const chatParams: ChatRoomCreationParams = {
         title: newChatTitle,
         context: finalContext,
@@ -351,52 +362,65 @@ export default function OpenChatPage() {
         maxParticipants,
         npcs: selectedNPCs,
         isPublic: isPublic,
-        currentUser: `User_${Math.floor(Math.random() * 10000)}` // 랜덤 사용자 이름 생성
+        currentUser: `User_${Math.floor(Math.random() * 10000)}`,
+        // 초기 메시지 생성 플래그 추가
+        generateInitialMessage: true,
+        llmProvider,
+        llmModel
       };
       
-      // 서버 API를 통해 채팅룸 생성
-      console.log('Creating new chat room:', chatParams.title);
-      const newChat = await chatService.createChatRoom(chatParams);
-      console.log('Chat room created successfully:', newChat.id);
+      // 재시도 로직 추가
+      let newChat;
+      let retries = 0;
+      const MAX_RETRIES = 3;
       
-      // 방금 생성한 채팅방 ID 확인
-      const newChatId = newChat.id;
-      if (!newChatId) {
-        console.error('Error: New chat has no ID');
-        alert('Failed to create chat room - no ID returned.');
-        setIsCreating(false);
-        return;
+      while (retries < MAX_RETRIES) {
+        try {
+          console.log(`Creating new chat room (attempt ${retries + 1}/${MAX_RETRIES}):`, chatParams.title);
+          newChat = await chatService.createChatRoom(chatParams);
+          console.log('Chat room created successfully:', newChat.id);
+          break; // 성공하면 반복 중단
+        } catch (error) {
+          retries++;
+          console.error(`Failed to create chat room (attempt ${retries}/${MAX_RETRIES}):`, error);
+          if (retries >= MAX_RETRIES) throw error;
+          
+          // 지수 백오프 (1초, 2초, 4초...)
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+        }
       }
       
-      // 명확한 ID 로깅
-      console.log(`✅ 새로 생성된 채팅방 ID: ${newChatId} (${typeof newChatId})`);
-      
       // 폼 초기화 및 모달 닫기
-      setNewChatTitle('');
-      setNewChatContext('');
-      setContextUrl('');
-      setContextFile(null);
-      setContextFileContent('');
-      setActiveContextTab('text');
-      setMaxParticipants(5);
-      setSelectedNPCs([]);
-      setIsPublic(true);
+      resetForm();
       setShowCreateChatModal(false);
       
       // 방금 생성한 채팅방으로 이동 - ID를 문자열로 확실하게 변환
-      const chatIdStr = String(newChatId);
+      const chatIdStr = String(newChat.id);
       console.log(`✅ 이동할 채팅방 URL: /chat?id=${chatIdStr}`);
       
       // 약간의 지연 후 이동 (상태가 모두 초기화될 시간을 주기 위해)
       setTimeout(() => {
         router.push(`/chat?id=${chatIdStr}`);
-      }, 100);
+      }, 500);
     } catch (error) {
       console.error('Failed to create chat room:', error);
-      alert('Failed to create chat room. Please try again.');
+      alert('채팅방 생성에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsCreating(false);
     }
+  };
+
+  // 폼 리셋 함수 추가
+  const resetForm = () => {
+    setNewChatTitle('');
+    setNewChatContext('');
+    setContextUrl('');
+    setContextFile(null);
+    setContextFileContent('');
+    setActiveContextTab('text');
+    setMaxParticipants(5);
+    setSelectedNPCs([]);
+    setIsPublic(true);
   };
 
   // Handle joining a chat
@@ -534,7 +558,7 @@ export default function OpenChatPage() {
     }
   };
 
-  // 철학자 목록 로드 함수 추가
+  // 기본 철학자 목록 로드 함수 추가
   const fetchPhilosophers = async () => {
     try {
       const response = await fetch('http://localhost:8000/api/philosophers');
@@ -551,15 +575,40 @@ export default function OpenChatPage() {
     }
   };
 
-  // 컴포넌트 마운트 시 철학자 목록 로드
+  // 사용자 커스텀 NPC 목록 로드 함수 추가
+  const fetchCustomNpcs = async () => {
+    try {
+      const response = await fetch('/api/npc/list');
+      if (response.ok) {
+        const data = await response.json();
+        setCustomNpcs(data.npcs || []);
+      } else {
+        console.error('Failed to fetch custom NPCs');
+      }
+    } catch (error) {
+      console.error('Error fetching custom NPCs:', error);
+      setCustomNpcs([]);
+    }
+  };
+
+  // 컴포넌트 마운트 시 철학자 목록과 커스텀 NPC 목록 로드
   useEffect(() => {
     fetchPhilosophers();
+    fetchCustomNpcs();
   }, []);
 
-  // 철학자 정보 로드 함수
+  // 철학자 정보 로드 함수 (기본 철학자와 커스텀 NPC 모두 처리)
   const loadPhilosopherDetails = async (philosopherId: string) => {
     try {
-      // 이미 로드한 정보가 있다면 재활용
+      // 먼저 커스텀 NPC에서 찾기
+      const customNpc = customNpcs.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
+      if (customNpc) {
+        setSelectedPhilosopherDetails(customNpc);
+        setShowPhilosopherDetails(true);
+        return;
+      }
+      
+      // 이미 로드한 기본 철학자 정보가 있다면 재활용
       const existingPhil = philosophers.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
       if (existingPhil && existingPhil.description) {
         setSelectedPhilosopherDetails(existingPhil);
@@ -1089,49 +1138,87 @@ export default function OpenChatPage() {
                   </div>
                   
                   <div className="mb-8">
-                    <label className="block mb-3 font-medium text-lg">Select NPCs</label>
+                    <label className="block mb-3 font-medium text-lg">Select Participants</label>
                     
-                    {/* NPC selection grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                      {philosophers.map(philosopher => (
-                        <div 
-                          key={philosopher.id}
-                          className="relative group"
-                        >
-                          <div className="flex items-center">
+                    {/* My NPCs 섹션 */}
+                    {customNpcs.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-md font-medium mb-3 text-gray-700">My NPCs</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                          {customNpcs.map(npc => (
                             <div 
-                              onClick={() => toggleNPC(philosopher.id)}
-                              className={`p-2 text-sm rounded cursor-pointer text-center transition flex-grow 
-                              ${selectedNPCs.includes(philosopher.id) 
-                                ? 'bg-black text-white border-black font-medium' 
-                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'}`}
+                              key={npc.id}
+                              className="relative group"
                             >
-                              {philosopher.name}
+                              <div className="flex items-center">
+                                <div 
+                                  onClick={() => toggleNPC(npc.id)}
+                                  className={`p-2 text-sm rounded cursor-pointer text-center transition flex-grow 
+                                  ${selectedNPCs.includes(npc.id) 
+                                    ? 'bg-black text-white border-black font-medium' 
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'}`}
+                                >
+                                  {npc.name}
+                                </div>
+                                <button
+                                  type="button"
+                                  className="ml-1 text-gray-400 hover:text-gray-600 p-1"
+                                  onClick={() => loadPhilosopherDetails(npc.id)}
+                                >
+                                  ⓘ
+                                </button>
+                              </div>
                             </div>
-                            <button
-                              type="button"
-                              className="ml-1 text-gray-400 hover:text-gray-600 p-1"
-                              onClick={() => loadPhilosopherDetails(philosopher.id)}
-                            >
-                              ⓘ
-                            </button>
-                          </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                    )}
+                    
+                    {/* Default Philosophers 섹션 */}
+                    <div>
+                      <h3 className="text-md font-medium mb-3 text-gray-700">Default Philosophers</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                        {philosophers.map(philosopher => (
+                          <div 
+                            key={philosopher.id}
+                            className="relative group"
+                          >
+                            <div className="flex items-center">
+                              <div 
+                                onClick={() => toggleNPC(philosopher.id)}
+                                className={`p-2 text-sm rounded cursor-pointer text-center transition flex-grow 
+                                ${selectedNPCs.includes(philosopher.id) 
+                                  ? 'bg-black text-white border-black font-medium' 
+                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'}`}
+                              >
+                                {philosopher.name}
+                              </div>
+                              <button
+                                type="button"
+                                className="ml-1 text-gray-400 hover:text-gray-600 p-1"
+                                onClick={() => loadPhilosopherDetails(philosopher.id)}
+                              >
+                                ⓘ
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     
-                    {/* Selected NPCs display - moved below the grid */}
+                    {/* Selected NPCs display - 선택된 철학자 표시 섹션 */}
                     {selectedNPCs.length > 0 && (
                       <div className="mt-6 flex flex-wrap gap-4">
                         {selectedNPCs.map(npcId => {
-                          const phil = philosophers.find(p => p.id === npcId);
-                          if (!phil) return null;
-                          const avatarUrl = phil.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(phil.name)}&background=random&size=128&font-size=0.5`;
+                          // 커스텀 NPC 또는 기본 철학자에서 찾기
+                          const npc = customNpcs.find(p => p.id === npcId) || philosophers.find(p => p.id === npcId);
+                          if (!npc) return null;
+                          const avatarUrl = npc.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=128&font-size=0.5`;
                           return (
                             <div key={npcId} className="relative flex flex-col items-center" style={{ width: '144px' }}>
                               <img
                                 src={avatarUrl}
-                                alt={phil.name}
+                                alt={npc.name}
                                 width={144}
                                 height={144}
                                 style={{
@@ -1140,7 +1227,7 @@ export default function OpenChatPage() {
                                   borderRadius: '50%',
                                   boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)'
                                 }}
-                                onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(phil.name)}&background=random&size=128&font-size=0.5`; }}
+                                onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=128&font-size=0.5`; }}
                               />
                               <button
                                 type="button"
@@ -1167,7 +1254,7 @@ export default function OpenChatPage() {
                                 &times;
                               </button>
                               <span style={{ marginTop: '4px', fontSize: '12px', textAlign: 'center', color: '#374151', whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                                {phil.name}
+                                {npc.name}
                               </span>
                             </div>
                           );

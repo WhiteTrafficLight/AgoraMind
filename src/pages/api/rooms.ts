@@ -141,7 +141,7 @@ export default async function handler(
 
       // 새 채팅룸 객체 생성
       const newRoom: ChatRoom = {
-        id: 0, // 임시 ID (데이터베이스에서 자동 할당됨)
+        id: Date.now().toString(),
         title: params.title,
         context: params.context || '',
         participants: {
@@ -150,29 +150,9 @@ export default async function handler(
         },
         totalParticipants: 1 + params.npcs.length,
         lastActivity: 'Just now',
-        messages: [
-          {
-            id: `sys-${Date.now()}`,
-            text: `Welcome to the philosophical dialogue on "${params.title}".`,
-            sender: 'System',
-            isUser: false,
-            timestamp: new Date()
-          }
-        ],
+        messages: [],
         isPublic: params.isPublic !== false
       };
-
-      // 첫 번째 철학자의 환영 메시지 추가
-      if (params.npcs.length > 0 && newRoom.messages) {
-        const firstPhilosopher = params.npcs[0];
-        newRoom.messages.push({
-          id: `npc-${firstPhilosopher.toLowerCase()}-${Date.now()}`,
-          text: getInitialPrompt(params.title, params.context),
-          sender: firstPhilosopher,
-          isUser: false,
-          timestamp: new Date(Date.now() - 60000)
-        });
-      }
 
       // 채팅룸 데이터베이스에 저장
       const createdRoom = await chatRoomDB.createChatRoom(newRoom);
@@ -223,6 +203,7 @@ export default async function handler(
       if (updates.message) {
         const { message } = updates;
         console.log(`새 메시지 추가: ${message.sender}의 메시지, ID: ${message.id}`);
+        console.log(`📋 메시지 전체 데이터: ${JSON.stringify(message, null, 2)}`);
         
         const success = await chatRoomDB.addMessage(roomIdStr, message);
         
@@ -232,7 +213,16 @@ export default async function handler(
           // Socket.IO 이벤트 발생 (서버에 Socket.IO 인스턴스가 있는 경우)
           if (res.socket.server.io) {
             console.log('Broadcasting message-added event');
-            res.socket.server.io.to(roomIdStr).emit('new-message', message);
+            // 메시지와 함께 roomId도 전송하여 클라이언트에서 올바르게 처리할 수 있도록 함
+            const socketData = {
+              roomId: roomIdStr,
+              message: message
+            };
+            console.log(`🔄 Socket.IO 브로드캐스트 데이터: ${JSON.stringify(socketData, null, 2)}`);
+            res.socket.server.io.to(roomIdStr).emit('new-message', socketData);
+            console.log(`✅ 브로드캐스트 완료 - 방 ID: ${roomIdStr}, 메시지 ID: ${message.id}`);
+          } else {
+            console.warn(`❌ Socket.IO 서버가 초기화되지 않아 브로드캐스트할 수 없음`);
           }
         } else {
           console.log(`중복 메시지 건너뜀, ID: ${message.id}`);
@@ -261,10 +251,16 @@ export default async function handler(
       
       // 업데이트된 채팅룸 반환
       const updatedRoom = await chatRoomDB.getChatRoomById(roomIdStr);
-      return res.status(200).json(updatedRoom);
+      return res.status(200).json({
+        success: true,
+        room: updatedRoom
+      });
     } catch (error) {
       console.error('Error updating chat room:', error);
-      return res.status(500).json({ error: 'Failed to update chat room' });
+      return res.status(500).json({ 
+        success: false,
+        error: 'Failed to update chat room' 
+      });
     }
   }
 
@@ -274,6 +270,10 @@ export default async function handler(
 
 // 철학자 환영 메시지 생성 함수
 function getInitialPrompt(topic: string, context?: string): string {
+  // 환영 메시지 생성 제거 - 백엔드 API에서 생성된 메시지만 사용
+  return "";
+  
+  /* 기존 코드 주석 처리
   const greetings = [
     `Welcome! I'm excited to discuss "${topic}".`,
     `Greetings! I look forward to exploring "${topic}" together.`,
@@ -296,4 +296,5 @@ function getInitialPrompt(topic: string, context?: string): string {
   const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
   
   return `${randomGreeting}${contextAddition} ${randomQuestion}`;
+  */
 } 

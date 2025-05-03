@@ -11,6 +11,7 @@ import path from 'path';
 // Disable bodyParser to allow WebSocket upgrade
 export const config = {
   api: {
+    // WebSocket 연결과 POST 요청 모두 처리하기 위해 bodyParser를 자동으로 사용하지 않음
     bodyParser: false,
   },
 };
@@ -113,6 +114,57 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
+  }
+
+  // POST 요청 처리 - Python 서버로부터의 브로드캐스트 요청
+  if (req.method === 'POST') {
+    try {
+      // POST 요청의 body를 수동으로 파싱
+      const buffers: Buffer[] = [];
+      
+      for await (const chunk of req) {
+        buffers.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+      }
+      
+      const data = Buffer.concat(buffers).toString();
+      let body;
+      
+      try {
+        body = data ? JSON.parse(data) : {};
+        console.log('Socket API POST 요청 받음:', body);
+      } catch (e) {
+        console.error('JSON 파싱 에러:', e, 'Raw data:', data);
+        return res.status(400).json({ error: 'Invalid JSON in request body' });
+      }
+      
+      // Socket.IO 서버가 초기화되지 않았으면 오류 반환
+      if (!res.socket?.server.io) {
+        console.error('❌ Socket.IO 서버가 초기화되지 않았습니다.');
+        return res.status(500).json({ error: 'Socket.IO server not initialized' });
+      }
+      
+      const { action, room, event, data: eventData } = body;
+      
+      // 브로드캐스트 액션 처리
+      if (action === 'broadcast') {
+        if (!room || !event || !eventData) {
+          return res.status(400).json({ error: 'Missing required fields: room, event, or data' });
+        }
+        
+        console.log(`📢 브로드캐스트 요청 - 방: ${room}, 이벤트: ${event}`);
+        
+        // 특정 방에 이벤트 브로드캐스트
+        res.socket.server.io.to(String(room)).emit(event, eventData);
+        console.log(`✅ 브로드캐스트 완료 - ${room} 방의 모든 클라이언트에게 ${event} 이벤트 전송됨`);
+        
+        return res.status(200).json({ success: true, message: 'Broadcast sent' });
+      }
+      
+      return res.status(400).json({ error: 'Invalid action' });
+    } catch (error) {
+      console.error('Socket API 에러:', error);
+      return res.status(500).json({ error: 'Internal Server Error', details: error instanceof Error ? error.message : 'Unknown error' });
+    }
   }
 
   if (req.method === 'GET') {

@@ -19,6 +19,8 @@ interface ClientToServerEvents {
   'send-message': (data: { roomId: string | number; message: ChatMessage }) => void;
   'get-active-users': (roomId: string | number) => void;
   'ping': (data: { time: number, username: string }) => void;
+  'refresh-room': (data: { roomId: string | number }) => void;
+  [event: string]: (...args: any[]) => void;  // Allow any other event
 }
 
 // Socket.io client wrapper class
@@ -522,6 +524,30 @@ Time: ${new Date().toLocaleTimeString()}
   public setUsername(username: string) {
     this.username = username;
     return this;
+  }
+  
+  // Generic emit method for sending custom events
+  public emit(event: string, data: any) {
+    console.log(`🔄 Custom emit for event: ${event}`, data);
+    
+    if (!this.socket) {
+      console.error('❌ Socket not initialized - Cannot emit event');
+      return false;
+    }
+    
+    if (!this.socket.connected) {
+      console.error(`❌ Socket not connected - Cannot emit event: ${event}`);
+      return false;
+    }
+    
+    try {
+      this.socket.emit(event, data);
+      console.log(`✅ Emitted custom event: ${event}`, data);
+      return true;
+    } catch (error) {
+      console.error(`❌ Error emitting event ${event}:`, error);
+      return false;
+    }
   }
   
   // Generate a random username

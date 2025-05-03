@@ -1,70 +1,96 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ChatUI from '@/components/chat/ChatUI';
 import chatService from '@/lib/ai/chatService';
-import { ChatRoom, ChatMessage } from '@/lib/ai/chatService';
-import socketClient from '@/lib/socket/socketClient';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
-// For TypeScript global augmentation - assuming this is added to a *.d.ts file in your project
-declare global {
-  interface Window {
-    _debug?: {
-      socketClient?: any;
-      chatId?: string | number;
-      username?: string;
-      roomJoined?: boolean;
-      [key: string]: any;
-    };
-  }
-}
+export default function ChatRoom() {
+  const params = useParams();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [chatRoom, setChatRoom] = useState<any>(null);
+  const chatId = params?.id as string;
 
-// Initialize socket
-useEffect(() => {
-  if (typeof window === 'undefined') return;
-  
-  async function initSocket() {
-    try {
-      console.log('📡 채팅방 소켓 초기화 시작...');
-      // 전역 변수 초기화
-      if (!window._debug) window._debug = {};
+  useEffect(() => {
+    const loadChatRoom = async () => {
+      if (!chatId) return;
       
-      // 소켓 클라이언트 초기화 준비
-      const socketClientInstance = socketClient;
-      window._debug.socketClient = socketClientInstance;
-      
-      // 정확한 소켓 연결 설정
-      const username = localStorage.getItem('username') || 'Guest' + Math.floor(Math.random() * 1000);
-      console.log('📡 사용자명:', username);
-      
-      // 이미 연결된 상태인지 확인
-      if (socketClientInstance.isConnected()) {
-        console.log('📡 소켓이 이미 연결되어 있음, 재사용합니다.');
-      } else {
-        console.log('📡 소켓 연결 시작...');
-        await socketClientInstance.init(username);
-        console.log('📡 소켓 초기화 완료');
+      try {
+        setLoading(true);
+        console.log('Loading chat room with ID:', chatId);
+
+        // Get chat room details
+        const roomData = await chatService.getChatRoomById(chatId);
+        
+        if (!roomData) {
+          console.error('Chat room not found:', chatId);
+          setError('Chat room not found');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Chat room loaded:', roomData);
+        setChatRoom(roomData);
+      } catch (error) {
+        console.error('Error loading chat room:', error);
+        setError('Failed to load chat room');
+      } finally {
+        setLoading(false);
       }
-      
-      // 방 접속 시도
-      console.log(`📡 채팅방 입장 시도: ${params.id}`);
-      const joined = socketClientInstance.joinRoom(params.id);
-      console.log('📡 방 입장 결과:', joined ? '성공' : '실패');
-      
-      // 디버깅 정보 갱신
-      window._debug.chatId = params.id;
-      window._debug.username = username;
-      window._debug.roomJoined = joined;
-      
-      setSocketInitialized(true);
-    } catch (error) {
-      console.error('📡 소켓 초기화 오류:', error);
-      
-      // 오류 상태 표시
-      setSocketError('Socket connection failed');
-      setSocketInitialized(true); // 초기화는 완료됨 (실패했지만)
-    }
+    };
+
+    loadChatRoom();
+  }, [chatId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="large" />
+      </div>
+    );
   }
-  
-  initSocket();
-}, [params.id]); 
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <h2 className="text-xl font-semibold text-red-600 mb-4">Error</h2>
+        <p className="text-gray-700 mb-6">{error}</p>
+        <button
+          onClick={() => router.push('/open-chat')}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          Return to Chat List
+        </button>
+      </div>
+    );
+  }
+
+  if (!chatRoom) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center p-4">
+          <h2 className="text-xl font-semibold mb-2">Chat room not found</h2>
+          <p className="text-gray-700 mb-6">The chat room you're looking for might have been deleted or never existed.</p>
+          <button
+            onClick={() => router.push('/open-chat')}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Return to Chat List
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ChatUI 
+      chatId={chatId}
+      chatTitle={chatRoom.title || 'Unnamed Chat'}
+      participants={chatRoom.participants || { users: [], npcs: [] }}
+      initialMessages={chatRoom.messages || []}
+    />
+  );
+} 
