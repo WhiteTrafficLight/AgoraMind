@@ -153,103 +153,58 @@ export async function POST(req: NextRequest) {
     // API 키 출처 로깅
     console.log(`Using API key from: ${headerApiKey ? 'request header' : 'environment variable'}`);
 
-    // 요청 데이터 파싱
-    const { messages, roomId, topic, context, participants, npcDetails } = await req.json();
+    // 요청 데이터 파싱 - 새로운 형식으로 변경
+    const data = await req.json();
+    const { room_id, user_message, npcs, llm_provider: clientLlmProvider, llm_model: clientLlmModel } = data;
     
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    // 이전 요청 형식과의 호환성 (messages, roomId, topic, context, participants)
+    // 새 요청 형식 검증
+    if (!room_id) {
       return NextResponse.json(
-        { error: "Invalid or missing messages in request" },
+        { error: "Missing room_id in request" },
         { status: 400 }
       );
     }
     
-    // 참여하는 NPCs 확인
-    const npcs = participants?.npcs || [];
-    if (!npcs.length) {
+    if (!user_message) {
+      return NextResponse.json(
+        { error: "Missing user_message in request" },
+        { status: 400 }
+      );
+    }
+    
+    if (!npcs || !Array.isArray(npcs) || npcs.length === 0) {
       return NextResponse.json(
         { error: "No NPCs specified for the conversation" },
         { status: 400 }
       );
     }
     
-    console.log(`Processing chat for topic: ${topic}`);
+    console.log(`Processing chat for room: ${room_id}`);
+    console.log(`User message: ${user_message.substring(0, 30)}...`);
     console.log(`Participating NPCs: ${npcs.join(', ')}`);
     
-    // NPC 상세 정보 로깅
-    const hasNpcDetails = npcDetails && Array.isArray(npcDetails) && npcDetails.length > 0;
-    console.log(`Using NPC details: ${hasNpcDetails ? 'Yes' : 'No'}`);
-    if (hasNpcDetails) {
-      console.log(`NPC details count: ${npcDetails.length}`);
-    }
-    
-    // 최근 메시지만 사용 (대화 컨텍스트로)
-    const recentMessages = messages.slice(-10);
-    
-    // 최신 사용자 메시지 가져오기 (저장하기 위함)
-    const latestUserMessage = messages[messages.length - 1];
-    
-    // NPC 상세 정보 처리
-    let npcDescriptions = '';
-    if (hasNpcDetails) {
-      // NPC 상세 정보 처리 (백엔드에 전달하기 위한 형식으로 변환)
-      npcDescriptions = npcDetails.map((npc: NpcDetail) => {
-        let description = `${npc.name}:`;
-        
-        if (npc.is_custom) {
-          description += `\n  - Custom philosopher${npc.description ? `: ${npc.description}` : ''}`;
-          if (npc.communication_style) description += `\n  - Communication style: ${npc.communication_style}`;
-          if (npc.debate_approach) description += `\n  - Debate approach: ${npc.debate_approach}`;
-          if (npc.voice_style) description += `\n  - Voice style: ${npc.voice_style}`;
-          if (npc.reference_philosophers && npc.reference_philosophers.length > 0) {
-            description += `\n  - Influenced by: ${npc.reference_philosophers.join(', ')}`;
-          }
-        } else {
-          const profile = philosopherProfiles[npc.name];
-          if (profile) {
-            description += `\n  - ${profile.description}`;
-            description += `\n  - Style: ${profile.style}`;
-            description += `\n  - Key concepts: ${profile.key_concepts.join(', ')}`;
-          }
-        }
-        
-        return description;
-      }).join('\n\n');
-    }
-    
     // 클라이언트 요청의 헤더에서 LLM 설정 정보 확인
-    const llmProvider = req.headers.get('x-llm-provider') || 'openai';
-    const llmModel = req.headers.get('x-llm-model') || '';
+    const llmProvider = req.headers.get('x-llm-provider') || clientLlmProvider || 'openai';
+    const llmModel = req.headers.get('x-llm-model') || clientLlmModel || 'gpt-4o';
     
-    console.log(`Using LLM Provider: ${llmProvider}`);
-    
-    // 대화 히스토리 형식 변환 (Python 백엔드에 전달하기 위한 형식)
-    const previousDialogue = recentMessages.map(msg => {
-      if (msg.isUser) {
-        return `User: ${msg.text}`;
-      } else if (msg.sender !== 'System') {
-        return `${msg.sender}: ${msg.text}`;
-      } else {
-        return `System: ${msg.text}`;
-      }
-    }).join('\n');
+    console.log(`Using LLM Provider: ${llmProvider}, Model: ${llmModel}`);
     
     try {
-      console.log('🔄 Calling Python backend (llm_manager) API...');
+      console.log('🔄 Calling Python backend (llm_manager) API with new format...');
       
-      // Python 백엔드 API 호출 (sapiens_engine)
+      // Python 백엔드 API 호출 - 새로운 서버 측 대화 관리 방식 사용
       const backendResponse = await fetch(`${BACKEND_API_URL}/api/chat/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          npc_descriptions: hasNpcDetails ? npcDescriptions : null,
+          room_id: room_id,
+          user_message: user_message,
           npcs: npcs,
-          topic: topic,
-          context: context || "",
-          previous_dialogue: previousDialogue,
           llm_provider: llmProvider,
-          llm_model: llmModel || 'gpt-4o',
+          llm_model: llmModel,
           api_key: effectiveApiKey
         }),
         cache: 'no-store'
@@ -274,52 +229,28 @@ export async function POST(req: NextRequest) {
       const backendData = await backendResponse.json();
       console.log('✅ Python backend API response received');
       
-      const generatedText = backendData.response || backendData.text || backendData.message;
-      let respondingPhilosopher = backendData.philosopher || backendData.sender || npcs[0];
+      // 응답 형식 확인 및 클라이언트에 맞게 변환
+      const response = backendData.response || '';
+      const philosopher = backendData.philosopher || '';
       
-      // 응답 검증
-      if (!generatedText) {
+      if (!response || !philosopher) {
         throw new Error('Invalid response format from Python backend API');
       }
       
-      // 철학자가 참여자 목록에 있는지 확인
-      if (!npcs.includes(respondingPhilosopher)) {
-        console.warn(`Warning: Backend API returned non-participant philosopher: ${respondingPhilosopher}`);
-        // 첫 번째 참여 철학자로 강제 변경
-        respondingPhilosopher = npcs[0];
-      }
-      
-      // 응답 형식 만들기
-      const aiMessage = {
-        id: `api-${Date.now()}`,
-        text: generatedText,
-        sender: respondingPhilosopher,
+      // 메시지 형식으로 변환 (socket.ts에서 기대하는 형식)
+      const messageId = `ai-${Date.now()}`;
+      const messageObject = {
+        id: messageId,
+        text: response,
+        sender: philosopher,
+        senderType: "npc",
         isUser: false,
-        timestamp: new Date()
+        timestamp: new Date().toISOString(),
+        metadata: backendData.metadata || {}
       };
       
-      // 사용자 메시지와 AI 응답 MongoDB에 저장
-      if (roomId) {
-        try {
-          // 사용자 메시지 먼저 저장 (아직 저장되지 않았다면)
-          if (latestUserMessage && latestUserMessage.isUser) {
-            console.log(`💾 사용자 메시지 저장: ${latestUserMessage.text.substring(0, 30)}...`);
-            await chatRoomDB.addMessage(roomId, latestUserMessage);
-          }
-          
-          // AI 응답 저장
-          console.log(`💾 AI 응답 저장: ${aiMessage.text.substring(0, 30)}...`);
-          await chatRoomDB.addMessage(roomId, aiMessage);
-          console.log('✅ 메시지가 MongoDB에 저장되었습니다.');
-        } catch (dbError) {
-          console.error('MongoDB 저장 오류:', dbError);
-          // 저장 실패해도 메시지는 반환
-        }
-      } else {
-        console.warn('메시지 저장 건너뜀: roomId가 제공되지 않음');
-      }
+      return NextResponse.json(messageObject);
       
-      return NextResponse.json(aiMessage);
     } catch (error: any) {
       console.error('❌ Error in backend chat API:', error);
       

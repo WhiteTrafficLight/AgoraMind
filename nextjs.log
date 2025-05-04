@@ -8,1538 +8,388 @@
    - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 3.1s
- ○ Compiling /open-chat ...
- ✓ Compiled /open-chat in 2.5s
- GET /open-chat 200 in 2850ms
+ ✓ Ready in 845ms
+ ○ Compiling /_not-found/page ...
+ GET /api/socket/io?EIO=4&transport=polling&t=5dht9lrv 404 in 2942ms
+ GET /api/socket/io?EIO=4&transport=polling&t=5djagvm6 404 in 1242ms
+ ✓ Compiled /_not-found/page in 3.2s
+ GET /chat?id=5 200 in 1513ms
+GET 요청 처리 - 쿼리: { id: '5' }
+ID 5로 채팅룸 검색 중
  ○ Compiling /favicon.ico ...
+검색 결과: 찾음
+채팅룸 5 정보: {
+  title: '유전자 편집 작물로 ‘기후 적응’—기회인가 프랑켄푸드인가',
+  messagesCount: 53,
+  lastMessageFrom: 'User_9221'
+}
+ GET /api/rooms?id=5 304 in 534ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 792ms
+ ✓ Compiled /favicon.ico in 1273ms
+🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
+🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
+✅ Found custom NPC: Modern Socrates
+   _id: 680ab82df57902e97ae4ef38, backend_id: not set
+   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
+ GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 617ms
+🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+✅ Found custom NPC: 빵빠라스
+   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
+   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
+ GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 24ms
+🔍 Fetching NPC details for ID: marx
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Marx
+ GET /api/npc/get?id=marx 200 in 103ms
+🔍 Fetching NPC details for ID: kant
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Kant
+ GET /api/npc/get?id=kant 200 in 64ms
+🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
+🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
+✅ Found custom NPC: Modern Socrates
+   _id: 680ab82df57902e97ae4ef38, backend_id: not set
+   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
+ GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 89ms
+ ✓ Compiled /api/socket in 190ms
+🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+✅ Found custom NPC: 빵빠라스
+   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
+   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
+ GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 166ms
+🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
+🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
+✅ Found custom NPC: Modern Socrates
+   _id: 680ab82df57902e97ae4ef38, backend_id: not set
+   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
+ GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 194ms
 📁 socket.ts: .env.local 파일을 찾았습니다.
 ✅ socket.ts: .env.local 파일에서 설정을 로드했습니다.
 socket.ts - API Key source: .env.local 파일
 socket.ts - API Key check: sk-proj...svYA
 Initializing socket server...
 Socket.IO server initialized
- GET /api/socket 304 in 985ms
-New client connected: YbrW6LrgB7OjCP_nAAAB
-GET 요청 처리 - 쿼리: {}
- GET /favicon.ico?favicon.45db1c09.ico 200 in 1792ms
- GET /api/rooms 200 in 650ms
- ✓ Compiled /favicon.ico in 2.4s
- GET /api/npc/list 200 in 2835ms
- GET /api/auth/session 200 in 3089ms
- ○ Compiling /chat ...
- ✓ Compiled /chat in 923ms
- GET /chat?id=23 200 in 991ms
-Client disconnected: YbrW6LrgB7OjCP_nAAAB
-Socket server already running
- GET /api/socket 304 in 12ms
-New client connected: n0ftXBELi7OhjEgjAAAD
-User User_9217 joined room 23
-Getting active users for room: 23
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
- ○ Compiling /api/npc/get ...
-검색 결과: 찾음
-채팅룸 23 정보: { title: '나는 왜이렇게 체력이 약할까', messagesCount: 7, lastMessageFrom: 'kant' }
- GET /api/rooms?id=23 200 in 741ms
- ✓ Compiled /api/npc/get in 923ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 1017ms
+ GET /api/socket 304 in 127ms
+New client connected: lFHZ2aldAIBqAmeKAAAB
+User User_9221 joined room 5
+Getting active users for room: 5
 🔍 Fetching NPC details for ID: marx
 🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Marx
+ GET /api/npc/get?id=marx 200 in 179ms
+🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+✅ Found custom NPC: 빵빠라스
+   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
+   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
+ GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 167ms
+ GET /api/auth/session 200 in 2033ms
+🔍 Fetching NPC details for ID: marx
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Marx
+ GET /api/npc/get?id=marx 200 in 87ms
+🔍 Fetching NPC details for ID: kant
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Kant
+ GET /api/npc/get?id=kant 200 in 121ms
+🔍 Fetching NPC details for ID: kant
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Kant
+ GET /api/npc/get?id=kant 200 in 46ms
+ GET /chat?id=5 200 in 58ms
+Client disconnected: lFHZ2aldAIBqAmeKAAAB
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 68ms
+GET 요청 처리 - 쿼리: { id: '5' }
+ID 5로 채팅룸 검색 중
+검색 결과: 찾음
+채팅룸 5 정보: {
+  title: '유전자 편집 작물로 ‘기후 적응’—기회인가 프랑켄푸드인가',
+  messagesCount: 53,
+  lastMessageFrom: 'User_9221'
+}
+ GET /api/rooms?id=5 304 in 24ms
+ GET /api/auth/session 200 in 63ms
 🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
 🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
 ✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 23ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
+   _id: 680ab82df57902e97ae4ef38, backend_id: not set
    portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
  GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 19ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 2070ms
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 2077ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 62ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 61ms
+🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+✅ Found custom NPC: 빵빠라스
+   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
+   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
+ GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 19ms
 🔍 Fetching NPC details for ID: marx
 🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 47ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 52ms
-🚨 socket.id n0ftXBELi7OhjEgjAAAD send-message RAW data: {
-  roomId: '23',
-  message: {
-    id: 'socket-1746195281608',
-    text: '안녕',
-    sender: 'User_9217',
-    isUser: true,
-    timestamp: '2025-05-02T14:14:41.608Z'
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
   }
 }
-🚨 'send-message' 이벤트 수신 - 방 ID: 23, 메시지: {
-  id: 'socket-1746195281608',
-  text: '안녕',
-  sender: 'User_9217',
-  isUser: true,
-  timestamp: '2025-05-02T14:14:41.608Z'
-}
-💾 MongoDB에 메시지 저장 중: 안녕...
-✅ 메시지가 MongoDB에 저장되었습니다.
-📢 메시지 브로드캐스트 [방 23]: {"id":"socket-1746195281608","text":"안녕...","sender":"User_9217"}
-📊 현재 방(23)에 연결된 클라이언트 수: 1명
-✅ 브로드캐스트 완료 - 발신자 제외 방송
-🤖 AI 응답 생성 중... 방 ID: 23
-🔍 AI API 요청 시작 - 방 ID: 23, 메시지 수: 8
-📤 API 요청 페이로드: {"roomId":"23","topic":"나는 왜이렇게 체력이 약할까","context":"...","messages":"8개 메시지","participants":{"users":["User_9667"],"npcs":["e0c3872b-2103-4d04-8a2d-801bbd7f43cf","kant","marx"]}}
-🔗 API URL: http://localhost:3000/api/chat
- ✓ Compiled /api/chat in 448ms
-📁 .env.local 파일을 찾았습니다.
-✅ .env.local 파일에서 설정을 로드했습니다.
-API Key source: .env.local 파일
-API Key check: sk-proj...svYA
-Using API key from: request header
-Processing chat for topic: 나는 왜이렇게 체력이 약할까
-Participating NPCs: e0c3872b-2103-4d04-8a2d-801bbd7f43cf, kant, marx
-Using NPC details: No
-Using LLM Provider: openai
-🔄 Calling Python backend (llm_manager) API...
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 32ms
-✅ Python backend API response received
-💾 사용자 메시지 저장: 안녕...
-Duplicate message: socket-1746195281608
-💾 AI 응답 저장: Greetings! Your inquiry about ...
-✅ 메시지가 MongoDB에 저장되었습니다.
- POST /api/chat 200 in 3965ms
-🔍 API 응답 상태: 200 OK
-📥 API 응답 데이터: {"id":"api-1746195285645","text":"Greetings! Your inquiry about physical weakness is quite profound. Let's consider whether you might be neglecting the balance between your mental pursuits and physica...
-Duplicate message: api-1746195285645
-✅ AI 메시지(api-1746195285645)가 MongoDB에 저장되었습니다.
-✅ AI 응답 브로드캐스트 완료 - 모든 클라이언트에게 전송됨
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 32ms
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 9,
-  lastMessageFrom: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf'
-}
- GET /api/rooms?id=23 200 in 26ms
-PUT 요청 처리 - 채팅룸 업데이트
-룸 업데이트 요청: ID 23
-Updating room 23 with: {
-  message: {
-    id: 'auto-c8699abc',
-    text: "Indeed, as you explore the reasons behind your physical weakness, consider Kant's imperative to treat oneself always as an end and never merely as a means. Reflect on whether your daily routines and choices respect your body's inherent needs and dignity. This self-examination will not only aid in understanding your physical limitations but also aligns with the moral duty to maintain and enhance one's own well-being as a rational being.",
-    sender: 'kant',
-    senderName: 'Immanuel Kant',
-    senderType: 'npc',
-    isUser: false,
-    timestamp: '2025-05-02T16:14:56.922890',
-    portrait_url: 'http://localhost:8000/portraits/Kant.png',
-    npc_id: 'kant'
-  }
-}
-새 메시지 추가: kant의 메시지, ID: auto-c8699abc
-📋 메시지 전체 데이터: {
-  "id": "auto-c8699abc",
-  "text": "Indeed, as you explore the reasons behind your physical weakness, consider Kant's imperative to treat oneself always as an end and never merely as a means. Reflect on whether your daily routines and choices respect your body's inherent needs and dignity. This self-examination will not only aid in understanding your physical limitations but also aligns with the moral duty to maintain and enhance one's own well-being as a rational being.",
-  "sender": "kant",
-  "senderName": "Immanuel Kant",
-  "senderType": "npc",
-  "isUser": false,
-  "timestamp": "2025-05-02T16:14:56.922890",
-  "portrait_url": "http://localhost:8000/portraits/Kant.png",
-  "npc_id": "kant"
-}
-룸 23에 kant의 새 메시지 추가됨
-Broadcasting message-added event
-🔄 Socket.IO 브로드캐스트 데이터: {
-  "roomId": "23",
-  "message": {
-    "id": "auto-c8699abc",
-    "text": "Indeed, as you explore the reasons behind your physical weakness, consider Kant's imperative to treat oneself always as an end and never merely as a means. Reflect on whether your daily routines and choices respect your body's inherent needs and dignity. This self-examination will not only aid in understanding your physical limitations but also aligns with the moral duty to maintain and enhance one's own well-being as a rational being.",
-    "sender": "kant",
-    "senderName": "Immanuel Kant",
-    "senderType": "npc",
-    "isUser": false,
-    "timestamp": "2025-05-02T16:14:56.922890",
-    "portrait_url": "http://localhost:8000/portraits/Kant.png",
-    "npc_id": "kant"
-  }
-}
-✅ 브로드캐스트 완료 - 방 ID: 23, 메시지 ID: auto-c8699abc
- PUT /api/rooms?id=23 200 in 222ms
+✅ Found local philosopher profile: Marx
+ GET /api/npc/get?id=marx 200 in 50ms
 🔍 Fetching NPC details for ID: kant
 🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-Socket API POST 요청 받음: {
-  action: 'broadcast',
-  room: '23',
-  event: 'new-message',
-  data: {
-    roomId: '23',
-    message: {
-      id: 'auto-c8699abc',
-      text: "Indeed, as you explore the reasons behind your physical weakness, consider Kant's imperative to treat oneself always as an end and never merely as a means. Reflect on whether your daily routines and choices respect your body's inherent needs and dignity. This self-examination will not only aid in understanding your physical limitations but also aligns with the moral duty to maintain and enhance one's own well-being as a rational being.",
-      sender: 'kant',
-      senderName: 'Immanuel Kant',
-      senderType: 'npc',
-      isUser: false,
-      timestamp: '2025-05-02T16:14:56.922890',
-      portrait_url: 'http://localhost:8000/portraits/Kant.png',
-      npc_id: 'kant'
-    }
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
   }
 }
-📢 브로드캐스트 요청 - 방: 23, 이벤트: new-message
-✅ 브로드캐스트 완료 - 23 방의 모든 클라이언트에게 new-message 이벤트 전송됨
- POST /api/socket 200 in 123ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 345ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 695ms
- ⚠ Fast Refresh had to perform a full reload when [turbopack]/browser/dev/hmr-client/hmr-client.ts changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
- ✓ Compiled in 1852ms
- ○ Compiling /chat ...
- ✓ Compiled /chat in 559ms
- GET /chat?id=23 200 in 3605ms
- GET /chat?id=23 200 in 3124ms
-Client disconnected: n0ftXBELi7OhjEgjAAAD
- ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
-   ▲ Next.js 15.2.4 (Turbopack)
-   - Local:        http://localhost:3000
-   - Network:      http://0.0.0.0:3000
-   - Environments: .env.local
-
- ✓ Starting...
- ✓ Ready in 1323ms
- ✓ Compiled /api/rooms in 72ms
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 10,
-  lastMessageFrom: 'kant'
-}
- GET /api/rooms?id=23 200 in 396ms
- ○ Compiling /api/npc/get ...
- ✓ Compiled /api/npc/get in 1365ms
+✅ Found local philosopher profile: Kant
+ GET /api/npc/get?id=kant 200 in 55ms
+Socket server already running
+ GET /api/socket 304 in 64ms
+New client connected: XUyRGxrDuVo1g0RmAAAD
+User User_9221 joined room 5
+Getting active users for room: 5
 🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
 🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
 ✅ Found custom NPC: Modern Socrates
    _id: 680ab82df57902e97ae4ef38, backend_id: not set
    portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 2362ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
- ○ Compiling / ...
- ✓ Compiled / in 2.1s
- GET / 200 in 2460ms
- GET /api/npc/get?id=kant 200 in 9039ms
- ○ Compiling /favicon.ico ...
- GET /favicon.ico?favicon.45db1c09.ico 200 in 1037ms
- ✓ Compiled /favicon.ico in 1671ms
- GET /api/auth/session 200 in 2730ms
-✅ Got NPC details from backend: Immanuel Kant
- ○ Compiling /open-chat ...
- ✓ Compiled /open-chat in 1660ms
- GET /open-chat 200 in 1771ms
-📁 socket.ts: .env.local 파일을 찾았습니다.
-✅ socket.ts: .env.local 파일에서 설정을 로드했습니다.
-socket.ts - API Key source: .env.local 파일
-socket.ts - API Key check: sk-proj...svYA
-Initializing socket server...
-Socket.IO server initialized
- GET /api/socket 304 in 85ms
-New client connected: DReHn52aP9YVVJbcAAAB
-Socket server already running
- GET /api/socket 304 in 19ms
-GET 요청 처리 - 쿼리: {}
-New client connected: C7uQcmC5sADrN2yqAAAD
- GET /api/rooms 304 in 87ms
-GET 요청 처리 - 쿼리: {}
- ○ Compiling /api/socket ...
- GET /api/rooms 304 in 132ms
- ✓ Compiled /api/socket in 711ms
- GET /api/npc/list 200 in 803ms
- GET /api/npc/list 200 in 82ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 149ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 38ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 32ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 22ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 20ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 29ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 61ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 47ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 116ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 25ms
-Client disconnected: DReHn52aP9YVVJbcAAAB
-Client disconnected: C7uQcmC5sADrN2yqAAAD
-New client connected: 3qZS5_TkPejBvFIKAAAF
-New client connected: 6sEFRXQgmkcalU15AAAH
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 68ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 57ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 22ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 5056ms
- ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
-   ▲ Next.js 15.2.4 (Turbopack)
-   - Local:        http://localhost:3000
-   - Network:      http://0.0.0.0:3000
-   - Environments: .env.local
-
- ✓ Starting...
- ✓ Ready in 1716ms
- ○ Compiling /_not-found/page ...
- ✓ Compiled /_not-found/page in 1922ms
- GET /api/socket/io?EIO=4&transport=polling&t=wyfit26j 404 in 2291ms
- GET /api/socket/io?EIO=4&transport=polling&t=wyfj38kq 404 in 2285ms
- GET /api/socket/io?EIO=4&transport=polling&t=wyk53hnh 404 in 70ms
- GET /api/socket/io?EIO=4&transport=polling&t=wyloktv7 404 in 73ms
- GET /api/socket/io?EIO=4&transport=polling&t=wyortvp6 404 in 92ms
- ✓ Compiled in 969ms
- ✓ Compiled /_not-found/page in 6ms
- GET /api/socket/io?EIO=4&transport=polling&t=wyqbhbcb 404 in 1541ms
- GET /api/socket/io?EIO=4&transport=polling&t=wytec70o 404 in 193ms
- GET /api/socket/io?EIO=4&transport=polling&t=wyvq0rg0 404 in 404ms
- ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
-   ▲ Next.js 15.2.4 (Turbopack)
-   - Local:        http://localhost:3000
-   - Network:      http://0.0.0.0:3000
-   - Environments: .env.local
-
- ✓ Starting...
- ✓ Ready in 2.8s
- ○ Compiling /api/auth/[...nextauth] ...
- ✓ Compiled /api/auth/[...nextauth] in 1153ms
- ○ Compiling /open-chat ...
- GET /api/auth/session 200 in 2859ms
- ✓ Compiled /open-chat in 2.3s
- GET /open-chat 200 in 2496ms
- GET /api/auth/session 200 in 196ms
- ○ Compiling /favicon.ico ...
-📁 socket.ts: .env.local 파일을 찾았습니다.
-✅ socket.ts: .env.local 파일에서 설정을 로드했습니다.
-socket.ts - API Key source: .env.local 파일
-socket.ts - API Key check: sk-proj...svYA
-Initializing socket server...
-Socket.IO server initialized
- GET /api/socket 304 in 204ms
-New client connected: EOPSelFWeVg9ftO3AAAB
-GET 요청 처리 - 쿼리: {}
- GET /favicon.ico?favicon.45db1c09.ico 200 in 1074ms
- ✓ Compiled /favicon.ico in 1160ms
- GET /api/npc/list 200 in 1285ms
- GET /api/rooms 304 in 636ms
- ○ Compiling /chat ...
- ✓ Compiled /chat in 652ms
- GET /chat?id=23 200 in 693ms
-Client disconnected: EOPSelFWeVg9ftO3AAAB
-Socket server already running
- GET /api/socket 304 in 231ms
-New client connected: W2hQYBZHatLSitxkAAAD
-User User_9217 joined room 23
-Getting active users for room: 23
- ○ Compiling /api/npc/get ...
- ✓ Compiled /api/npc/get in 815ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 866ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 46ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 63ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 39ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 60ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 38ms
- GET /chat?id=23 200 in 122ms
-Client disconnected: W2hQYBZHatLSitxkAAAD
- GET /favicon.ico?favicon.45db1c09.ico 200 in 104ms
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
- GET /api/auth/session 200 in 67ms
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 10,
-  lastMessageFrom: 'kant'
-}
- GET /api/rooms?id=23 304 in 405ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 54ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 40ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 17ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 31ms
-Socket server already running
- GET /api/socket 304 in 14ms
-New client connected: 7zUMyeVFI3-BWIgNAAAF
-User User_9217 joined room 23
-Getting active users for room: 23
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 53ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 99ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 177ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 208ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 44ms
- ✓ Compiled in 565ms
-User User_9217 left room 23
- ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
-   ▲ Next.js 15.2.4 (Turbopack)
-   - Local:        http://localhost:3000
-   - Network:      http://0.0.0.0:3000
-   - Environments: .env.local
-
- ✓ Starting...
- ✓ Ready in 1575ms
- ○ Compiling /_not-found/page ...
- ✓ Compiled /_not-found/page in 1803ms
- GET /api/socket/io?EIO=4&transport=polling&t=x9mbb03i 404 in 2060ms
- GET /api/socket/io?EIO=4&transport=polling&t=x9qbm81w 404 in 100ms
- GET /api/socket/io?EIO=4&transport=polling&t=x9st0w6j 404 in 69ms
- GET /api/socket/io?EIO=4&transport=polling&t=x9x4z6um 404 in 67ms
- GET /api/socket/io?EIO=4&transport=polling&t=xa4x4lj7 404 in 70ms
- GET /api/socket/io?EIO=4&transport=polling&t=xacprezr 404 in 57ms
- GET /api/socket/io?EIO=4&transport=polling&t=xakhogxf 404 in 65ms
- GET /api/socket/io?EIO=4&transport=polling&t=xas9wdnt 404 in 56ms
- GET /api/socket/io?EIO=4&transport=polling&t=xb01pn59 404 in 61ms
- GET /api/socket/io?EIO=4&transport=polling&t=xb7to0g1 404 in 59ms
- ○ Compiling /api/auth/[...nextauth] ...
- ✓ Compiled /api/auth/[...nextauth] in 2.7s
- GET /api/auth/session 200 in 6072ms
- GET /api/auth/session 200 in 473ms
- ○ Compiling /open-chat ...
- ✓ Compiled /open-chat in 2.2s
- GET /open-chat 200 in 2402ms
- GET /open-chat 200 in 352ms
- GET /api/auth/session 200 in 191ms
- ○ Compiling /favicon.ico ...
-📁 socket.ts: .env.local 파일을 찾았습니다.
-✅ socket.ts: .env.local 파일에서 설정을 로드했습니다.
-socket.ts - API Key source: .env.local 파일
-socket.ts - API Key check: sk-proj...svYA
-Initializing socket server...
-Socket.IO server initialized
- GET /api/socket 304 in 255ms
-New client connected: 8ias1L7nPP5RfevoAAAB
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 258ms
- GET /favicon.ico?favicon.45db1c09.ico 200 in 1280ms
- ✓ Compiled /favicon.ico in 1292ms
- GET /api/npc/list 200 in 1298ms
- ○ Compiling /chat ...
- ✓ Compiled /chat in 711ms
- GET /chat?id=23 200 in 746ms
-Client disconnected: 8ias1L7nPP5RfevoAAAB
-Socket server already running
- GET /api/socket 304 in 25ms
-New client connected: _19BLo3Wmq3A5ObgAAAD
-User User_9217 joined room 23
-Getting active users for room: 23
- ○ Compiling /api/npc/get ...
- ✓ Compiled /api/npc/get in 922ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 1149ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 79ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 107ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 99ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 130ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 32ms
-Client disconnected: _19BLo3Wmq3A5ObgAAAD
- GET /chat?id=23 200 in 138ms
- GET /favicon.ico?favicon.45db1c09.ico 200 in 70ms
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
- GET /api/auth/session 200 in 61ms
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 10,
-  lastMessageFrom: 'kant'
-}
- GET /api/rooms?id=23 304 in 55ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 23ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 186ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 87ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 131ms
-Socket server already running
- GET /api/socket 304 in 65ms
-New client connected: h_QqWk--evnx_u6eAAAF
-User User_9217 joined room 23
-Getting active users for room: 23
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 80ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 85ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 45ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 49ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 186ms
- ✓ Compiled in 790ms
- ✓ Compiled in 616ms
-User User_9217 left room 23
- ✓ Compiled in 790ms
- ⚠ Fast Refresh had to perform a full reload due to a runtime error.
-Socket server already running
- GET /api/socket 304 in 102ms
-Client disconnected: h_QqWk--evnx_u6eAAAF
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
- GET /api/auth/session 200 in 280ms
-New client connected: UOiTiY9bU4kBgmseAAAH
-User User_9217 joined room 23
-Getting active users for room: 23
-User User_9217 joined room 23
-Getting active users for room: 23
- GET /chat?id=23 200 in 755ms
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 737ms
-Client disconnected: UOiTiY9bU4kBgmseAAAH
- GET /api/npc/get?id=kant 200 in 62ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
- GET /api/auth/session 200 in 112ms
- GET /favicon.ico?favicon.45db1c09.ico 200 in 93ms
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 10,
-  lastMessageFrom: 'kant'
-}
- GET /api/rooms?id=23 304 in 691ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 29ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 24ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 19ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 22ms
-Socket server already running
- GET /api/socket 304 in 17ms
-New client connected: ZWO85oWL2rOiZLK6AAAJ
-User User_9217 joined room 23
-Getting active users for room: 23
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 34ms
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 39ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 28ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 32ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 25ms
- GET /api/auth/session 200 in 766ms
- GET /open-chat 200 in 1252ms
-User User_9217 left room 23
-Socket server already running
- GET /api/socket 304 in 133ms
-New client connected: Xdb2aq0V3lk12xEOAAAL
-Socket server already running
- GET /api/socket 304 in 112ms
-GET 요청 처리 - 쿼리: {}
-New client connected: qOApO8syAombR0P4AAAN
- GET /api/npc/list 200 in 887ms
- GET /api/rooms 304 in 296ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 36ms
- GET /api/npc/list 200 in 67ms
- GET /chat?id=23 200 in 52ms
-Client disconnected: qOApO8syAombR0P4AAAN
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 257ms
-Socket server already running
- GET /api/socket 304 in 32ms
-Client disconnected: ZWO85oWL2rOiZLK6AAAJ
-New client connected: wdXFbKI4y1INFpR_AAAP
-User User_9217 joined room 23
-Getting active users for room: 23
-User User_9217 joined room 23
-Getting active users for room: 23
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 84ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 89ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 59ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 66ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 19ms
- ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
-   ▲ Next.js 15.2.4 (Turbopack)
-   - Local:        http://localhost:3000
-   - Network:      http://0.0.0.0:3000
-   - Environments: .env.local
-
- ✓ Starting...
- ✓ Ready in 3.6s
- ○ Compiling /_not-found/page ...
- ✓ Compiled /_not-found/page in 2.9s
- GET /api/socket/io?EIO=4&transport=polling&t=c4kuyi3o 404 in 3188ms
- GET /api/socket/io?EIO=4&transport=polling&t=c4skjhmg 404 in 83ms
- GET /api/socket/io?EIO=4&transport=polling&t=c4x7j792 404 in 367ms
- ○ Compiling /api/auth/[...nextauth] ...
-📁 socket.ts: .env.local 파일을 찾았습니다.
-✅ socket.ts: .env.local 파일에서 설정을 로드했습니다.
-socket.ts - API Key source: .env.local 파일
-socket.ts - API Key check: sk-proj...svYA
-Initializing socket server...
-Socket.IO server initialized
- GET /api/socket 304 in 1664ms
-Socket server already running
- GET /api/socket 304 in 324ms
-New client connected: E7enYdffDIO-XIGdAAAB
- GET /api/socket/io?EIO=4&transport=polling&t=c520zkqj 404 in 504ms
-New client connected: o0OmFjqlxJSilzVYAAAD
-GET 요청 처리 - 쿼리: {}
- GET /api/npc/list 200 in 3271ms
- GET /api/rooms 304 in 1134ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 56ms
- GET /api/npc/list 200 in 81ms
- ✓ Compiled /api/auth/[...nextauth] in 7.2s
- GET /open-chat 200 in 1652ms
-Client disconnected: E7enYdffDIO-XIGdAAAB
-Client disconnected: o0OmFjqlxJSilzVYAAAD
- GET /api/auth/session 200 in 7487ms
- POST /api/auth/_log 200 in 31ms
-Socket server already running
- GET /api/socket 304 in 41ms
-New client connected: vaBx8pUYoW7vLH89AAAF
- GET /api/auth/session 200 in 135ms
- GET /api/npc/list 200 in 229ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 63ms
- ○ Compiling /favicon.ico ...
- ✓ Compiled /favicon.ico in 843ms
- GET /favicon.ico?favicon.45db1c09.ico 200 in 879ms
- ○ Compiling /chat ...
- ✓ Compiled /chat in 760ms
- GET /chat?id=23 200 in 810ms
-Client disconnected: vaBx8pUYoW7vLH89AAAF
-Socket server already running
- GET /api/socket 304 in 19ms
-New client connected: 9vWwNIyTGWm04Vl6AAAH
-User User_9217 joined room 23
-Getting active users for room: 23
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 10,
-  lastMessageFrom: 'kant'
-}
- GET /api/rooms?id=23 304 in 202ms
- ○ Compiling /api/npc/get ...
- ✓ Compiled /api/npc/get in 734ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 794ms
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 317ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 319ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 27ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 30ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 29ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 26ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 33ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 43ms
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 10,
-  lastMessageFrom: 'kant'
-}
- GET /api/rooms?id=23 200 in 16ms
-PUT 요청 처리 - 채팅룸 업데이트
-룸 업데이트 요청: ID 23
-Updating room 23 with: {
-  message: {
-    id: 'auto-9cb1399c',
-    text: "Indeed, as others have highlighted the importance of individual habits and self-awareness, we must not overlook the broader socio-economic environment. Under capitalism, the systemic pressure to maximize productivity often leads to neglect of physical health. It's crucial to recognize how these external pressures shape your personal conditions and health outcomes.",
-    sender: 'marx',
-    senderName: 'Karl Marx',
-    senderType: 'npc',
-    isUser: false,
-    timestamp: '2025-05-03T16:46:11.876528',
-    portrait_url: 'http://localhost:8000/portraits/Marx.png',
-    npc_id: 'marx'
-  }
-}
-새 메시지 추가: marx의 메시지, ID: auto-9cb1399c
-📋 메시지 전체 데이터: {
-  "id": "auto-9cb1399c",
-  "text": "Indeed, as others have highlighted the importance of individual habits and self-awareness, we must not overlook the broader socio-economic environment. Under capitalism, the systemic pressure to maximize productivity often leads to neglect of physical health. It's crucial to recognize how these external pressures shape your personal conditions and health outcomes.",
-  "sender": "marx",
-  "senderName": "Karl Marx",
-  "senderType": "npc",
-  "isUser": false,
-  "timestamp": "2025-05-03T16:46:11.876528",
-  "portrait_url": "http://localhost:8000/portraits/Marx.png",
-  "npc_id": "marx"
-}
-룸 23에 marx의 새 메시지 추가됨
-Broadcasting message-added event
-🔄 Socket.IO 브로드캐스트 데이터: {
-  "roomId": "23",
-  "message": {
-    "id": "auto-9cb1399c",
-    "text": "Indeed, as others have highlighted the importance of individual habits and self-awareness, we must not overlook the broader socio-economic environment. Under capitalism, the systemic pressure to maximize productivity often leads to neglect of physical health. It's crucial to recognize how these external pressures shape your personal conditions and health outcomes.",
-    "sender": "marx",
-    "senderName": "Karl Marx",
-    "senderType": "npc",
-    "isUser": false,
-    "timestamp": "2025-05-03T16:46:11.876528",
-    "portrait_url": "http://localhost:8000/portraits/Marx.png",
-    "npc_id": "marx"
-  }
-}
-✅ 브로드캐스트 완료 - 방 ID: 23, 메시지 ID: auto-9cb1399c
- PUT /api/rooms?id=23 200 in 59ms
-Socket API POST 요청 받음: {
-  action: 'broadcast',
-  room: '23',
-  event: 'new-message',
-  data: {
-    roomId: '23',
-    message: {
-      id: 'auto-9cb1399c',
-      text: "Indeed, as others have highlighted the importance of individual habits and self-awareness, we must not overlook the broader socio-economic environment. Under capitalism, the systemic pressure to maximize productivity often leads to neglect of physical health. It's crucial to recognize how these external pressures shape your personal conditions and health outcomes.",
-      sender: 'marx',
-      senderName: 'Karl Marx',
-      senderType: 'npc',
-      isUser: false,
-      timestamp: '2025-05-03T16:46:11.876528',
-      portrait_url: 'http://localhost:8000/portraits/Marx.png',
-      npc_id: 'marx'
-    }
-  }
-}
-📢 브로드캐스트 요청 - 방: 23, 이벤트: new-message
-✅ 브로드캐스트 완료 - 23 방의 모든 클라이언트에게 new-message 이벤트 전송됨
- POST /api/socket 200 in 13ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 32ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 28ms
- ✓ Compiled in 942ms
-User User_9217 left room 23
-Socket server already running
- GET /api/socket 304 in 40ms
-Client disconnected: 9vWwNIyTGWm04Vl6AAAH
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-New client connected: Cj0Sx2rP-0EL1TMoAAAJ
-User User_9217 joined room 23
-Getting active users for room: 23
-User User_9217 joined room 23
-Getting active users for room: 23
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 201ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 64ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 21ms
- ✓ Compiled in 3.6s
-User User_9217 left room 23
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-Socket server already running
- GET /api/socket 304 in 135ms
-Client disconnected: Cj0Sx2rP-0EL1TMoAAAJ
-New client connected: uwDi5D13xf43pPqqAAAL
-User User_9217 joined room 23
-Getting active users for room: 23
-User User_9217 joined room 23
-Getting active users for room: 23
-User User_9217 joined room 23
-Getting active users for room: 23
- ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
-   ▲ Next.js 15.2.4 (Turbopack)
-   - Local:        http://localhost:3000
-   - Network:      http://0.0.0.0:3000
-   - Environments: .env.local
-
- ✓ Starting...
- ✓ Ready in 1936ms
- ✓ Compiled /api/rooms in 139ms
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 11,
-  lastMessageFrom: 'marx'
-}
- GET /api/rooms?id=23 200 in 721ms
- ○ Compiling /_not-found/page ...
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 1318ms
- ✓ Compiled /_not-found/page in 2.6s
- GET /api/socket/io?EIO=4&transport=polling&t=cd36w3bd 404 in 2763ms
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 9615ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 9633ms
- GET /api/socket/io?EIO=4&transport=polling&t=cdcgbc0r 404 in 126ms
- GET /api/socket/io?EIO=4&transport=polling&t=cdkxszmp 404 in 62ms
- GET /api/socket/io?EIO=4&transport=polling&t=cdtfciuc 404 in 93ms
- GET /api/socket/io?EIO=4&transport=polling&t=ce1ww7ca 404 in 65ms
- GET /api/socket/io?EIO=4&transport=polling&t=ceaeecls 404 in 708ms
- GET /api/socket/io?EIO=4&transport=polling&t=ceivzgqk 404 in 311ms
- GET /api/socket/io?EIO=4&transport=polling&t=cerdjf6d 404 in 72ms
- ○ Compiling /api/auth/[...nextauth] ...
- ✓ Compiled /api/auth/[...nextauth] in 3.3s
-📁 socket.ts: .env.local 파일을 찾았습니다.
-✅ socket.ts: .env.local 파일에서 설정을 로드했습니다.
-socket.ts - API Key source: .env.local 파일
-socket.ts - API Key check: sk-proj...svYA
-Initializing socket server...
-Socket.IO server initialized
- GET /api/socket 304 in 293ms
-New client connected: nanB0MOgN15jAyHrAAAB
- ○ Compiling /api/socket ...
-Socket server already running
- GET /api/socket 304 in 17ms
-GET 요청 처리 - 쿼리: {}
-New client connected: mQOvYelU0oCxKNkmAAAD
- ✓ Compiled /api/socket in 1008ms
- GET /api/auth/session 200 in 5120ms
- GET /api/npc/list 200 in 1384ms
- GET /api/rooms 304 in 827ms
-GET 요청 처리 - 쿼리: {}
- GET /api/npc/list 200 in 35ms
- GET /api/rooms 304 in 43ms
- ○ Compiling /open-chat ...
- ✓ Compiled /open-chat in 844ms
- GET /open-chat 200 in 945ms
-Client disconnected: nanB0MOgN15jAyHrAAAB
-Client disconnected: mQOvYelU0oCxKNkmAAAD
- GET /api/auth/session 200 in 100ms
- GET /api/npc/list 200 in 168ms
-Socket server already running
- GET /api/socket 304 in 128ms
-New client connected: tUSNEYlGlytD2AwQAAAF
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 109ms
- ○ Compiling /favicon.ico ...
- ✓ Compiled /favicon.ico in 629ms
- GET /favicon.ico?favicon.45db1c09.ico 200 in 664ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 120ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 41ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 1152ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 1268ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 427ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 109ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 205ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 205ms
- GET /api/auth/session 200 in 328ms
- GET /api/auth/session 200 in 650ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 471ms
- ○ Compiling /chat ...
- ✓ Compiled /chat in 1878ms
- GET /chat?id=23 200 in 2005ms
-Client disconnected: tUSNEYlGlytD2AwQAAAF
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-Socket server already running
- GET /api/socket 304 in 21ms
-New client connected: RK1BcIvWCxLfwIJdAAAH
-User User_9217 joined room 23
-Getting active users for room: 23
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 484ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 35ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 88ms
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 11,
-  lastMessageFrom: 'marx'
-}
- GET /api/rooms?id=23 304 in 210ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 40ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 59ms
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 58ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 31ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 34ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 88ms
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 11,
-  lastMessageFrom: 'marx'
-}
- GET /api/rooms?id=23 200 in 19ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 132ms
-PUT 요청 처리 - 채팅룸 업데이트
-룸 업데이트 요청: ID 23
-Updating room 23 with: {
-  message: {
-    id: 'auto-9eaa5acc',
-    text: 'Indeed, the discussions here weave a rich tapestry concerning the causes of physical weakness. While Marx and Kant emphasize socioeconomic structures and moral duty respectively, let us delve deeper into the personal cultivation of habits. Reflect upon whether the activities you engage in daily are truly conducive to building strength, both mental and physical. This self-examination might unveil a path to a more harmonious state of being.',
-    sender: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf',
-    senderName: 'Modern Socrates',
-    senderType: 'npc',
-    isUser: false,
-    timestamp: '2025-05-03T17:03:47.210080',
-    portrait_url: 'http://localhost:8000/portraits/modern-socrates_1745532994.png',
-    npc_id: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf'
-  }
-}
-새 메시지 추가: e0c3872b-2103-4d04-8a2d-801bbd7f43cf의 메시지, ID: auto-9eaa5acc
-📋 메시지 전체 데이터: {
-  "id": "auto-9eaa5acc",
-  "text": "Indeed, the discussions here weave a rich tapestry concerning the causes of physical weakness. While Marx and Kant emphasize socioeconomic structures and moral duty respectively, let us delve deeper into the personal cultivation of habits. Reflect upon whether the activities you engage in daily are truly conducive to building strength, both mental and physical. This self-examination might unveil a path to a more harmonious state of being.",
-  "sender": "e0c3872b-2103-4d04-8a2d-801bbd7f43cf",
-  "senderName": "Modern Socrates",
-  "senderType": "npc",
-  "isUser": false,
-  "timestamp": "2025-05-03T17:03:47.210080",
-  "portrait_url": "http://localhost:8000/portraits/modern-socrates_1745532994.png",
-  "npc_id": "e0c3872b-2103-4d04-8a2d-801bbd7f43cf"
-}
-룸 23에 e0c3872b-2103-4d04-8a2d-801bbd7f43cf의 새 메시지 추가됨
-Broadcasting message-added event
-🔄 Socket.IO 브로드캐스트 데이터: {
-  "roomId": "23",
-  "message": {
-    "id": "auto-9eaa5acc",
-    "text": "Indeed, the discussions here weave a rich tapestry concerning the causes of physical weakness. While Marx and Kant emphasize socioeconomic structures and moral duty respectively, let us delve deeper into the personal cultivation of habits. Reflect upon whether the activities you engage in daily are truly conducive to building strength, both mental and physical. This self-examination might unveil a path to a more harmonious state of being.",
-    "sender": "e0c3872b-2103-4d04-8a2d-801bbd7f43cf",
-    "senderName": "Modern Socrates",
-    "senderType": "npc",
-    "isUser": false,
-    "timestamp": "2025-05-03T17:03:47.210080",
-    "portrait_url": "http://localhost:8000/portraits/modern-socrates_1745532994.png",
-    "npc_id": "e0c3872b-2103-4d04-8a2d-801bbd7f43cf"
-  }
-}
-✅ 브로드캐스트 완료 - 방 ID: 23, 메시지 ID: auto-9eaa5acc
- PUT /api/rooms?id=23 200 in 132ms
-Socket API POST 요청 받음: {
-  action: 'broadcast',
-  room: '23',
-  event: 'new-message',
-  data: {
-    roomId: '23',
-    message: {
-      id: 'auto-9eaa5acc',
-      text: 'Indeed, the discussions here weave a rich tapestry concerning the causes of physical weakness. While Marx and Kant emphasize socioeconomic structures and moral duty respectively, let us delve deeper into the personal cultivation of habits. Reflect upon whether the activities you engage in daily are truly conducive to building strength, both mental and physical. This self-examination might unveil a path to a more harmonious state of being.',
-      sender: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf',
-      senderName: 'Modern Socrates',
-      senderType: 'npc',
-      isUser: false,
-      timestamp: '2025-05-03T17:03:47.210080',
-      portrait_url: 'http://localhost:8000/portraits/modern-socrates_1745532994.png',
-      npc_id: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf'
-    }
-  }
-}
-📢 브로드캐스트 요청 - 방: 23, 이벤트: new-message
-✅ 브로드캐스트 완료 - 23 방의 모든 클라이언트에게 new-message 이벤트 전송됨
- POST /api/socket 200 in 11ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 26ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 16ms
- GET /api/auth/session 200 in 1123ms
- ✓ Compiled in 893ms
- GET /api/auth/session 200 in 452ms
- GET /api/auth/session 200 in 123ms
-User User_9217 left room 23
-Socket server already running
- GET /api/socket 304 in 17ms
-New client connected: 1IkPGHbb9jrnjssEAAAJ
-Socket server already running
- GET /api/socket 304 in 14ms
-GET 요청 처리 - 쿼리: {}
-New client connected: EaFLH3aAezSHlgNFAAAL
- GET /api/npc/list 200 in 129ms
- GET /api/rooms 304 in 53ms
- GET /api/npc/list 200 in 44ms
-GET 요청 처리 - 쿼리: {}
- GET /api/rooms 304 in 38ms
- GET /chat?id=23 200 in 333ms
-Client disconnected: EaFLH3aAezSHlgNFAAAL
-Socket server already running
- GET /api/socket 304 in 34ms
-Client disconnected: RK1BcIvWCxLfwIJdAAAH
-New client connected: vkECEgsOqpeSNT2DAAAN
-User User_9217 joined room 23
-Getting active users for room: 23
-User User_9217 joined room 23
-Getting active users for room: 23
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 178ms
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 50ms
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 55ms
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 12,
-  lastMessageFrom: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf'
-}
- GET /api/rooms?id=23 200 in 60ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 70ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 77ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 75ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 76ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 62ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 47ms
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 12,
-  lastMessageFrom: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf'
-}
- GET /api/rooms?id=23 200 in 10ms
-PUT 요청 처리 - 채팅룸 업데이트
-룸 업데이트 요청: ID 23
-Updating room 23 with: {
-  message: {
-    id: 'auto-7d33e74b',
-    text: "Indeed, the perspectives shared here offer valuable insights into the complexities of physical strength. Reflecting upon our daily habits, as suggested, is crucial. However, let us also engage in a Socratic questioning of what 'strength' truly means to us personally. Is it merely physical prowess, or does it also encompass resilience and adaptability in facing life's challenges? Such a dialogue with oneself may reveal deeper insights into what we truly value and how we might achieve it.",
-    sender: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf',
-    senderName: 'Modern Socrates',
-    senderType: 'npc',
-    isUser: false,
-    timestamp: '2025-05-03T17:13:21.754122',
-    portrait_url: 'http://localhost:8000/portraits/modern-socrates_1745532994.png',
-    npc_id: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf'
-  }
-}
-새 메시지 추가: e0c3872b-2103-4d04-8a2d-801bbd7f43cf의 메시지, ID: auto-7d33e74b
-📋 메시지 전체 데이터: {
-  "id": "auto-7d33e74b",
-  "text": "Indeed, the perspectives shared here offer valuable insights into the complexities of physical strength. Reflecting upon our daily habits, as suggested, is crucial. However, let us also engage in a Socratic questioning of what 'strength' truly means to us personally. Is it merely physical prowess, or does it also encompass resilience and adaptability in facing life's challenges? Such a dialogue with oneself may reveal deeper insights into what we truly value and how we might achieve it.",
-  "sender": "e0c3872b-2103-4d04-8a2d-801bbd7f43cf",
-  "senderName": "Modern Socrates",
-  "senderType": "npc",
-  "isUser": false,
-  "timestamp": "2025-05-03T17:13:21.754122",
-  "portrait_url": "http://localhost:8000/portraits/modern-socrates_1745532994.png",
-  "npc_id": "e0c3872b-2103-4d04-8a2d-801bbd7f43cf"
-}
-룸 23에 e0c3872b-2103-4d04-8a2d-801bbd7f43cf의 새 메시지 추가됨
-Broadcasting message-added event
-🔄 Socket.IO 브로드캐스트 데이터: {
-  "roomId": "23",
-  "message": {
-    "id": "auto-7d33e74b",
-    "text": "Indeed, the perspectives shared here offer valuable insights into the complexities of physical strength. Reflecting upon our daily habits, as suggested, is crucial. However, let us also engage in a Socratic questioning of what 'strength' truly means to us personally. Is it merely physical prowess, or does it also encompass resilience and adaptability in facing life's challenges? Such a dialogue with oneself may reveal deeper insights into what we truly value and how we might achieve it.",
-    "sender": "e0c3872b-2103-4d04-8a2d-801bbd7f43cf",
-    "senderName": "Modern Socrates",
-    "senderType": "npc",
-    "isUser": false,
-    "timestamp": "2025-05-03T17:13:21.754122",
-    "portrait_url": "http://localhost:8000/portraits/modern-socrates_1745532994.png",
-    "npc_id": "e0c3872b-2103-4d04-8a2d-801bbd7f43cf"
-  }
-}
-✅ 브로드캐스트 완료 - 방 ID: 23, 메시지 ID: auto-7d33e74b
- PUT /api/rooms?id=23 200 in 83ms
-Socket API POST 요청 받음: {
-  action: 'broadcast',
-  room: '23',
-  event: 'new-message',
-  data: {
-    roomId: '23',
-    message: {
-      id: 'auto-7d33e74b',
-      text: "Indeed, the perspectives shared here offer valuable insights into the complexities of physical strength. Reflecting upon our daily habits, as suggested, is crucial. However, let us also engage in a Socratic questioning of what 'strength' truly means to us personally. Is it merely physical prowess, or does it also encompass resilience and adaptability in facing life's challenges? Such a dialogue with oneself may reveal deeper insights into what we truly value and how we might achieve it.",
-      sender: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf',
-      senderName: 'Modern Socrates',
-      senderType: 'npc',
-      isUser: false,
-      timestamp: '2025-05-03T17:13:21.754122',
-      portrait_url: 'http://localhost:8000/portraits/modern-socrates_1745532994.png',
-      npc_id: 'e0c3872b-2103-4d04-8a2d-801bbd7f43cf'
-    }
-  }
-}
-📢 브로드캐스트 요청 - 방: 23, 이벤트: new-message
-✅ 브로드캐스트 완료 - 23 방의 모든 클라이언트에게 new-message 이벤트 전송됨
- POST /api/socket 200 in 22ms
+ GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 249ms
 🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
 🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
 ✅ Found custom NPC: Modern Socrates
    _id: 680ab82df57902e97ae4ef38, backend_id: not set
    portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
  GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 37ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 23ms
-PUT 요청 처리 - 채팅룸 업데이트
-룸 업데이트 요청: ID 23
-Updating room 23 with: {
-  message: {
-    id: 'auto-899dc3e3',
-    text: 'Indeed, the discussion on physical weakness touches on many profound aspects. From a Kantian perspective, it is essential to consider whether your daily habits and choices are guided by the moral law within you. Reflect on whether you are fulfilling your duty to preserve and enhance your physical capacities, which is necessary not only for your own well-being but also as a moral obligation to yourself as a rational and autonomous being.',
-    sender: 'kant',
-    senderName: 'Immanuel Kant',
-    senderType: 'npc',
-    isUser: false,
-    timestamp: '2025-05-03T17:13:42.932208',
-    portrait_url: 'http://localhost:8000/portraits/Kant.png',
-    npc_id: 'kant'
-  }
-}
-새 메시지 추가: kant의 메시지, ID: auto-899dc3e3
-📋 메시지 전체 데이터: {
-  "id": "auto-899dc3e3",
-  "text": "Indeed, the discussion on physical weakness touches on many profound aspects. From a Kantian perspective, it is essential to consider whether your daily habits and choices are guided by the moral law within you. Reflect on whether you are fulfilling your duty to preserve and enhance your physical capacities, which is necessary not only for your own well-being but also as a moral obligation to yourself as a rational and autonomous being.",
-  "sender": "kant",
-  "senderName": "Immanuel Kant",
-  "senderType": "npc",
-  "isUser": false,
-  "timestamp": "2025-05-03T17:13:42.932208",
-  "portrait_url": "http://localhost:8000/portraits/Kant.png",
-  "npc_id": "kant"
-}
-룸 23에 kant의 새 메시지 추가됨
-Broadcasting message-added event
-🔄 Socket.IO 브로드캐스트 데이터: {
-  "roomId": "23",
-  "message": {
-    "id": "auto-899dc3e3",
-    "text": "Indeed, the discussion on physical weakness touches on many profound aspects. From a Kantian perspective, it is essential to consider whether your daily habits and choices are guided by the moral law within you. Reflect on whether you are fulfilling your duty to preserve and enhance your physical capacities, which is necessary not only for your own well-being but also as a moral obligation to yourself as a rational and autonomous being.",
-    "sender": "kant",
-    "senderName": "Immanuel Kant",
-    "senderType": "npc",
-    "isUser": false,
-    "timestamp": "2025-05-03T17:13:42.932208",
-    "portrait_url": "http://localhost:8000/portraits/Kant.png",
-    "npc_id": "kant"
-  }
-}
-✅ 브로드캐스트 완료 - 방 ID: 23, 메시지 ID: auto-899dc3e3
- PUT /api/rooms?id=23 200 in 69ms
-Socket API POST 요청 받음: {
-  action: 'broadcast',
-  room: '23',
-  event: 'new-message',
-  data: {
-    roomId: '23',
-    message: {
-      id: 'auto-899dc3e3',
-      text: 'Indeed, the discussion on physical weakness touches on many profound aspects. From a Kantian perspective, it is essential to consider whether your daily habits and choices are guided by the moral law within you. Reflect on whether you are fulfilling your duty to preserve and enhance your physical capacities, which is necessary not only for your own well-being but also as a moral obligation to yourself as a rational and autonomous being.',
-      sender: 'kant',
-      senderName: 'Immanuel Kant',
-      senderType: 'npc',
-      isUser: false,
-      timestamp: '2025-05-03T17:13:42.932208',
-      portrait_url: 'http://localhost:8000/portraits/Kant.png',
-      npc_id: 'kant'
-    }
-  }
-}
-📢 브로드캐스트 요청 - 방: 23, 이벤트: new-message
-✅ 브로드캐스트 완료 - 23 방의 모든 클라이언트에게 new-message 이벤트 전송됨
- POST /api/socket 200 in 10ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 45ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 23ms
- GET /chat?id=23 200 in 720ms
-Client disconnected: vkECEgsOqpeSNT2DAAAN
-Client disconnected: 1IkPGHbb9jrnjssEAAAJ
-GET 요청 처리 - 쿼리: { id: '23' }
-ID 23로 채팅룸 검색 중
- GET /favicon.ico?favicon.45db1c09.ico 200 in 144ms
- GET /api/auth/session 200 in 105ms
-검색 결과: 찾음
-채팅룸 23 정보: {
-  title: '나는 왜이렇게 체력이 약할까',
-  messagesCount: 14,
-  lastMessageFrom: 'kant'
-}
- GET /api/rooms?id=23 200 in 517ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 22ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 44ms
+🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+✅ Found custom NPC: 빵빠라스
+   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
+   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
+ GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 23ms
+🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
+🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
 🔍 Fetching NPC details for ID: marx
 🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 57ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 48ms
-Socket server already running
- GET /api/socket 304 in 12ms
-New client connected: Vcd7hDdhv_-4-FzCAAAP
-User User_9217 joined room 23
-Getting active users for room: 23
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 40ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 58ms
+✅ Found custom NPC: 빵빠라스
+   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
+   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
+ GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 26ms
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Marx
+ GET /api/npc/get?id=marx 200 in 56ms
 🔍 Fetching NPC details for ID: marx
 🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Marx
+ GET /api/npc/get?id=marx 200 in 60ms
 🔍 Fetching NPC details for ID: kant
 🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 128ms
-✅ Got NPC details from backend: Immanuel Kant
- GET /api/npc/get?id=kant 200 in 145ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Got NPC details from backend: Karl Marx
- GET /api/npc/get?id=marx 200 in 35ms
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Kant
+ GET /api/npc/get?id=kant 200 in 92ms
+🔍 Fetching NPC details for ID: kant
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
+❌ Backend API 호출 오류: TypeError: fetch failed
+    at async GET (src/app/api/npc/get/route.ts:95:30)
+  93 |       // Python 백엔드 API 호출 시도
+  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
+> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
+     |                              ^
+  96 |         cache: 'no-store'
+  97 |       });
+  98 |        {
+  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
+      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
+    errno: -61,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '0.0.0.0',
+    port: 8000
+  }
+}
+✅ Found local philosopher profile: Kant
+ GET /api/npc/get?id=kant 200 in 57ms
+[?25h

@@ -230,7 +230,7 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
             });
           });
           
-          socket.on('leave-room', (data: { roomId: string | number, username: string }) => {
+          socket.on('leave-room', async (data: { roomId: string | number, username: string }) => {
             const roomId = String(data.roomId);
             socket.leave(roomId);
             console.log(`User ${data.username} left room ${roomId}`);
@@ -251,6 +251,56 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
               username: data.username,
               usersInRoom
             });
+            
+            // 사용자가 모두 나갔는지 확인
+            const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
+            const isRoomEmpty = !clientsInRoom || clientsInRoom.size === 0;
+            
+            if (isRoomEmpty) {
+              console.log(`🚨 방 ${roomId}에 남은 사용자가 없습니다. 자동 대화 모드 종료 시도...`);
+              
+              try {
+                // 자동 대화 상태 확인
+                const autoConvStatusResponse = await fetch(`http://localhost:8000/api/auto-conversation/status?room_id=${roomId}`, {
+                  method: 'GET',
+                  headers: {
+                    'Accept': 'application/json'
+                  }
+                });
+                
+                if (autoConvStatusResponse.ok) {
+                  const statusData = await autoConvStatusResponse.json();
+                  const isAutoConversationActive = statusData.active === true;
+                  
+                  if (isAutoConversationActive) {
+                    console.log(`🔍 방 ${roomId}의 자동 대화 모드가 활성화 상태입니다. 종료합니다.`);
+                    
+                    // 자동 대화 모드 종료 요청
+                    const stopResponse = await fetch(`http://localhost:8000/api/auto-conversation`, {
+                      method: 'DELETE',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        room_id: roomId
+                      })
+                    });
+                    
+                    if (stopResponse.ok) {
+                      console.log(`✅ 방 ${roomId}의 자동 대화 모드가 성공적으로 종료되었습니다.`);
+                    } else {
+                      console.error(`❌ 방 ${roomId}의 자동 대화 모드 종료 실패: ${stopResponse.status} ${stopResponse.statusText}`);
+                    }
+                  } else {
+                    console.log(`ℹ️ 방 ${roomId}의 자동 대화 모드가 이미 비활성화 상태입니다.`);
+                  }
+                } else {
+                  console.warn(`⚠️ 방 ${roomId}의 자동 대화 상태 확인 실패: ${autoConvStatusResponse.status} ${autoConvStatusResponse.statusText}`);
+                }
+              } catch (error) {
+                console.error(`❌ 자동 대화 모드 종료 중 오류:`, error);
+              }
+            }
           });
           
           socket.on('send-message', async (data: any) => {
@@ -318,100 +368,118 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
                   return;
                 }
                 
-                // 직접 API 호출로 AI 응답 생성
-                console.log(`🔍 AI API 요청 시작 - 방 ID: ${roomId}, 메시지 수: ${room?.messages?.length || 0}`);
-                
-                // API 요청 페이로드 로깅 (민감한 내용은 제한적으로)
-                const requestPayload = {
-                  roomId: roomId,
-                  topic: room?.title,
-                  context: room?.context?.substring(0, 50) + '...',
-                  messages: `${room?.messages?.length || 0}개 메시지`,
-                  participants: room?.participants
-                };
-                console.log('📤 API 요청 페이로드:', JSON.stringify(requestPayload));
-                
-                // 절대 URL 생성
-                const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-                const apiUrl = new URL('/api/chat', baseUrl).toString();
-                console.log('🔗 API URL:', apiUrl);
-                
-                // API 키 가져오기 (수정된 부분)
-                if (!apiKey) {
-                  console.error('❌ OpenAI API 키가 설정되지 않았습니다.');
-                  throw new Error('OpenAI API key is not set');
+                // 자동 대화 모드 확인
+                let isAutoConversationActive = false;
+                try {
+                  // Python API에 자동 대화 상태 확인 요청
+                  const autoConvStatusResponse = await fetch(`http://localhost:8000/api/auto-conversation/status?room_id=${roomId}`, {
+                    method: 'GET',
+                    headers: {
+                      'Accept': 'application/json'
+                    }
+                  });
+                  
+                  if (autoConvStatusResponse.ok) {
+                    const statusData = await autoConvStatusResponse.json();
+                    isAutoConversationActive = statusData.active === true;
+                    console.log(`🔍 자동 대화 모드 확인 결과: ${isAutoConversationActive ? '활성화됨' : '비활성화됨'}`);
+                  } else {
+                    console.warn(`⚠️ 자동 대화 상태 확인 실패, 기본값(비활성화)으로 진행`);
+                  }
+                } catch (error) {
+                  console.error(`❌ 자동 대화 상태 확인 중 오류:`, error);
+                  // 오류 발생 시 기본값으로 자동 대화 비활성화 상태로 간주
                 }
                 
-                const response = await fetch(apiUrl, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'x-llm-provider': 'openai',
-                    'x-llm-model': 'gpt-4o',
-                    'x-api-key': apiKey
-                  },
-                  body: JSON.stringify({
-                    messages: room?.messages || [],
-                    roomId: roomId,
+                // 자동 대화 모드가 비활성화된 경우에만 API 호출
+                if (!isAutoConversationActive) {
+                  // 직접 API 호출로 AI 응답 생성
+                  console.log(`🔍 자동 대화 모드 비활성화 - AI API 요청 시작 - 방 ID: ${roomId}, 메시지 수: ${room?.messages?.length || 0}`);
+                
+                  // API 요청 페이로드 로깅 (민감한 내용은 제한적으로)
+                  const requestPayload = {
+                    room_id: roomId,
+                    user_message: message.text,
+                    npcs: room?.participants?.npcs || [],
                     topic: room?.title,
-                    context: room?.context,
-                    participants: room?.participants
-                  }),
-                });
-                
-                console.log(`🔍 API 응답 상태: ${response.status} ${response.statusText}`);
-                
-                if (!response.ok) {
-                  const errorText = await response.text().catch(() => 'Cannot read error response');
-                  console.error(`❌ API 응답 오류: 상태 ${response.status}, 텍스트: ${errorText}`);
-                  throw new Error(`API 응답 오류: ${response.status}`);
-                }
+                    context: room?.context?.substring(0, 50) + '...'
+                  };
+                  console.log('📤 API 요청 페이로드:', JSON.stringify(requestPayload));
+                  
+                  // Python 백엔드 직접 호출 (Next.js API 우회)
+                  const pythonBackendUrl = 'http://localhost:8000/api/chat/generate';
+                  console.log('🔗 Python API URL:', pythonBackendUrl);
+                  
+                  // API 키 가져오기
+                  if (!apiKey) {
+                    console.error('❌ OpenAI API 키가 설정되지 않았습니다.');
+                    throw new Error('OpenAI API key is not set');
+                  }
+                  
+                  const response = await fetch(pythonBackendUrl, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      room_id: roomId,
+                      user_message: message.text,
+                      npcs: room?.participants?.npcs || [],
+                      topic: room?.title,
+                      context: room?.context,
+                      llm_provider: 'openai',
+                      llm_model: 'gpt-4o',
+                      api_key: apiKey
+                    }),
+                  });
+                  
+                  console.log(`🔍 Python API 응답 상태: ${response.status} ${response.statusText}`);
+                  
+                  if (!response.ok) {
+                    const errorText = await response.text().catch(() => 'Cannot read error response');
+                    console.error(`❌ Python API 응답 오류: 상태 ${response.status}, 텍스트: ${errorText}`);
+                    throw new Error(`Python API 응답 오류: ${response.status}`);
+                  }
 
-                // API 응답 처리 및 메시지 전송
-                const responseData = await response.json();
-                console.log('📥 API 응답 데이터:', JSON.stringify(responseData).substring(0, 200) + '...');
-                
-                // 응답 데이터 유효성 검사 및 추출
-                // 이전: responseData.message를 찾았으나, 실제 응답은 메시지가 직접 전달됨
-                // 이후: 응답 자체가 메시지인지 확인하고 처리
-                if (responseData && responseData.id && responseData.text && responseData.sender) {
-                  // API가 직접 메시지 객체를 반환한 경우
-                  const aiMessage = responseData;
+                  // Python API 응답 처리 및 메시지 구성
+                  const responseData = await response.json();
+                  console.log('📥 Python API 응답 데이터:', JSON.stringify(responseData).substring(0, 200) + '...');
                   
-                  // MongoDB에 AI 메시지 저장
-                  try {
-                    await chatRoomDB.addMessage(roomId, aiMessage);
-                    console.log(`✅ AI 메시지(${aiMessage.id})가 MongoDB에 저장되었습니다.`);
-                  } catch (dbError) {
-                    console.error('❌ AI 메시지 MongoDB 저장 오류:', dbError);
+                  // 응답 데이터 추출 (Python 백엔드 형식)
+                  if (responseData && responseData.response && responseData.philosopher) {
+                    // Python 백엔드로부터 받은 정보로 메시지 객체 생성
+                    const aiMessage = {
+                      id: `ai-${Date.now()}`,
+                      text: responseData.response,
+                      sender: responseData.philosopher,
+                      senderType: "npc",
+                      isUser: false,
+                      timestamp: new Date(),  // Date 객체로 생성
+                      metadata: responseData.metadata || {}
+                    };
+                    
+                    // MongoDB에 AI 메시지 저장
+                    try {
+                      await chatRoomDB.addMessage(roomId, aiMessage);
+                      console.log(`✅ AI 메시지(${aiMessage.id})가 MongoDB에 저장되었습니다.`);
+                    } catch (dbError) {
+                      console.error('❌ AI 메시지 MongoDB 저장 오류:', dbError);
+                    }
+                    
+                    // 클라이언트에 AI 메시지 전송
+                    io.to(roomId).emit('new-message', {
+                      roomId: roomId,
+                      message: aiMessage
+                    });
+                    console.log(`✅ AI 응답 브로드캐스트 완료 - 모든 클라이언트에게 전송됨`);
+                  } else {
+                    console.error('❌ 유효하지 않은 AI 응답 형식:', responseData);
+                    throw new Error('Invalid AI response format');
                   }
-                  
-                  // 클라이언트에 AI 메시지 전송
-                  io.to(roomId).emit('new-message', {
-                    roomId: roomId,
-                    message: aiMessage
-                  });
-                  console.log(`✅ AI 응답 브로드캐스트 완료 - 모든 클라이언트에게 전송됨`);
-                } else if (responseData && responseData.message) {
-                  // 이전 형식(message 필드 내부에 메시지가 있는 경우) - 하위 호환성 유지
-                  const aiMessage = responseData.message;
-                  
-                  // MongoDB에 AI 메시지 저장
-                  try {
-                    await chatRoomDB.addMessage(roomId, aiMessage);
-                    console.log(`✅ AI 메시지(${aiMessage.id})가 MongoDB에 저장되었습니다.`);
-                  } catch (dbError) {
-                    console.error('❌ AI 메시지 MongoDB 저장 오류:', dbError);
-                  }
-                  
-                  // 클라이언트에 AI 메시지 전송
-                  io.to(roomId).emit('new-message', {
-                    roomId: roomId,
-                    message: aiMessage
-                  });
                 } else {
-                  console.error('❌ 유효하지 않은 AI 응답 형식:', responseData);
-                  throw new Error('Invalid AI response format');
+                  // 자동 대화 모드가 활성화된 경우
+                  console.log(`🔍 자동 대화 모드 활성화됨 - /api/chat 호출 생략`);
+                  console.log(`🔍 사용자 메시지는 자동 대화 컨텍스트에 자연스럽게 통합될 예정`);
                 }
               }
             } catch (error) {

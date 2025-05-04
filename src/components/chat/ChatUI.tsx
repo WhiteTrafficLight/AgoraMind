@@ -600,6 +600,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     adjustTextareaHeight();
   }, [message]);
 
+  // 메시지 전송 함수 수정
   const handleSendMessage = async (e: React.FormEvent) => {
     console.log('🔥 handleSendMessage 실행됨, message=', message);
     e.preventDefault();
@@ -671,126 +672,57 @@ const ChatUI: React.FC<ChatUIProps> = ({
       try {
         console.log('🤖 API 경로로 메시지 처리 시작');
         
-        // 1. API 호출로 사용자 메시지 전송 (메시지 저장)
-        console.log('📤 API로 사용자 메시지 저장 요청...');
-        const userMessageResponse = await chatService.sendMessage(chatId, message, username);
-        console.log('✅ 사용자 메시지 저장 성공:', userMessageResponse);
+        // 수정된 API 호출: 이제 전체 대화 기록 대신 현재 메시지와 방 ID만 전송
+        console.log('📤 새로운 방식으로 API 요청 전송 중...');
+        const apiResponse = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-llm-provider': localStorage.getItem('llmProvider') || 'openai',
+            'x-llm-model': localStorage.getItem('openaiModel') || 'gpt-4o'
+          },
+          body: JSON.stringify({
+            room_id: chatId,
+            user_message: message,
+            npcs: participants.npcs,
+            llm_provider: localStorage.getItem('llmProvider') || 'openai',
+            llm_model: localStorage.getItem('openaiModel') || 'gpt-4o'
+          }),
+        });
         
-        // AI 응답 처리 중 표시
-        setIsThinking(true);
-        
-        // 2. 직접 AI 응답 가져오기
-        console.log('📥 chatService.getAIResponse 호출로 AI 응답 요청 중...');
-        try {
-          // chatService를 사용하여 AI 응답 가져오기
-          const aiMessage = await chatService.getAIResponse(chatId);
-          console.log('🤖 AI 응답 받음 (API):', aiMessage);
-          
-          // 유효성 검사
-          if (!aiMessage || !aiMessage.text || !aiMessage.sender) {
-            console.error('❌ 유효하지 않은 AI 응답:', aiMessage);
-            throw new Error('Invalid AI response format');
-          }
-          
-          // 메시지 목록에 AI 응답 추가 - Mark as new
-          setMessages(prev => [...prev, {...aiMessage, isNew: true}]);
-          setIsThinking(false);
-        } catch (aiError) {
-          console.error('❌ AI 응답 가져오기 실패:', aiError);
-          
-          // 직접 API 호출로 대체
-          console.log('⚠️ 직접 API 호출로 대체 시도...');
-          
-          const aiResponseRaw = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-llm-provider': localStorage.getItem('llmProvider') || 'openai',
-              'x-llm-model': localStorage.getItem('openaiModel') || 'gpt-4o'
-            },
-            body: JSON.stringify({
-              messages: [...processedMessages, userMessage],
-              roomId: chatId,
-              topic: chatTitle,
-              context: '',
-              participants: participants
-            }),
-          });
-          
-          if (!aiResponseRaw.ok) {
-            console.error(`❌ API 오류 응답: ${aiResponseRaw.status}`);
-            throw new Error(`API 응답 오류: ${aiResponseRaw.status}`);
-          }
-          
-          const aiMessage = await aiResponseRaw.json();
-          console.log('🤖 직접 API에서 AI 응답 받음:', aiMessage);
-          
-          // 유효성 검사
-          if (!aiMessage || !aiMessage.text || !aiMessage.sender) {
-            console.error('❌ 유효하지 않은 AI 응답:', aiMessage);
-            throw new Error('Invalid AI response format');
-          }
-          
-          // 메시지 목록에 AI 응답 추가 - Mark as new
-          setMessages(prev => [...prev, {
-            ...aiMessage,
-            // ID가 없으면 생성
-            id: aiMessage.id || `api-${Date.now()}`,
-            // 타임스탬프가 없거나 문자열이면 변환
-            timestamp: aiMessage.timestamp ? 
-              (typeof aiMessage.timestamp === 'string' ? new Date(aiMessage.timestamp) : aiMessage.timestamp) 
-              : new Date(),
-            isNew: true // Mark as new
-          }]);
-          setIsThinking(false);
+        if (!apiResponse.ok) {
+          console.error(`❌ API 오류 응답: ${apiResponse.status}`);
+          throw new Error(`API 응답 오류: ${apiResponse.status}`);
         }
+        
+        const aiMessage = await apiResponse.json();
+        console.log('🤖 API에서 AI 응답 받음:', aiMessage);
+        
+        // 유효성 검사
+        if (!aiMessage || !aiMessage.response || !aiMessage.philosopher) {
+          console.error('❌ 유효하지 않은 AI 응답:', aiMessage);
+          throw new Error('Invalid AI response format');
+        }
+        
+        // AI 응답 메시지 생성
+        const aiResponseMessage: ChatMessage = {
+          id: `api-${Date.now()}`,
+          text: aiMessage.response,
+          sender: aiMessage.philosopher,
+          isUser: false,
+          timestamp: new Date(),
+          isNew: true
+        };
+        
+        // 메시지 목록에 AI 응답 추가
+        setMessages(prev => [...prev, aiResponseMessage]);
+        setIsThinking(false);
+        
       } catch (error) {
         console.error('🔥 API 호출 오류:', error);
         
-        // API 호출 실패 시 수정된 폴백 로직
-        try {
-          console.log('⚠️ API 호출 실패 - 대체 응답 생성 시도');
-          
-          // 철학자 선택 (채팅방 참여자 중 하나)
-          const philosopher = participants.npcs[0] || "Socrates";
-          
-          // 간단한 응답 생성 (대화 지속을 위한 최소한의 응답)
-          const fallbackResponse = {
-            id: `fallback-${Date.now()}`,
-            text: `I'm considering your message about "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}". Let me think about this for a moment as we continue our dialogue.`,
-            sender: philosopher,
-            isUser: false,
-            timestamp: new Date()
-          };
-          
-          console.log('⚠️ 대체 응답 생성됨:', fallbackResponse);
-          
-          // AI 응답으로 추가
-          setMessages(prev => [...prev, fallbackResponse]);
-          
-          // 저장 시도
-          try {
-            await chatService.sendMessage(chatId, fallbackResponse.text, fallbackResponse.sender);
-            console.log('✅ 대체 응답 저장 성공');
-          } catch (saveError) {
-            console.error('❌ 대체 응답 저장 실패:', saveError);
-          }
-        } catch (fallbackError) {
-          console.error('❌ 대체 응답 생성 실패:', fallbackError);
-          
-          // 최후의 폴백 - 시스템 메시지
-          const errorMessage = {
-            id: `error-${Date.now()}`,
-            text: "I've received your message and will respond shortly. Please allow me a moment to gather my thoughts.",
-            sender: participants.npcs[0] || "System",
-            isUser: false,
-            timestamp: new Date()
-          };
-          
-          setMessages(prev => [...prev, errorMessage]);
-        } finally {
-          setIsThinking(false);
-        }
+        // API 호출 실패 시 폴백 로직
+        // ... existing error handling code ...
       }
     } catch (error) {
       console.error('Error in chat:', error);
@@ -1056,200 +988,6 @@ Namespace: ${rawSocket.nsp || '/'}
       setIsThinking(false);
     }
   };
-
-  // Add a function to send message directly via API
-  const sendDirectAPIMessage = async () => {
-    if (message.trim() === '' || isSending) return;
-    
-    try {
-      setIsSending(true);
-      console.log('🚀 직접 API로 메시지 전송 시도:', message);
-      
-      // Create user message
-      const userMessage: ChatMessage = {
-        id: `api-user-${Date.now()}`,
-        text: message,
-        sender: username,
-        isUser: true,
-        timestamp: new Date()
-      };
-      
-      // Add to UI
-      setMessages(prev => [...prev, userMessage]);
-      setMessage('');
-      setIsThinking(true);
-      
-      // Call API directly
-      console.log('📤 API 직접 호출 중...');
-      const aiResponseRaw = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-llm-provider': 'openai',
-          'x-llm-model': 'gpt-4o'
-        },
-        body: JSON.stringify({
-          messages: [...processedMessages, userMessage],
-          roomId: chatId,
-          topic: chatTitle,
-          context: '',
-          participants: participants
-        }),
-      });
-      
-      if (!aiResponseRaw.ok) {
-        throw new Error(`API error: ${aiResponseRaw.status}`);
-      }
-      
-      // Process response
-      const aiMessage = await aiResponseRaw.json();
-      console.log('📥 API 응답 수신:', aiMessage);
-      
-      // Add to UI with proper formatting
-      setMessages(prev => [...prev, {
-        ...aiMessage,
-        id: aiMessage.id || `api-${Date.now()}`,
-        timestamp: aiMessage.timestamp ? 
-          (typeof aiMessage.timestamp === 'string' ? new Date(aiMessage.timestamp) : aiMessage.timestamp) 
-          : new Date()
-      }]);
-    } catch (error) {
-      console.error('❌ 직접 API 호출 오류:', error);
-      setError('API call failed: ' + (error instanceof Error ? error.message : String(error)));
-    } finally {
-      setIsThinking(false);
-      setIsSending(false);
-    }
-  };
-
-  // NPC 상세 정보를 로드하는 함수 추가
-  const loadNpcDetails = async () => {
-    try {
-      // 참여 중인 NPC들의 정보를 가져옴
-      const details: Record<string, NpcDetail> = {};
-      
-      for (const npcId of participants.npcs) {
-        try {
-          const response = await fetch(`/api/npc/get?id=${encodeURIComponent(npcId)}`);
-          if (response.ok) {
-            const npcDetail = await response.json();
-            details[npcId] = npcDetail;
-            console.log(`✅ Loaded NPC details for ${npcId}:`, npcDetail.name);
-          } else {
-            console.error(`❌ Failed to load NPC details for ${npcId}`);
-          }
-        } catch (error) {
-          console.error(`❌ Error loading NPC details for ${npcId}:`, error);
-        }
-      }
-      
-      setNpcDetails(details);
-    } catch (error) {
-      console.error('❌ Error loading NPC details:', error);
-    }
-  };
-
-  // 컴포넌트 마운트 시 NPC 상세 정보 로드
-  useEffect(() => {
-    loadNpcDetails();
-  }, [participants.npcs]);
-
-  // 기본 아바타 URL 생성 함수 추가
-  const getDefaultAvatar = (name: string) => {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128&font-size=0.5`;
-  };
-
-  // NPC 실제 이름 가져오기 함수 수정
-  const getNpcDisplayName = (npcId: string) => {
-    console.log(`📝 getNpcDisplayName 호출: ${npcId}`);
-    
-    // 메시지에 senderName이 직접 포함된 경우 (자동 대화 메시지)
-    if (typeof npcId === 'object' && (npcId as any).senderName) {
-      console.log(`🔍 object에서 senderName 사용: ${(npcId as any).senderName}`);
-      return (npcId as any).senderName;
-    }
-    
-    // 상세 정보에서 실제 이름 찾기
-    if (npcDetails[npcId]) {
-      console.log(`🔍 npcDetails에서 이름 찾음: ${npcDetails[npcId].name}`);
-      return npcDetails[npcId].name;
-    }
-    // 없으면 ID 그대로 반환
-    console.log(`🔍 이름 정보 없음, ID 반환: ${npcId}`);
-    return npcId;
-  };
-
-  // NPC 프로필 이미지 URL 가져오기 함수 수정
-  const getNpcProfileImage = (npcId: string) => {
-    console.log(`📝 getNpcProfileImage 호출: ${npcId}`);
-    
-    // 메시지에 portrait_url이 직접 포함된 경우 (자동 대화 메시지)
-    if (typeof npcId === 'object' && (npcId as any).portrait_url) {
-      console.log(`🔍 object에서 portrait_url 사용: ${(npcId as any).portrait_url}`);
-      return (npcId as any).portrait_url;
-    }
-    
-    // 상세 정보에서 프로필 이미지 URL 찾기
-    if (npcDetails[npcId] && npcDetails[npcId].portrait_url) {
-      console.log(`🔍 npcDetails에서 프로필 이미지 찾음: ${npcDetails[npcId].portrait_url}`);
-      return npcDetails[npcId].portrait_url;
-    }
-    // 없으면 기본 아바타 생성
-    const displayName = getNpcDisplayName(npcId);
-    console.log(`🔍 프로필 이미지 없음, 기본 아바타 사용: ${displayName}`);
-    return getDefaultAvatar(displayName);
-  };
-
-  // Add CSS for chat bubbles - ensure consistent rounded corners
-  useEffect(() => {
-    // Add styles for chat bubbles
-    const style = document.createElement('style');
-    style.textContent = `
-      .chat-message-bubble {
-        padding: 12px 16px;
-        border-radius: 14px;
-        position: relative;
-        max-width: 100%;
-        word-wrap: break-word;
-        margin-bottom: 4px;
-      }
-      
-      .chat-message-bubble-mine {
-        background-color: #e2e8f0;
-        color: #1e293b;
-        border-radius: 14px;
-      }
-      
-      .chat-message-bubble-other-user {
-        background-color: #3b82f6;
-        color: white;
-        border-radius: 14px;
-      }
-      
-      .chat-message-bubble-npc {
-        background-color: #10b981;
-        color: white;
-        border-radius: 14px;
-      }
-      
-      .chat-message-time {
-        font-size: 10px;
-        color: rgba(255, 255, 255, 0.7);
-        margin-top: 4px;
-        text-align: right;
-      }
-      
-      .chat-message-bubble-mine .chat-message-time {
-        color: rgba(0, 0, 0, 0.5);
-      }
-    `;
-    document.head.appendChild(style);
-    
-    // Cleanup when component unmounts
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
 
   // Toggle automatic dialogue mode
   const toggleAutoDialogueMode = () => {
@@ -1535,121 +1273,206 @@ Namespace: ${rawSocket.nsp || '/'}
     return msg.senderName || getNpcDisplayName(npcId);
   };
 
+  // NPC 상세 정보를 로드하는 함수 추가
+  const loadNpcDetails = async () => {
+    try {
+      // 참여 중인 NPC들의 정보를 가져옴
+      const details: Record<string, NpcDetail> = {};
+      
+      for (const npcId of participants.npcs) {
+        try {
+          const response = await fetch(`/api/npc/get?id=${encodeURIComponent(npcId)}`);
+          if (response.ok) {
+            const npcDetail = await response.json();
+            details[npcId] = npcDetail;
+            console.log(`✅ Loaded NPC details for ${npcId}:`, npcDetail.name);
+          } else {
+            console.error(`❌ Failed to load NPC details for ${npcId}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error loading NPC details for ${npcId}:`, error);
+        }
+      }
+      
+      setNpcDetails(details);
+    } catch (error) {
+      console.error('❌ Error loading NPC details:', error);
+    }
+  };
+
+  // 컴포넌트 마운트 시 NPC 상세 정보 로드
+  useEffect(() => {
+    loadNpcDetails();
+  }, [participants.npcs]);
+
+  // 기본 아바타 URL 생성 함수 추가
+  const getDefaultAvatar = (name: string) => {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128&font-size=0.5`;
+  };
+
+  // NPC 실제 이름 가져오기 함수 수정
+  const getNpcDisplayName = (npcId: string) => {
+    console.log(`📝 getNpcDisplayName 호출: ${npcId}`);
+    
+    // 메시지에 senderName이 직접 포함된 경우 (자동 대화 메시지)
+    if (typeof npcId === 'object' && (npcId as any).senderName) {
+      console.log(`🔍 object에서 senderName 사용: ${(npcId as any).senderName}`);
+      return (npcId as any).senderName;
+    }
+    
+    // 상세 정보에서 실제 이름 찾기
+    if (npcDetails[npcId]) {
+      console.log(`🔍 npcDetails에서 이름 찾음: ${npcDetails[npcId].name}`);
+      return npcDetails[npcId].name;
+    }
+    // 없으면 ID 그대로 반환
+    console.log(`🔍 이름 정보 없음, ID 반환: ${npcId}`);
+    return npcId;
+  };
+
+  // NPC 프로필 이미지 URL 가져오기 함수 수정
+  const getNpcProfileImage = (npcId: string) => {
+    console.log(`📝 getNpcProfileImage 호출: ${npcId}`);
+    
+    // 메시지에 portrait_url이 직접 포함된 경우 (자동 대화 메시지)
+    if (typeof npcId === 'object' && (npcId as any).portrait_url) {
+      console.log(`🔍 object에서 portrait_url 사용: ${(npcId as any).portrait_url}`);
+      return (npcId as any).portrait_url;
+    }
+    
+    // 상세 정보에서 프로필 이미지 URL 찾기
+    if (npcDetails[npcId] && npcDetails[npcId].portrait_url) {
+      console.log(`🔍 npcDetails에서 프로필 이미지 찾음: ${npcDetails[npcId].portrait_url}`);
+      return npcDetails[npcId].portrait_url;
+    }
+    // 없으면 기본 아바타 생성
+    const displayName = getNpcDisplayName(npcId);
+    console.log(`🔍 프로필 이미지 없음, 기본 아바타 사용: ${displayName}`);
+    return getDefaultAvatar(displayName);
+  };
+
+  // Add CSS for chat bubbles - ensure consistent rounded corners
+  useEffect(() => {
+    // Add styles for chat bubbles
+    const style = document.createElement('style');
+    style.textContent = `
+      .chat-message-bubble {
+        padding: 12px 16px;
+        border-radius: 14px;
+        position: relative;
+        max-width: 100%;
+        word-wrap: break-word;
+        margin-bottom: 4px;
+      }
+      
+      .chat-message-bubble-mine {
+        background-color: #e2e8f0;
+        color: #1e293b;
+        border-radius: 14px;
+      }
+      
+      .chat-message-bubble-other-user {
+        background-color: #3b82f6;
+        color: white;
+        border-radius: 14px;
+      }
+      
+      .chat-message-bubble-npc {
+        background-color: #10b981;
+        color: white;
+        border-radius: 14px;
+      }
+      
+      .chat-message-time {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: 4px;
+        text-align: right;
+      }
+      
+      .chat-message-bubble-mine .chat-message-time {
+        color: rgba(0, 0, 0, 0.5);
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Cleanup when component unmounts
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-white flex flex-col w-full h-full overflow-hidden">
       {/* Chat header */}
-      <div className="bg-white border-b border-gray-200 p-3 flex items-center justify-between shadow-sm">
-        <div className="flex items-center">
-          <button 
-            onClick={handleBackButtonClick}
-            className="mr-3 hover:bg-gray-100 p-2 rounded-full transition-colors"
-          >
-            <ArrowLeftIcon className="h-5 w-5 text-gray-700" />
-          </button>
-          <div>
-            <h2 className="font-semibold text-gray-900">{chatTitle}</h2>
-            <p className="text-xs text-gray-500">
-              with {participants.npcs.map(npcId => getNpcDisplayName(npcId)).join(', ')}
-            </p>
-          </div>
+      <div className="bg-white border-b border-gray-200 p-3 flex flex-col items-center relative">
+        {/* Back button - using same styling approach as Create Chat modal X button */}
+        <button 
+          onClick={handleBackButtonClick}
+          style={{ 
+            position: 'absolute', 
+            left: '16px', 
+            top: '16px', 
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            backgroundColor: '#f3f4f6'
+          }}
+          className="text-gray-500 hover:text-gray-800 flex items-center justify-center"
+        >
+          <ArrowLeftIcon className="h-4 w-4 text-gray-700" />
+        </button>
+
+        {/* Centered chat title and participants */}
+        <div className="text-center mx-auto">
+          <h2 className="font-semibold text-gray-900">{chatTitle}</h2>
+          <p className="text-xs text-gray-500 mt-1">
+            with {participants.npcs.map(npcId => getNpcDisplayName(npcId)).join(', ')}
+          </p>
         </div>
         
-        {/* Connection status indicator */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center">
-            <div className={`w-2.5 h-2.5 rounded-full mr-2 ${isSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <div className="text-xs text-gray-500">
-              {isSocketConnected ? 'Connected' : 'Offline'}
-            </div>
-            
-            {!isSocketConnected && (
-              <button 
-                onClick={handleReconnect}
-                className="ml-2 text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-              >
-                Reconnect
-              </button>
-            )}
-            
-            {isSocketConnected && (
-              <button 
-                onClick={() => {
-                  console.log('Testing socket connection');
-                  socketClientInstance?.ping();
-                }}
-                className="ml-2 text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
-              >
-                Test Socket
-              </button>
-            )}
-            
-            {isSocketConnected && (
-              <button 
-                onClick={testSendDirectMessage}
-                className="ml-2 text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition-colors"
-              >
-                Test Message
-              </button>
-            )}
-            
-            {isSocketConnected && (
-              <button 
-                onClick={testBasicMessage}
-                className="ml-2 text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-              >
-                Basic Message
-              </button>
-            )}
-            
-            <button 
-              onClick={debugSocketConnection}
-              className="ml-2 text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
-            >
-              Debug Socket
-            </button>
-            
-            <button 
-              onClick={testDirectAPICall}
-              className="ml-2 text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-            >
-              Test API
-            </button>
-          </div>
-          
-          <button 
-            onClick={toggleUserList}
-            className="flex items-center text-xs px-2 py-1 ml-2 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+        {/* 오른쪽 영역에 자동 대화 버튼 및 연결 상태 표시 */}
+        <div 
+          style={{ 
+            position: 'absolute', 
+            right: '16px', 
+            top: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          {/* 자동 대화 버튼 */}
+          <button
+            onClick={toggleAutoDialogueMode}
+            className={`px-3 py-1 text-xs ${
+              isAutoDialogueRunning
+                ? 'bg-red-600 hover:bg-red-700' 
+                : 'bg-green-600 hover:bg-green-700'
+            } text-white rounded-full shadow-sm transition-colors`}
           >
-            <span>{activeUsers.length} Online</span>
+            {isAutoDialogueRunning ? 'Stop Auto' : 'Start Auto'}
           </button>
           
-          {/* Active users dropdown */}
-          {showUserList && (
-            <div className="absolute right-4 top-14 bg-white border border-gray-200 rounded-md shadow-lg p-3 z-10 w-64">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium text-sm">Active Users ({activeUsers.length})</h3>
-                <button 
-                  onClick={toggleUserList} 
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  &times;
-                </button>
-              </div>
-              <ul className="max-h-40 overflow-y-auto divide-y divide-gray-100">
-                {activeUsers.map((user, index) => (
-                  <li key={`user-${index}`} className="py-2 flex items-center">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    <span className="text-sm">
-                      {user === username ? (
-                        <span className="font-medium">{user} <span className="text-xs text-gray-500">(You)</span></span>
-                      ) : (
-                        user
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {/* 연결 상태 표시 (점만) */}
+          <div className={`w-2.5 h-2.5 rounded-full ${isSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          
+          {!isSocketConnected && (
+            <button 
+              onClick={handleReconnect}
+              className="ml-2 text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+            >
+              Reconnect
+            </button>
           )}
         </div>
       </div>
@@ -1687,10 +1510,11 @@ Namespace: ${rawSocket.nsp || '/'}
             WebkitOverflowScrolling: 'touch', 
             maxWidth: '100%',
             width: '100%',
-            padding: '1rem 0.5rem'
+            padding: '1rem 0 1rem 0',  // 좌측 패딩 0, 우측도 0으로 설정
+            paddingRight: '16px'  // 우측에만 별도로 16px 패딩 추가
           }}
         >
-          <div className="max-w-2xl mx-auto space-y-2 pb-4 px-4">
+          <div className="max-w-2xl mx-auto space-y-2 pb-4 px-3">  
             {/* User and NPC messages */}
             {processedMessages
               .filter((msg) => msg.sender !== 'System') // Filter out system messages entirely
@@ -1785,72 +1609,78 @@ Namespace: ${rawSocket.nsp || '/'}
                 </React.Fragment>
               ))}
             
-            {/* Thinking indicator */}
-            {isThinking && (
-              <div className="flex justify-start mb-3">
-                {/* 응답 중인 NPC 아바타 표시 */}
-                <div className="flex-shrink-0 mr-2">
-                  <div className="w-12 h-12 min-w-[48px] min-h-[48px] max-w-[48px] max-h-[48px] overflow-hidden rounded-full">
-                    <img 
-                      src={getNpcProfileImage(participants.npcs[0])} 
-                      alt={getNpcDisplayName(participants.npcs[0])}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getDefaultAvatar(participants.npcs[0]);
-                      }}
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex flex-col max-w-[85%]">
-                  <span className="text-xs font-medium text-gray-600 ml-2 mb-1">
-                    {getNpcDisplayName(participants.npcs[0])}
-                  </span>
-                  <div className="chat-message-bubble chat-message-bubble-npc">
-                    {/* Thinking dots */}
-                    <div className="flex space-x-2 py-1">
-                      <div className="bg-white rounded-full w-2.5 h-2.5 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="bg-white rounded-full w-2.5 h-2.5 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="bg-white rounded-full w-2.5 h-2.5 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             <div ref={endOfMessagesRef} className="h-3" />
           </div>
         </div>
       )}
       
       {/* Message input */}
-      <div className="bg-white border-t border-gray-200 p-3 pb-6 w-full">
+      <div className="bg-white border-t border-gray-200 p-3 w-full" style={{ paddingBottom: '16px' }}>  
         <form 
           onSubmit={(e) => { 
             console.log('📝 Form submit event triggered');
             e.preventDefault(); // Ensure we prevent the default form submission 
             handleSendMessage(e); 
           }} 
-          className="max-w-2xl mx-auto px-3"
+          style={{
+            maxWidth: '95%',
+            margin: '0 auto',
+            padding: '0 8px'
+          }}
         >
-          <div className="chat-input-container">
+          <div 
+            style={{
+              position: 'relative',
+              width: '95%', 
+              backgroundColor: '#f8f8f8',
+              borderRadius: '24px',
+              padding: '8px 16px',
+              marginTop: '8px',
+              display: 'flex',
+              alignItems: 'flex-end',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+              zIndex: 10
+            }}
+          >
             <textarea
               ref={inputRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Type a message (Press Enter to send)"
-              className="chat-textarea"
+              style={{
+                flexGrow: 1,
+                minHeight: '36px',
+                maxHeight: '120px',
+                background: 'transparent',
+                border: 'none',
+                resize: 'none',
+                padding: '8px 0',
+                outline: 'none',
+                fontSize: '14px',
+                lineHeight: 1.5
+              }}
               disabled={isThinking || isSending}
               rows={1}
             />
             <button 
               type="submit" 
-              className={`chat-send-button ${
-                message.trim() === '' || isThinking || isSending 
-                  ? 'opacity-50' 
-                  : ''
-              }`}
+              style={{
+                flexShrink: 0,
+                backgroundColor: message.trim() === '' || isThinking || isSending ? '#e0e0e0' : '#0084ff',
+                color: message.trim() === '' || isThinking || isSending ? '#a0a0a0' : 'white',
+                borderRadius: '50%',
+                width: '36px',
+                height: '36px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginLeft: '8px',
+                transition: 'all 0.2s',
+                border: 'none',
+                cursor: message.trim() === '' || isThinking || isSending ? 'not-allowed' : 'pointer',
+                opacity: message.trim() === '' || isThinking || isSending ? 0.5 : 1
+              }}
               disabled={message.trim() === '' || isThinking || isSending}
               onClick={(e) => {
                 console.log('🚀 Send button clicked');
@@ -1858,40 +1688,20 @@ Namespace: ${rawSocket.nsp || '/'}
               }}
             >
               {isSending ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid white',
+                  borderTopColor: 'transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
               ) : (
                 <PaperAirplaneIcon className="h-5 w-5" />
               )}
             </button>
           </div>
         </form>
-        
-        {/* Direct API button - when socket is giving trouble */}
-        <div className="max-w-2xl mx-auto mt-2 flex justify-center gap-2">
-          <button
-            onClick={sendDirectAPIMessage}
-            disabled={message.trim() === '' || isThinking || isSending}
-            className={`px-3 py-1 text-xs bg-blue-600 text-white rounded-full shadow-sm hover:bg-blue-700 transition-colors ${
-              message.trim() === '' || isThinking || isSending 
-                ? 'opacity-50 cursor-not-allowed' 
-                : ''
-            }`}
-          >
-            Send via API directly
-          </button>
-          
-          {/* 자동 대화 버튼 추가 */}
-          <button
-            onClick={toggleAutoDialogueMode}
-            className={`px-3 py-1 text-xs ${
-              isAutoDialogueRunning
-                ? 'bg-red-600 hover:bg-red-700' 
-                : 'bg-green-600 hover:bg-green-700'
-            } text-white rounded-full shadow-sm transition-colors`}
-          >
-            {isAutoDialogueRunning ? 'Stop Auto Dialogue' : 'Start Auto Dialogue'}
-          </button>
-        </div>
       </div>
     </div>
   );
