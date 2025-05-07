@@ -322,6 +322,13 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
             const roomId = String(data.roomId);
             const message = data.message;
             
+            // Note: RAG parameter is now ignored as the server auto-detects it
+            // This is kept for backward compatibility but will be removed in future
+            const useRAG = data.useRAG || false;
+            if (useRAG) {
+              console.log(`ℹ️ Client requested RAG, but server will auto-detect instead`);
+            }
+            
             console.log(`🚨 'send-message' 이벤트 수신 - 방 ID: ${roomId}, 메시지:`, message);
             
             // Ensure timestamp is a Date object
@@ -402,7 +409,7 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
                     user_message: message.text,
                     npcs: room?.participants?.npcs || [],
                     topic: room?.title,
-                    context: room?.context?.substring(0, 50) + '...'
+                    context: room?.context?.substring(0, 50) + '...',
                   };
                   console.log('📤 API 요청 페이로드:', JSON.stringify(requestPayload));
                   
@@ -445,6 +452,11 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
                   const responseData = await response.json();
                   console.log('📥 Python API 응답 데이터:', JSON.stringify(responseData).substring(0, 200) + '...');
                   
+                  // 인용 정보 로깅
+                  if (responseData.citations && Array.isArray(responseData.citations)) {
+                    console.log(`📚 인용 정보 ${responseData.citations.length}개 발견:`, JSON.stringify(responseData.citations));
+                  }
+                  
                   // 응답 데이터 추출 (Python 백엔드 형식)
                   if (responseData && responseData.response && responseData.philosopher) {
                     // Python 백엔드로부터 받은 정보로 메시지 객체 생성
@@ -455,8 +467,14 @@ const socketHandler = async (req: NextApiRequest, res: NextApiResponseWithSocket
                       senderType: "npc",
                       isUser: false,
                       timestamp: new Date(),  // Date 객체로 생성
-                      metadata: responseData.metadata || {}
+                      metadata: responseData.metadata || {},
+                      citations: responseData.citations || [] // Add citations from Python backend
                     };
+                    
+                    // 인용 정보가 있는 경우 추가 로깅
+                    if (responseData.citations && Array.isArray(responseData.citations) && responseData.citations.length > 0) {
+                      console.log(`📚 AI 메시지에 ${responseData.citations.length}개의 인용 정보가 포함됨`);
+                    }
                     
                     // MongoDB에 AI 메시지 저장
                     try {

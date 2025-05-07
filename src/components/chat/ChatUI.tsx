@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { PaperAirplaneIcon, ArrowLeftIcon } from '@heroicons/react/24/solid';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { PaperAirplaneIcon, ArrowLeftIcon, UsersIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
 import socketClient, { SocketClient } from '@/lib/socket/socketClient';
+import Image from 'next/image';
 
 // Extend the ChatMessage interface to include additional NPC information
 interface ChatMessage extends ChatMessageBase {
@@ -13,33 +14,16 @@ interface ChatMessage extends ChatMessageBase {
   senderType?: string;
   portrait_url?: string;
   npc_id?: string;
+  citations?: Citation[]; // 인용 정보 추가
 }
 
-// Typing animation component
-// This is a test comment to verify editing works
-const TypingAnimation = ({ text }: { text: string }) => {
-  const [displayedText, setDisplayedText] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
-  
-  useEffect(() => {
-    if (currentIndex < text.length) {
-      const timer = setTimeout(() => {
-        setDisplayedText(prev => prev + text[currentIndex]);
-        setCurrentIndex(currentIndex + 1);
-      }, 40); // Slower typing speed (was 20)
-      
-      return () => clearTimeout(timer);
-    }
-  }, [currentIndex, text]);
-  
-  useEffect(() => {
-    // Reset when text changes
-    setDisplayedText('');
-    setCurrentIndex(0);
-  }, [text]);
-  
-  return <>{displayedText}</>;
-};
+// Citation 인터페이스 추가
+interface Citation {
+  id: string;       // 각주 ID (예: "1", "2")
+  source: string;   // 출처 (책 이름)
+  text: string;     // 원문 텍스트
+  location?: string; // 위치 정보 (선택사항)
+}
 
 // NPC 상세 정보 인터페이스 추가
 interface NpcDetail {
@@ -60,6 +44,116 @@ interface ChatUIProps {
   initialMessages?: ChatMessage[];
   onBack?: () => void; // Optional callback for back button click
 }
+
+// 인용 모달 컴포넌트 추가
+interface CitationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  citation: Citation | null;
+}
+
+// Citation 모달 컴포넌트 개선
+const CitationModal: React.FC<CitationModalProps> = ({ isOpen, onClose, citation }) => {
+  if (!isOpen || !citation) return null;
+  
+  return (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 50,
+        padding: '16px'
+      }}
+      onClick={onClose}
+    >
+      <div 
+        style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+          padding: '24px',
+          maxWidth: '500px',
+          width: '100%',
+          maxHeight: '80vh',
+          overflow: 'auto'
+        }}
+        onClick={(e) => e.stopPropagation()} // 모달 내부 클릭 시 닫히지 않도록
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#1f2937' }}>Source Reference</h3>
+          <button 
+            onClick={onClose} 
+            style={{
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              backgroundColor: '#f3f4f6',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#4b5563',
+              transition: 'background-color 0.2s'
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" style={{ height: '20px', width: '20px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ 
+              height: '32px', 
+              width: '32px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              backgroundColor: '#dbeafe', 
+              borderRadius: '50%', 
+              marginRight: '12px'
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ height: '16px', width: '16px', color: '#3b82f6' }} viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"/>
+              </svg>
+            </div>
+            <h4 style={{ fontSize: '16px', fontWeight: 500, color: '#1f2937' }}>{citation.source}</h4>
+          </div>
+        </div>
+        
+        <div style={{ 
+          backgroundColor: '#f9fafb', 
+          borderRadius: '8px', 
+          padding: '16px', 
+          marginBottom: '16px', 
+          fontStyle: 'italic', 
+          color: '#4b5563', 
+          borderLeft: '4px solid #3b82f6' 
+        }}>
+          "{citation.text}"
+        </div>
+        
+        {citation.location && (
+          <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: '#6b7280' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" style={{ height: '16px', width: '16px', marginRight: '4px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>{citation.location}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const ChatUI: React.FC<ChatUIProps> = ({ 
   chatId, 
@@ -92,6 +186,10 @@ const ChatUI: React.FC<ChatUIProps> = ({
   const [isAutoDialogueRunning, setIsAutoDialogueRunning] = useState(false);
   
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  // 인용 모달 상태 추가
+  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
+  const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
   
   // Prompt for username if not already set
   useEffect(() => {
@@ -519,6 +617,18 @@ const ChatUI: React.FC<ChatUIProps> = ({
           }
         }, 5000); // 5초 타임아웃
         
+        // Type fix: Define the addEventHandler method on SocketClient
+        const handler = (data: { roomId: string | number; message: ChatMessage }) => {
+          console.log(`🚨 'send-message' 이벤트 수신 - 방 ID: ${data.roomId}, 메시지:`, data.message);
+          // Return unmodified data - RAG parameter is no longer needed
+          return data;
+        };
+        
+        // Use type casting for missing method (best compromise for fix)
+        if ('addEventHandler' in instance) {
+          (instance as any).addEventHandler('send-message', handler);
+        }
+        
         // Return cleanup function
         return () => {
           clearTimeout(timeoutId);
@@ -600,133 +710,62 @@ const ChatUI: React.FC<ChatUIProps> = ({
     adjustTextareaHeight();
   }, [message]);
 
-  // 메시지 전송 함수 수정
+  // Add scrollToBottom helper function
+  const scrollToBottom = () => {
+    if (endOfMessagesRef.current) {
+      endOfMessagesRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // 메시지 전송 함수
   const handleSendMessage = async (e: React.FormEvent) => {
-    console.log('🔥 handleSendMessage 실행됨, message=', message);
     e.preventDefault();
+    
     if (message.trim() === '' || isSending) return;
 
     try {
+      console.log('📝 sending message:', message);
       setIsSending(true);
-      setError(null);
       
-      // 사용자 메시지 객체 생성
-      const userMessage: ChatMessage = {
-        id: `user-${Date.now()}`,
+      // 메시지 객체 생성
+      const timestamp = new Date(); // Fix: Use Date object instead of string
+      const messageObj: ChatMessage = {
+        id: `local-${Date.now()}`,
         text: message,
-        sender: username,
+        sender: username || sessionStorage.getItem('chat_username') || 'User',
         isUser: true,
-        timestamp: new Date(),
-        isNew: true // Mark new message
+        timestamp
       };
       
-      console.log('✅ 디버깅: 현재 socket 연결 상태:', isSocketConnected ? '연결됨' : '연결안됨');
-      console.log('✅ 디버깅: socketClientInstance 존재 여부:', !!socketClientInstance);
-      console.log('✅ 디버깅: 실제 연결 상태:', socketClientInstance?.isConnected() ? '연결됨' : '연결안됨');
+      // UI에 메시지 추가
+      setMessages(prevMessages => [...prevMessages, messageObj]);
       
-      // 메시지 내용 지우기 및 UI 업데이트
+      // 메시지 입력창 비우기
       setMessage('');
-      // Reset textarea height
-      if (inputRef.current) {
-        inputRef.current.style.height = 'auto';
-      }
       
-      // Try socket path first, but allow API fallback
-      let socketSucceeded = false;
+      // 자동 스크롤
+      scrollToBottom();
       
-      if (socketClientInstance && socketClientInstance.isConnected()) {
-        console.log('⚡️ 소켓이 연결되어 있어 socket.io로 전송 시도');
-        
-        // 소켓으로 메시지를 보내기 전에 메시지 ID를 기록하여 중복 표시 방지 
-        setSentMessageIds(prev => [...prev, userMessage.id]);
-        
-        // 메시지 ID가 기록되기 전에 UI에 메시지 추가 (사용자 경험 향상을 위함)
-        setMessages(prev => [...prev, userMessage]);
-        
-        // Try socket emission
-        const success = socketClientInstance.sendMessage(chatId, message);
-        console.log('⚡️ Socket sendMessage 결과:', success ? '성공' : '실패');
-        socketSucceeded = success;
-        
-        if (success) {
-          // Socket succeeded, no need for API fallback
-          setIsThinking(true);
+      // 소켓 연결 확인
+      if (!socketClientInstance || !isSocketConnected) {
+        console.error('❌ 소켓 연결이 없습니다. 메시지 전송 취소');
+        setError('연결이 끊어졌습니다. 새로고침 후 다시 시도해주세요.');
+        setIsSending(false);
           return;
-        }
-        // If socket failed, continue to API fallback
       }
       
-      // Socket failed or not connected, use API fallback
-      console.log('⚠️ 소켓 메시지 전송 실패 또는 소켓 미연결 - API로 전송');
+      // 소켓을 통해 메시지 전송 - RAG flag removed
+      socketClientInstance.emit('send-message', {
+              roomId: chatId,
+        message: messageObj
+      });
       
-      // 소켓 실패 시 UI에 메시지 추가 (소켓이 이미 추가했다면 수행되지 않음)
-      // 중복 메시지가 있는지 확인
-      const messageExists = messages.some(msg => msg.id === userMessage.id);
-      if (!messageExists) {
-        setMessages(prev => [...prev, userMessage]);
-      }
-      
-      // Show thinking indicator
+      console.log(`✅ 소켓을 통해 메시지 전송됨:`);
       setIsThinking(true);
-
-      try {
-        console.log('🤖 API 경로로 메시지 처리 시작');
-        
-        // 수정된 API 호출: 이제 전체 대화 기록 대신 현재 메시지와 방 ID만 전송
-        console.log('📤 새로운 방식으로 API 요청 전송 중...');
-        const apiResponse = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-llm-provider': localStorage.getItem('llmProvider') || 'openai',
-            'x-llm-model': localStorage.getItem('openaiModel') || 'gpt-4o'
-          },
-          body: JSON.stringify({
-            room_id: chatId,
-            user_message: message,
-            npcs: participants.npcs,
-            llm_provider: localStorage.getItem('llmProvider') || 'openai',
-            llm_model: localStorage.getItem('openaiModel') || 'gpt-4o'
-          }),
-        });
-        
-        if (!apiResponse.ok) {
-          console.error(`❌ API 오류 응답: ${apiResponse.status}`);
-          throw new Error(`API 응답 오류: ${apiResponse.status}`);
-        }
-        
-        const aiMessage = await apiResponse.json();
-        console.log('🤖 API에서 AI 응답 받음:', aiMessage);
-        
-        // 유효성 검사
-        if (!aiMessage || !aiMessage.response || !aiMessage.philosopher) {
-          console.error('❌ 유효하지 않은 AI 응답:', aiMessage);
-          throw new Error('Invalid AI response format');
-        }
-        
-        // AI 응답 메시지 생성
-        const aiResponseMessage: ChatMessage = {
-          id: `api-${Date.now()}`,
-          text: aiMessage.response,
-          sender: aiMessage.philosopher,
-          isUser: false,
-          timestamp: new Date(),
-          isNew: true
-        };
-        
-        // 메시지 목록에 AI 응답 추가
-        setMessages(prev => [...prev, aiResponseMessage]);
-        setIsThinking(false);
-        
+      
       } catch (error) {
-        console.error('🔥 API 호출 오류:', error);
-        
-        // API 호출 실패 시 폴백 로직
-        // ... existing error handling code ...
-      }
-    } catch (error) {
-      console.error('Error in chat:', error);
-      setError('Failed to send message. Please try again.');
+      console.error('❌ 메시지 전송 오류:', error);
+      setError('메시지 전송 중 오류가 발생했습니다.');
     } finally {
       setIsSending(false);
     }
@@ -1402,12 +1441,229 @@ Namespace: ${rawSocket.nsp || '/'}
     };
   }, []);
 
+  // 인용 모달 열기 함수
+  const openCitationModal = (citation: Citation) => {
+    console.log("📚 인용 모달 열기:", citation);
+    setSelectedCitation(citation);
+    setIsCitationModalOpen(true);
+  };
+  
+  // 인용 모달 닫기 함수
+  const closeCitationModal = () => {
+    console.log("📚 인용 모달 닫기");
+    setIsCitationModalOpen(false);
+    setTimeout(() => setSelectedCitation(null), 300); // 닫힌 후 데이터 초기화
+  };
+  
+  // 각주가 포함된 텍스트를 렌더링하는 함수
+  const renderMessageWithCitations = (text: string, citations?: Citation[]) => {
+    console.log("📚 텍스트 렌더링 시작, 인용 정보:", citations);
+    
+    if (!citations || !Array.isArray(citations) || citations.length === 0) {
+      console.log("⚠️ 인용 정보 없음, 원본 텍스트 반환:", text.substring(0, 50) + "...");
+      return text;
+    }
+    
+    // 각주 패턴 정규식: [1], [2] 등을 찾음
+    const citationPattern = /\[(\d+)\]/g;
+    
+    // 패턴에 맞는 위치 찾기
+    let match;
+    const matches: { index: number; citation: string; id: string }[] = [];
+    
+    // 텍스트에서 모든 [숫자] 패턴 찾기
+    while ((match = citationPattern.exec(text)) !== null) {
+      const id = match[1]; // 숫자 부분 (괄호 안)
+      console.log(`📚 각주 발견: [${id}] at index ${match.index}`);
+      matches.push({
+        index: match.index,
+        citation: match[0], // 전체 매치 ([숫자] 형태)
+        id: id
+      });
+    }
+    
+    // 매치가 없으면 원본 텍스트 반환
+    if (matches.length === 0) {
+      console.log("⚠️ 각주 패턴 없음, 원본 텍스트 반환");
+      return text;
+    }
+    
+    console.log(`📚 발견된 각주 ${matches.length}개:`, matches);
+    console.log(`📚 사용 가능한 인용 정보 ${citations.length}개:`, citations);
+    
+    // 결과 JSX 조합
+    const result: React.ReactNode[] = [];
+    let lastIndex = 0;
+    
+    // 각 매치에 대해 처리
+    matches.forEach((match, i) => {
+      // 이전 텍스트 추가
+      if (match.index > lastIndex) {
+        result.push(text.substring(lastIndex, match.index));
+      }
+      
+      // 해당 ID의 인용 정보 찾기
+      const citation = citations.find(cit => cit.id === match.id);
+      
+      if (citation) {
+        console.log(`📚 각주 ${match.id}에 대한 인용 정보 발견:`, citation);
+        // 클릭 가능한 각주 렌더링 - 스타일 개선
+        result.push(
+              <button 
+            key={`citation-${i}`}
+                onClick={() => {
+              console.log(`📚 각주 ${match.id} 클릭됨`);
+              openCitationModal(citation);
+            }}
+            className="inline bg-transparent border-none p-0 m-0 text-xs font-semibold cursor-pointer"
+            style={{ 
+              color: 'inherit', 
+              verticalAlign: 'super',
+              fontSize: '75%',
+              lineHeight: 0,
+              position: 'relative',
+              top: '-1px'
+            }}
+            title={`Source: ${citation.source}`}
+          >
+            [{match.id}]
+              </button>
+        );
+      } else {
+        console.log(`⚠️ 각주 ${match.id}에 대한 인용 정보 없음`);
+        // 인용 정보가 없는 경우 원본 텍스트로 표시
+        result.push(match.citation);
+      }
+      
+      lastIndex = match.index + match.citation.length;
+    });
+    
+    // 마지막 텍스트 추가
+    if (lastIndex < text.length) {
+      result.push(text.substring(lastIndex));
+    }
+    
+    console.log("📚 텍스트 렌더링 완료");
+    return result;
+  };
+
+  // 각 메시지 컴포넌트
+  const MessageComponent = ({ message, isNew = false }: { message: ChatMessage, isNew?: boolean }) => {
+    // 강조된 메시지 영역 표시 (새 메시지)
+    const messageRef = useRef<HTMLDivElement>(null);
+
+    // 새 메시지가 추가되면 자동 스크롤
+    useEffect(() => {
+      if (isNew && messageRef.current) {
+        messageRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, [isNew]);
+
+    // NPC 정보 가져오기 (portrait_url 등)
+    useEffect(() => {
+      if (!message.isUser && !message.portrait_url && message.sender) {
+        fetchNpcDetails(message.sender).then((npcDetails) => {
+          if (npcDetails) {
+            // 상태 업데이트 로직
+          }
+        });
+      }
+    }, [message]);
+
+    // 메시지 내용에 특수 라벨 추가
+    const processMessageText = (text: string | React.ReactNode) => {
+      if (typeof text !== 'string') return text;
+      
+      // 각주 처리가 필요한 경우 renderMessageWithCitations 사용
+      if (message.citations && Array.isArray(message.citations) && message.citations.length > 0) {
+        console.log("📚 각주가 있는 메시지 렌더링:", message.citations);
+        return renderMessageWithCitations(text, message.citations);
+      }
+      
+      // URL 패턴 매칭 (기존 로직)
+      const urlPattern = /(https?:\/\/[^\s]+)/g;
+      if (!text.match(urlPattern)) {
+        return text;
+      }
+      
+      // URL이 있는 경우 처리 로직 (기존 로직 유지)
+      const parts = text.split(urlPattern);
+      const result: React.ReactNode[] = [];
+      
+      for (let i = 0; i < parts.length; i++) {
+        if (i % 2 === 0) {
+          result.push(parts[i]);
+        } else {
+          result.push(
+            <a
+              key={i}
+              href={parts[i]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline"
+            >
+              {parts[i]}
+            </a>
+          );
+        }
+      }
+      
+      return result;
+    };
+
+    return (
+      <div 
+        ref={messageRef}
+        className={`flex flex-col ${message.isUser ? 'items-end' : 'items-start'} mb-4 transition-opacity duration-500 
+          ${isNew ? 'animate-fadeIn' : 'opacity-100'}`}
+      >
+        {/* 발신자 표시 (사용자 또는 NPC 이름) */}
+        <div className="flex items-center mb-1">
+          {!message.isUser && (
+            <div className="w-8 h-8 rounded-full overflow-hidden mr-2 bg-gray-200 dark:bg-gray-700">
+              {message.portrait_url ? (
+                <Image 
+                  src={message.portrait_url} 
+                  alt={message.sender} 
+                  width={32} 
+                  height={32} 
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full text-gray-500 dark:text-gray-400">
+                  {/* Replace User component with alternative */}
+                  <span className="text-xs">AI</span>
+                </div>
+              )}
+            </div>
+          )}
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {message.isUser ? 'You' : message.senderName || message.sender}
+          </div>
+        </div>
+        
+        {/* 메시지 내용 표시 (말풍선) */}
+        <div 
+          className={`max-w-[80%] px-4 py-2 rounded-lg ${
+            message.isUser 
+              ? 'bg-blue-600 text-white rounded-tr-none dark:bg-blue-800' 
+              : 'bg-gray-100 text-gray-900 rounded-tl-none dark:bg-gray-800 dark:text-gray-100'
+          }`}
+        >
+          <div className="whitespace-pre-wrap break-words">
+            {processMessageText(message.text)}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="fixed inset-0 bg-white flex flex-col w-full h-full overflow-hidden">
       {/* Chat header */}
       <div className="bg-white border-b border-gray-200 p-3 flex flex-col items-center relative">
         {/* Back button - using same styling approach as Create Chat modal X button */}
-        <button 
+            <button 
           onClick={handleBackButtonClick}
           style={{ 
             position: 'absolute', 
@@ -1430,7 +1686,7 @@ Namespace: ${rawSocket.nsp || '/'}
           className="text-gray-500 hover:text-gray-800 flex items-center justify-center"
         >
           <ArrowLeftIcon className="h-4 w-4 text-gray-700" />
-        </button>
+            </button>
 
         {/* Centered chat title and participants */}
         <div className="text-center mx-auto">
@@ -1438,8 +1694,8 @@ Namespace: ${rawSocket.nsp || '/'}
           <p className="text-xs text-gray-500 mt-1">
             with {participants.npcs.map(npcId => getNpcDisplayName(npcId)).join(', ')}
           </p>
-        </div>
-        
+          </div>
+          
         {/* 오른쪽 영역에 자동 대화 버튼 및 연결 상태 표시 */}
         <div 
           style={{ 
@@ -1451,8 +1707,10 @@ Namespace: ${rawSocket.nsp || '/'}
             gap: '8px'
           }}
         >
+          {/* RAG toggle button removed */}
+          
           {/* 자동 대화 버튼 */}
-          <button
+          <button 
             onClick={toggleAutoDialogueMode}
             className={`px-3 py-1 text-xs ${
               isAutoDialogueRunning
@@ -1467,12 +1725,12 @@ Namespace: ${rawSocket.nsp || '/'}
           <div className={`w-2.5 h-2.5 rounded-full ${isSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
           
           {!isSocketConnected && (
-            <button 
+                <button 
               onClick={handleReconnect}
               className="ml-2 text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-            >
+                >
               Reconnect
-            </button>
+                </button>
           )}
         </div>
       </div>
@@ -1562,8 +1820,7 @@ Namespace: ${rawSocket.nsp || '/'}
                     
                     <div className="flex flex-col" style={{ maxWidth: '70%', width: 'auto' }}>
                       {/* Sender name - 메시지를 보낸 사람의 이름 표시 (내 메시지 제외) */}
-                      {((msg.sender !== username && msg.sender !== sessionStorage.getItem('chat_username')) || !msg.isUser) && 
-                        (index === 0 || filteredList[index-1].sender !== msg.sender) && (
+                      {((!msg.isUser || (msg.sender !== username && msg.sender !== sessionStorage.getItem('chat_username')))) && (
                         <span className="text-xs font-medium text-gray-600 ml-2 mb-1">
                           {msg.isUser 
                             ? msg.sender 
@@ -1574,27 +1831,13 @@ Namespace: ${rawSocket.nsp || '/'}
                       
                       {/* 간소화된 말풍선 UI - CSS 클래스 사용 */}
                       <div className={`${getMessageStyle(msg)}`}>
-                        {/* Message text - with typing animation for NEW NPC messages only */}
-                        <div>
-                          <p className="break-words whitespace-pre-wrap overflow-hidden text-wrap">
-                            {(() => {
-                              // Parse JSON if needed
-                              let text = msg.text;
-                              try {
-                                if (msg.text.trim().startsWith('{') && msg.text.trim().endsWith('}')) {
-                                  const parsed = JSON.parse(msg.text);
-                                  text = parsed.text || msg.text;
-                                }
-                              } catch (e) {
-                                // Keep original text
-                              }
-                              
-                              // Use typing animation ONLY for NEW NPC messages, regular text for all others
-                              return msg.isUser || !msg.isNew ? 
-                                text : 
-                                <TypingAnimation text={text} />
-                            })()}
-                          </p>
+                        {/* 메시지 텍스트 - 인용 정보가 있으면 각주 포함하여 표시 */}
+                        <div className="message-text">
+                          {msg.citations && Array.isArray(msg.citations) && msg.citations.length > 0 
+                            ? renderMessageWithCitations(msg.text, msg.citations)
+                            : msg.text 
+                          }
+                        </div>
                           
                           {/* Time stamp - 조건부 렌더링으로 유효하지 않은 timestamp 처리 */}
                           {msg.timestamp && !isNaN(new Date(msg.timestamp).getTime()) && (
@@ -1602,14 +1845,27 @@ Namespace: ${rawSocket.nsp || '/'}
                               {formatTime(msg.timestamp)}
                             </p>
                           )}
-                        </div>
                       </div>
                     </div>
                   </div>
                 </React.Fragment>
               ))}
             
-            <div ref={endOfMessagesRef} className="h-3" />
+            {/* Thinking indicator */}
+            {isThinking && (
+              <div className="flex justify-start mb-3">
+                <div className="bg-gray-100 text-gray-500 rounded-lg p-3 shadow-sm animate-pulse flex items-center">
+                  <div className="typing-animation">
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                  </div>
+                  <span className="ml-2">Thinking...</span>
+                </div>
+              </div>
+            )}
+            
+            <div ref={endOfMessagesRef}></div>
           </div>
         </div>
       )}
@@ -1703,6 +1959,13 @@ Namespace: ${rawSocket.nsp || '/'}
           </div>
         </form>
       </div>
+      
+      {/* 인용 모달 */}
+      <CitationModal
+        isOpen={isCitationModalOpen}
+        onClose={closeCitationModal}
+        citation={selectedCitation}
+      />
     </div>
   );
 };

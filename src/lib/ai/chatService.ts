@@ -1,10 +1,18 @@
 // Types
+export interface Citation {
+  id: string;       // 각주 ID (예: "1", "2")
+  text: string;     // 원문 텍스트
+  source: string;   // 출처 (책 이름)
+  location?: string; // 위치 정보 (선택사항)
+}
+
 export interface ChatMessage {
   id: string;
   text: string;
   sender: string;
   isUser: boolean;
   timestamp: Date;
+  citations?: Citation[]; // 인용 정보 배열 추가
 }
 
 export interface ChatRoom {
@@ -931,16 +939,18 @@ class ChatService {
           npc_descriptions: npcDescriptions,
           topic: topic,
           context: context,
-          previous_dialogue: dialogueText
+          previous_dialogue: dialogueText,
+          use_rag: true // RAG 기능 활성화
         })
       });
 
-        if (!response.ok) {
+      if (!response.ok) {
         throw new Error(`Failed to get AI response: ${response.status}`);
       }
 
       // 8. API 응답 처리
       const data = await response.json();
+      console.log("📡 API 응답 전체 데이터:", JSON.stringify(data));
       
       // 9. 응답한 철학자 정보 찾기
       let respondingNpc = room.npcDetails?.find(npc => 
@@ -959,16 +969,24 @@ class ChatService {
         respondingNpc = room.npcDetails[0];
       }
 
-      // 10. 메시지 객체 생성 - 실제 이름 사용
+      // 10. 인용 정보 추출 - API 응답 구조 확인
+      console.log("📝 인용 정보 확인 - API 응답에서 citations 필드:", data.citations);
+      const citations = data.citations || [];
+      console.log(`✅ 인용 정보 ${citations.length}개 추출됨:`, JSON.stringify(citations));
+
+      // 11. 메시지 객체 생성 - 실제 이름 사용 및 인용 정보 포함
       const messageObj: ChatMessage = {
         id: this.generateUniqueId('ai-'),
         text: data.response,
         sender: respondingNpc?.name || data.philosopher,
         isUser: false,
-        timestamp: new Date()
+        timestamp: new Date(),
+        citations: citations // 인용 정보 직접 포함
       };
       
-      // 11. 로컬 캐시 업데이트
+      console.log("📝 생성된 메시지 객체(citations 포함):", JSON.stringify(messageObj));
+      
+      // 12. 로컬 캐시 업데이트
       const roomIndex = this.chatRooms.findIndex(r => this.normalizeId(r.id) === normalizedId);
       if (roomIndex >= 0) {
         if (!this.chatRooms[roomIndex].messages) {

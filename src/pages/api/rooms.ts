@@ -203,7 +203,27 @@ export default async function handler(
       if (updates.message) {
         const { message } = updates;
         console.log(`새 메시지 추가: ${message.sender}의 메시지, ID: ${message.id}`);
-        console.log(`📋 메시지 전체 데이터: ${JSON.stringify(message, null, 2)}`);
+        console.log(`📋 메시지 전체 데이터: ${JSON.stringify(message)}`);
+        
+        // 디버깅: citations 필드 확인
+        if (message.citations) {
+          console.log(`📚 인용 정보 포함됨: ${JSON.stringify(message.citations)}`);
+        } else {
+          console.log(`⚠️ 인용 정보 없음 (citations 필드: ${message.citations})`);
+        }
+        
+        // 클라이언트에서 오는 메시지 객체가 citations 필드를 가지고 있지만 
+        // undefined로 설정된 경우를 처리
+        if (message.hasOwnProperty('citations') && message.citations === undefined) {
+          console.log(`⚠️ citations 필드가 undefined로 설정됨, 삭제 중...`);
+          delete message.citations;
+        }
+        
+        // 클라이언트 상태에서 citations가 빈 배열이나 null인 경우도 처리
+        if (message.citations && Array.isArray(message.citations) && message.citations.length === 0) {
+          console.log(`⚠️ citations가 빈 배열임, 삭제 중...`);
+          delete message.citations;
+        }
         
         const success = await chatRoomDB.addMessage(roomIdStr, message);
         
@@ -218,7 +238,7 @@ export default async function handler(
               roomId: roomIdStr,
               message: message
             };
-            console.log(`🔄 Socket.IO 브로드캐스트 데이터: ${JSON.stringify(socketData, null, 2)}`);
+            console.log(`🔄 Socket.IO 브로드캐스트 데이터: ${JSON.stringify(socketData)}`);
             res.socket.server.io.to(roomIdStr).emit('new-message', socketData);
             console.log(`✅ 브로드캐스트 완료 - 방 ID: ${roomIdStr}, 메시지 ID: ${message.id}`);
           } else {

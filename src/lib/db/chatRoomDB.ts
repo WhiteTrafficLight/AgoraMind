@@ -19,6 +19,14 @@ export interface DBChatRoom {
   updatedAt: Date;
 }
 
+// 각주 인용 정보를 위한 인터페이스 추가
+export interface Citation {
+  id: string;       // 각주 ID (예: "1", "2")
+  text: string;     // 원문 텍스트
+  source: string;   // 출처 (책 이름)
+  location?: string; // 위치 정보 (선택사항)
+}
+
 // DB에 저장되는 채팅 메시지 타입
 export interface DBChatMessage {
   _id?: ObjectId;
@@ -29,6 +37,7 @@ export interface DBChatMessage {
   isUser: boolean;
   timestamp: Date;
   createdAt: Date;
+  citations?: Citation[]; // 인용 정보 배열 추가
 }
 
 // 채팅룸 DB 접근 클래스
@@ -236,7 +245,16 @@ class ChatRoomDB {
         return false;
       }
       
-      // 메시지 저장
+      console.log("📝 저장할 메시지 객체:", message); 
+      
+      // 인용 정보 확인 및 로깅
+      if (message.citations) {
+        console.log("📚 저장할 인용 정보:", JSON.stringify(message.citations));
+      } else {
+        console.log("⚠️ 인용 정보 없음");
+      }
+      
+      // 메시지 저장 - citations 필드 처리 개선
       const dbMessage: DBChatMessage = {
         messageId: message.id,
         roomId: numericRoomId,
@@ -246,6 +264,26 @@ class ChatRoomDB {
         timestamp: new Date(message.timestamp),
         createdAt: new Date()
       };
+      
+      // citations 필드가 있고 배열인 경우에만 포함
+      if (message.citations && Array.isArray(message.citations)) {
+        // 명시적으로 필요한 필드만 복사하여 타입 안전성 보장
+        dbMessage.citations = message.citations.map(citation => ({
+          id: citation.id,
+          source: citation.source,
+          text: citation.text,
+          location: citation.location
+        }));
+        console.log("📚 인용 정보를 DB에 저장합니다:", JSON.stringify(dbMessage.citations));
+      }
+      
+      console.log("📝 DB에 저장할 최종 메시지:", JSON.stringify(dbMessage));
+      
+      // 메시지 저장 전 최종 확인
+      if (!dbMessage.messageId || !dbMessage.text) {
+        console.error("❌ 필수 필드 누락 - 메시지 저장 실패");
+        return false;
+      }
       
       await db.collection('chatMessages').insertOne(dbMessage);
       
@@ -328,7 +366,8 @@ class ChatRoomDB {
         text: msg.text,
         sender: msg.sender,
         isUser: msg.isUser,
-        timestamp: msg.timestamp
+        timestamp: msg.timestamp,
+        citations: msg.citations // citations 필드 추가
       }))
     };
   }

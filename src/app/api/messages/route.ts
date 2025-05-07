@@ -9,6 +9,15 @@ interface DBMessage {
   sender: string;
   isUser: boolean;
   timestamp: Date;
+  citations?: Citation[]; // Add citations field to match the rest of the app
+}
+
+// Add Citation interface to match other files
+interface Citation {
+  id: string;       // 각주 ID (예: "1", "2")
+  text: string;     // 원문 텍스트
+  source: string;   // 출처 (책 이름)
+  location?: string; // 위치 정보 (선택사항)
 }
 
 interface DBChatRoom {
@@ -32,7 +41,13 @@ const chatRoomSchema = new mongoose.Schema({
     text: String,
     sender: String,
     isUser: Boolean,
-    timestamp: Date
+    timestamp: Date,
+    citations: [{ // Add citations array to schema
+      id: String,
+      text: String,
+      source: String,
+      location: String
+    }]
   }],
   lastActivity: String,
   updatedAt: Date
@@ -200,6 +215,12 @@ export async function POST(req: NextRequest) {
       isUser: message.isUser,
       timestamp
     };
+    
+    // 인용 정보가 있으면 포함
+    if (message.citations && Array.isArray(message.citations) && message.citations.length > 0) {
+      console.log('📚 Citations data found:', JSON.stringify(message.citations));
+      newMessage.citations = message.citations;
+    }
 
     // isInitial 플래그가 true이면 기존 메시지 삭제 (welcome 메시지 교체)
     if (isInitial) {

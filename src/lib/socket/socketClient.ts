@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { ChatMessage } from '@/lib/ai/chatService';
+import { ChatMessage, Citation } from '@/lib/ai/chatService';
 
 // Type definitions for events
 interface ServerToClientEvents {
@@ -16,11 +16,16 @@ interface ServerToClientEvents {
 interface ClientToServerEvents {
   'join-room': (data: { roomId: string | number; username: string }) => void;
   'leave-room': (data: { roomId: string | number; username: string }) => void;
-  'send-message': (data: { roomId: string | number; message: ChatMessage }) => void;
+  'send-message': (data: { roomId: string | number; message: ChatMessage; useRAG?: boolean }) => void;
   'get-active-users': (roomId: string | number) => void;
   'ping': (data: { time: number, username: string }) => void;
   'refresh-room': (data: { roomId: string | number }) => void;
   [event: string]: (...args: any[]) => void;  // Allow any other event
+}
+
+// Custom event handler type
+interface EventHandler<T> {
+  (data: T): T;
 }
 
 // Socket.io client wrapper class
@@ -37,6 +42,9 @@ class SocketClient {
     'connect': [],
     'disconnect': []
   };
+  
+  // Add custom event handlers storage
+  private eventHandlers: Record<string, EventHandler<any>> = {};
   
   // Initialize the socket connection
   public async init(username: string = 'User'): Promise<SocketClient> {
@@ -395,9 +403,9 @@ Time: ${new Date().toLocaleTimeString()}
   }
   
   // Send a message to a chat room
-  public sendMessage(roomId: string | number, message: string) {
+  public sendMessage(roomId: string | number, message: string, customMessageObj?: any, useRAG: boolean = false) {
     console.log('⚡️ socketClient.sendMessage 호출됨 - TRACE:', new Error().stack);
-    console.log('⚡️ 전송 파라미터:', { roomId, messageText: message });
+    console.log('⚡️ 전송 파라미터:', { roomId, messageText: message, useRAG });
     console.log('⚡️ Socket 객체 존재 여부:', !!this.socket);
     console.log('⚡️ Socket 연결 상태:', this.socket?.connected ? '연결됨' : '연결안됨');
     
@@ -418,13 +426,19 @@ Time: ${new Date().toLocaleTimeString()}
       const roomIdStr = String(roomId);
       
       // Create a formatted message object - simplified for reliable transmission
-      const messageObj = {
+      const messageObj = customMessageObj || {
         id: `socket-${Date.now()}`,
         text: message,
         sender: this.username,
         isUser: true,
         timestamp: new Date()  // Keep as Date object for type compatibility
       };
+      
+      // 인용 정보를 가진 AI 메시지인 경우 citations 필드 포함 유지
+      if (customMessageObj && (customMessageObj.citations || customMessageObj.metadata?.citations)) {
+        messageObj.citations = customMessageObj.citations || customMessageObj.metadata?.citations;
+        console.log('📚 인용 정보가 포함된 메시지:', messageObj.citations);
+      }
       
       console.log('📨 생성된 메시지 객체:', messageObj);
       
@@ -439,7 +453,8 @@ Time: ${new Date().toLocaleTimeString()}
           eventName: 'send-message',
           payload: {
             roomId: roomIdStr,
-            message: messageObj
+            message: messageObj,
+            useRAG
           }
         });
         
@@ -453,9 +468,10 @@ Time: ${new Date().toLocaleTimeString()}
         
         this.socket.emit('send-message', {
           roomId: roomIdStr,
-          message: messageObj
+          message: messageObj,
+          useRAG: useRAG
         });
-        console.log('✅ 메시지 emit 완료 - 이벤트명: "send-message", 데이터:', { roomId: roomIdStr, message: messageObj });
+        console.log(`✅ 메시지 emit 완료 - 이벤트명: "send-message", 데이터:`, { roomId: roomIdStr, message: messageObj, useRAG });
       } catch (emitError) {
         console.error('🔥 EMIT ERROR:', emitError);
         throw emitError;
@@ -526,6 +542,12 @@ Time: ${new Date().toLocaleTimeString()}
     return this;
   }
   
+  // Add method to register custom event handler
+  public addEventHandler<T>(event: string, handler: EventHandler<T>): void {
+    this.eventHandlers[event] = handler;
+    console.log(`📝 Added custom event handler for ${event}`);
+  }
+  
   // Generic emit method for sending custom events
   public emit(event: string, data: any) {
     console.log(`🔄 Custom emit for event: ${event}`, data);
@@ -541,8 +563,19 @@ Time: ${new Date().toLocaleTimeString()}
     }
     
     try {
-      this.socket.emit(event, data);
-      console.log(`✅ Emitted custom event: ${event}`, data);
+      // Apply custom handler if exists
+      let processedData = data;
+      if (this.eventHandlers[event]) {
+        try {
+          processedData = this.eventHandlers[event](data);
+          console.log(`✅ Applied custom handler for ${event}`);
+        } catch (handlerError) {
+          console.error(`❌ Error in custom handler for ${event}:`, handlerError);
+        }
+      }
+      
+      this.socket.emit(event, processedData);
+      console.log(`✅ Emitted custom event: ${event}`, processedData);
       return true;
     } catch (error) {
       console.error(`❌ Error emitting event ${event}:`, error);
