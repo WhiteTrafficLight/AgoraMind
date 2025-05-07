@@ -185,11 +185,30 @@ const ChatUI: React.FC<ChatUIProps> = ({
   const [autoDialogueMode, setAutoDialogueMode] = useState(false);
   const [isAutoDialogueRunning, setIsAutoDialogueRunning] = useState(false);
   
+  // 현재 응답 중인 NPC 상태 관리 - 새 방식
+  const [thinkingNpcId, setThinkingNpcId] = useState<string | null>(null);
+  
   const [isLoaded, setIsLoaded] = useState(false);
   
   // 인용 모달 상태 추가
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
+  
+  // Auto-dialogue 관련 상태를 별도로 추가
+  
+  // NPC 선택 이벤트 핸들러 추가 - 새 이벤트 처리
+  const onNpcSelected = useCallback((data: { npc_id: string, npc_name?: string }) => {
+    console.log('🎯 NPC selected event received:', data);
+    
+    // NPC ID가 있으면 thinking 상태 설정
+    if (data.npc_id) {
+      setThinkingNpcId(data.npc_id);
+      setIsThinking(true);
+      console.log(`🎯 NPC ${data.npc_id}${data.npc_name ? ` (${data.npc_name})` : ''} is now thinking...`);
+    } else {
+      console.warn('🎯 Invalid NPC selected event - missing npc_id:', data);
+    }
+  }, []);
   
   // Prompt for username if not already set
   useEffect(() => {
@@ -591,6 +610,18 @@ const ChatUI: React.FC<ChatUIProps> = ({
         setTimeout(() => setError(null), 5000); // Clear error after 5 seconds
       };
       
+      // Add handler for auto-dialogue thinking state
+      
+      // Add handler for auto-dialogue message sent
+      const onAutoMessageSent = () => {
+        console.log('🤖 Auto-dialogue message sent event received');
+        
+        // thinking 상태 초기화
+        setThinkingNpcId(null);
+        setIsThinking(false);
+        console.log('🤖 Cleared thinking state after message sent');
+      };
+      
       try {
         // 소켓 이벤트 리스너 설정 - Remove existing handlers first
         instance.off('new-message', onNewMessage);
@@ -599,6 +630,8 @@ const ChatUI: React.FC<ChatUIProps> = ({
         instance.off('user-joined', onUserJoined);
         instance.off('user-left', onUserLeft);
         instance.off('error', onError);
+        instance.off('npc-selected', onNpcSelected); // 새 이벤트 핸들러 추가
+        instance.off('auto-message-sent', onAutoMessageSent); // auto-message-sent는 계속 사용
         
         // Then add new handlers
         instance.on('new-message', onNewMessage);
@@ -607,6 +640,8 @@ const ChatUI: React.FC<ChatUIProps> = ({
         instance.on('user-joined', onUserJoined);
         instance.on('user-left', onUserLeft);
         instance.on('error', onError);
+        instance.on('npc-selected', onNpcSelected); // 새 이벤트 핸들러 추가
+        instance.on('auto-message-sent', onAutoMessageSent); // auto-message-sent는 계속 사용
         
         // 사용자 접속 상태 확인을 위한 타임아웃 설정
         const timeoutId = setTimeout(() => {
@@ -1121,25 +1156,11 @@ Namespace: ${rawSocket.nsp || '/'}
     }
   };
 
-  // 메시지 렌더링 디버깅을 위한 useEffect
-  useEffect(() => {
-    // 새 메시지가 있을 때마다 실행
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      console.log(`🔍 메시지 렌더링 디버깅 - 마지막 메시지 ID: ${lastMessage.id}`);
-      console.log(`- isUser: ${lastMessage.isUser}`);
-      console.log(`- sender: ${lastMessage.sender}`);
-      console.log(`- senderName: ${lastMessage.senderName}`);
-      console.log(`- senderType: ${lastMessage.senderType}`);
-      console.log(`- portrait_url: ${lastMessage.portrait_url}`);
-      console.log(`- npc_id: ${lastMessage.npc_id}`);
-      console.log(`- 자동생성 메시지 여부: ${lastMessage.id.startsWith('auto-')}`);
-    }
-  }, [messages]);
+  // 메시지 렌더링 디버깅을 위한 useEffect - 필요 없어 제거
   
   // 모든 NPC 디테일 로깅
   useEffect(() => {
-    console.log('📝 NPC 디테일 전체:', npcDetails);
+    // NPC 디테일 변경 시 필요한 로직만 남기고 로그는 제거
   }, [npcDetails]);
 
   // 채팅방 메시지 로드 함수 개선
@@ -1349,44 +1370,42 @@ Namespace: ${rawSocket.nsp || '/'}
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128&font-size=0.5`;
   };
 
-  // NPC 실제 이름 가져오기 함수 수정
-  const getNpcDisplayName = (npcId: string) => {
-    console.log(`📝 getNpcDisplayName 호출: ${npcId}`);
+  // NPC 실제 이름 가져오기 함수 수정 - null 체크 추가
+  const getNpcDisplayName = (npcId: string | null): string => {
+    if (!npcId) {
+      return "Unknown AI";
+    }
     
     // 메시지에 senderName이 직접 포함된 경우 (자동 대화 메시지)
     if (typeof npcId === 'object' && (npcId as any).senderName) {
-      console.log(`🔍 object에서 senderName 사용: ${(npcId as any).senderName}`);
       return (npcId as any).senderName;
     }
     
     // 상세 정보에서 실제 이름 찾기
     if (npcDetails[npcId]) {
-      console.log(`🔍 npcDetails에서 이름 찾음: ${npcDetails[npcId].name}`);
       return npcDetails[npcId].name;
     }
     // 없으면 ID 그대로 반환
-    console.log(`🔍 이름 정보 없음, ID 반환: ${npcId}`);
     return npcId;
   };
 
-  // NPC 프로필 이미지 URL 가져오기 함수 수정
-  const getNpcProfileImage = (npcId: string) => {
-    console.log(`📝 getNpcProfileImage 호출: ${npcId}`);
+  // NPC 프로필 이미지 URL 가져오기 함수 수정 - null 체크 추가
+  const getNpcProfileImage = (npcId: string | null): string => {
+    if (!npcId) {
+      return getDefaultAvatar("Unknown AI");
+    }
     
     // 메시지에 portrait_url이 직접 포함된 경우 (자동 대화 메시지)
     if (typeof npcId === 'object' && (npcId as any).portrait_url) {
-      console.log(`🔍 object에서 portrait_url 사용: ${(npcId as any).portrait_url}`);
       return (npcId as any).portrait_url;
     }
     
     // 상세 정보에서 프로필 이미지 URL 찾기
     if (npcDetails[npcId] && npcDetails[npcId].portrait_url) {
-      console.log(`🔍 npcDetails에서 프로필 이미지 찾음: ${npcDetails[npcId].portrait_url}`);
       return npcDetails[npcId].portrait_url;
     }
     // 없으면 기본 아바타 생성
     const displayName = getNpcDisplayName(npcId);
-    console.log(`🔍 프로필 이미지 없음, 기본 아바타 사용: ${displayName}`);
     return getDefaultAvatar(displayName);
   };
 
@@ -1627,7 +1646,8 @@ Namespace: ${rawSocket.nsp || '/'}
                   alt={message.sender} 
                   width={32} 
                   height={32} 
-                  className="object-cover"
+                  className="object-cover npc-profile-img"
+                  style={{ maxWidth: '100%', maxHeight: '100%', transition: 'all 0.2s ease-in-out' }}
                 />
               ) : (
                 <div className="flex items-center justify-center w-full h-full text-gray-500 dark:text-gray-400">
@@ -1658,6 +1678,11 @@ Namespace: ${rawSocket.nsp || '/'}
     );
   };
 
+  // Auto-dialogue thinking 상태가 변경되면 UI 상태 업데이트
+  useEffect(() => {
+    // 모니터링은 필요하지만 로그 출력은 제거
+  }, [isThinking, thinkingNpcId]);
+  
   return (
     <div className="fixed inset-0 bg-white flex flex-col w-full h-full overflow-hidden">
       {/* Chat header */}
@@ -1801,7 +1826,7 @@ Namespace: ${rawSocket.nsp || '/'}
                     {/* 프로필 아바타 - 내 메시지가 아닐 때만 표시 */}
                     {((!msg.isUser || (msg.sender !== username && msg.sender !== sessionStorage.getItem('chat_username')))) && (
                       <div className="flex-shrink-0 mr-2">
-                        <div className="w-12 h-12 min-w-[48px] min-h-[48px] max-w-[48px] max-h-[48px] overflow-hidden rounded-full">
+                        <div className="w-12 h-12 min-w-[48px] min-h-[48px] max-w-[48px] max-h-[48px] overflow-hidden rounded-full npc-profile-container">
                           {/* 디버깅 로그는 JSX에서 제거하고 useEffect에서 처리함 */}
                           <img 
                             src={msg.isUser 
@@ -1809,7 +1834,7 @@ Namespace: ${rawSocket.nsp || '/'}
                                 : (msg.portrait_url || getNpcProfileImage(msg.npc_id || msg.sender))
                             } 
                             alt={msg.sender}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover npc-profile-img"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = getDefaultAvatar(msg.sender);
                             }}
@@ -1853,16 +1878,46 @@ Namespace: ${rawSocket.nsp || '/'}
             
             {/* Thinking indicator */}
             {isThinking && (
-              <div className="flex justify-start mb-3">
-                <div className="bg-gray-100 text-gray-500 rounded-lg p-3 shadow-sm animate-pulse flex items-center">
-                  <div className="typing-animation">
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                    <span className="dot"></span>
+              <>
+                {/* 향상된 디버깅 정보 (개발 모드에서만 표시) - 삭제 */}
+                
+                <div className="flex justify-start mb-3">
+                  <div className="bg-gray-100 text-gray-600 rounded-lg p-3 shadow-md flex items-center" style={{
+                    animation: 'pulse 1.5s infinite ease-in-out',
+                    borderLeft: '4px solid #10b981',
+                    maxWidth: '85%'
+                  }}>
+                    {thinkingNpcId ? (
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 mr-2" style={{ width: '32px', height: '32px' }}>
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-gray-300 npc-profile-container" style={{ maxWidth: '32px', maxHeight: '32px' }}>
+                            <img 
+                              src={getNpcProfileImage(thinkingNpcId)} 
+                              alt={thinkingNpcId}
+                              className="w-full h-full object-cover npc-profile-img"
+                              onError={(e) => {
+                                // Remove debug log
+                                (e.target as HTMLImageElement).src = getDefaultAvatar(thinkingNpcId);
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <span className="mr-2 font-medium">{getNpcDisplayName(thinkingNpcId)}</span>
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full overflow-hidden mr-2 bg-gray-200 flex items-center justify-center border border-gray-300 flex-shrink-0" style={{ maxWidth: '32px', maxHeight: '32px' }}>
+                        <span className="text-xs font-bold text-gray-500">AI</span>
+                      </div>
+                    )}
+                    <div className="typing-animation">
+                      <span className="dot"></span>
+                      <span className="dot"></span>
+                      <span className="dot"></span>
+                    </div>
+                    <span className="ml-2 font-medium">thinking...</span>
                   </div>
-                  <span className="ml-2">Thinking...</span>
                 </div>
-              </div>
+              </>
             )}
             
             <div ref={endOfMessagesRef}></div>

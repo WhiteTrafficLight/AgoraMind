@@ -5,6 +5,9 @@ import { ChatMessage, Citation } from '@/lib/ai/chatService';
 interface ServerToClientEvents {
   'new-message': (data: { roomId: string, message: ChatMessage }) => void;
   'thinking': (data: { sender: string }) => void;
+  'auto-thinking': (data: { npc_id: string }) => void;
+  'auto-message-sent': (data: {}) => void;
+  'npc-selected': (data: { npc_id: string, npc_name?: string }) => void;
   'user-joined': (data: { username: string; usersInRoom: string[]; participants: any }) => void;
   'user-left': (data: { username: string; usersInRoom: string[] }) => void;
   'active-users': (data: { roomId: string; users: string[] }) => void;
@@ -35,6 +38,9 @@ class SocketClient {
   private listeners: Record<string, Function[]> = {
     'new-message': [],
     'thinking': [],
+    'auto-thinking': [],
+    'auto-message-sent': [],
+    'npc-selected': [],
     'user-joined': [],
     'user-left': [],
     'active-users': [],
@@ -317,6 +323,52 @@ Time: ${new Date().toLocaleTimeString()}
     this.socket.on('thinking', (data) => {
       console.log('Thinking indicator:', data);
       this._triggerListeners('thinking', data);
+    });
+    
+    // Auto dialogue events
+    this.socket.on('auto-thinking', (data) => {
+      console.log('🤖 [SocketClient] Auto-dialogue thinking event received:', JSON.stringify(data));
+      
+      // 명확한 로깅 - 이 시점에서 데이터 구조 확인
+      if (data && data.npc_id) {
+        console.log('🤖 [SocketClient] Auto-thinking NPC ID is:', data.npc_id);
+      } else {
+        console.warn('🤖 [SocketClient] Auto-thinking data is missing NPC ID:', data);
+      }
+      
+      // 리스너에 데이터 전달 직전 로깅
+      console.log('🤖 [SocketClient] About to trigger auto-thinking event listeners');
+      this._triggerListeners('auto-thinking', data);
+      console.log('🤖 [SocketClient] Finished triggering auto-thinking event listeners');
+    });
+    
+    // npc-selected 이벤트 처리
+    this.socket.on('npc-selected', (data) => {
+      console.log('🎯 [SocketClient] NPC selected event received:', JSON.stringify(data));
+      
+      // 명확한 로깅 - 이 시점에서 데이터 구조 확인
+      if (data && data.npc_id) {
+        console.log('🎯 [SocketClient] Selected NPC ID is:', data.npc_id);
+        if (data.npc_name) {
+          console.log('🎯 [SocketClient] Selected NPC name is:', data.npc_name);
+        }
+      } else {
+        console.warn('🎯 [SocketClient] NPC-selected data is missing NPC ID:', data);
+      }
+      
+      // 리스너에 데이터 전달 직전 로깅
+      console.log('🎯 [SocketClient] About to trigger npc-selected event listeners');
+      this._triggerListeners('npc-selected', data);
+      console.log('🎯 [SocketClient] Finished triggering npc-selected event listeners');
+    });
+    
+    this.socket.on('auto-message-sent', (data) => {
+      console.log('🤖 [SocketClient] Auto-dialogue message sent event received');
+      
+      // 리스너에 데이터 전달 직전 로깅
+      console.log('🤖 [SocketClient] About to trigger auto-message-sent event listeners');
+      this._triggerListeners('auto-message-sent', data);
+      console.log('🤖 [SocketClient] Finished triggering auto-message-sent event listeners');
     });
     
     // Pong response for connection testing

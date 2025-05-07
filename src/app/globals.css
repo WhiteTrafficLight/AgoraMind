@@ -509,3 +509,84 @@ body.chat-page-open header {
 body.chat-page-open {
   overflow: hidden;
 }
+
+/* 타이핑 애니메이션 스타일 */
+.typing-animation {
+  display: flex;
+  align-items: center;
+  column-gap: 4px;
+}
+
+.typing-animation .dot {
+  width: 6px;
+  height: 6px;
+  background-color: #9ca3af;
+  border-radius: 50%;
+  display: inline-block;
+  animation: dotPulse 1.5s infinite ease-in-out;
+}
+
+.typing-animation .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-animation .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-animation .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* Add pulse animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* AI 대화 중 타이핑 애니메이션 스타일 */
+.ai-typing-indicator {
+  position: relative;
+  display: flex;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  max-width: fit-content;
+  margin: 8px 0;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+/* NPC Profile 이미지 크기 제한 - 애니메이션 이슈 방지 */
+.npc-profile-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  transition: all 0.2s ease-in-out;
+  transform-origin: center;
+}
+
+.npc-profile-container {
+  width: 48px;
+  height: 48px;
+  max-width: 48px;
+  max-height: 48px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
