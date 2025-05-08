@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ChatUI from '@/components/chat/ChatUI';
+import CircularChatUI from '@/components/chat/CircularChatUI';
 import chatService, { ChatRoom } from '@/lib/ai/chatService';
 
 export default function ChatPage() {
@@ -125,16 +126,23 @@ export default function ChatPage() {
           </button>
         </div>
       ) : chatData ? (
-        <ChatUI 
-          chatId={chatData.id}
-          chatTitle={chatData.title}
-          participants={chatData.participants}
-          initialMessages={chatData.messages}
-          onBack={() => {
-            // You can perform any cleanup or save data here before navigating back
-            router.push('/open-chat');
-          }}
-        />
+        chatData.dialogueType === 'free' ? (
+          <CircularChatUI
+            chatId={chatData.id}
+            chatTitle={chatData.title}
+            participants={chatData.participants}
+            initialMessages={chatData.messages}
+            onBack={() => router.push('/open-chat')}
+          />
+        ) : (
+          <ChatUI 
+            chatId={chatData.id}
+            chatTitle={chatData.title}
+            participants={chatData.participants}
+            initialMessages={chatData.messages}
+            onBack={() => router.push('/open-chat')}
+          />
+        )
       ) : (
         <div className="flex h-full justify-center items-center">
           <p className="text-xl text-gray-500">Chat not found</p>

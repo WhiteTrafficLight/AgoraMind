@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
     'http://192.168.0.36:3000',
     'http://*', // 모든 HTTP 요청 허용
   ],
+  // Configure image domains
+  images: {
+    domains: ['ui-avatars.com', 'localhost'],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  },
   // Rewrite rule to forward portrait requests to API server
   async rewrites() {
     return [
