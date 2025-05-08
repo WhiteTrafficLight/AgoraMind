@@ -15,6 +15,7 @@ export interface DBChatRoom {
   totalParticipants: number;
   lastActivity: string;
   isPublic: boolean;
+  dialogueType?: string; // 대화 패턴 타입 추가
   createdAt: Date;
   updatedAt: Date;
 }
@@ -186,6 +187,7 @@ class ChatRoomDB {
         totalParticipants: room.totalParticipants,
         lastActivity: room.lastActivity,
         isPublic: room.isPublic,
+        dialogueType: room.dialogueType || 'free', // 대화 패턴 타입 추가, 기본값은 자유토론
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -358,16 +360,17 @@ class ChatRoomDB {
       title: dbRoom.title,
       context: dbRoom.context,
       participants: dbRoom.participants,
-      totalParticipants: dbRoom.totalParticipants,
-      lastActivity: dbRoom.lastActivity,
-      isPublic: dbRoom.isPublic,
+      totalParticipants: dbRoom.totalParticipants || 0,
+      lastActivity: dbRoom.lastActivity || 'Unknown',
+      isPublic: typeof dbRoom.isPublic === 'boolean' ? dbRoom.isPublic : true,
+      dialogueType: dbRoom.dialogueType || 'free', // 대화 패턴 타입 추가
       messages: dbMessages.map(msg => ({
         id: msg.messageId,
         text: msg.text,
         sender: msg.sender,
         isUser: msg.isUser,
         timestamp: msg.timestamp,
-        citations: msg.citations // citations 필드 추가
+        citations: msg.citations // 인용 정보 추가
       }))
     };
   }

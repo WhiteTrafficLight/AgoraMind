@@ -55,19 +55,21 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose }) 
       {/* Drawer Panel */}
       <div
         ref={drawerRef}
-        className={`fixed left-0 bottom-0 w-80 bg-white dark:bg-gray-850 shadow-lg transition-transform duration-300 ease-in-out z-[51] ${
+        className={`fixed left-0 w-80 bg-white shadow-lg transition-transform duration-300 ease-in-out z-[51] rounded-2xl overflow-hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-[120%]'
         }`}
         style={{
           backgroundColor: 'white',
           boxShadow: '10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)',
           borderRight: '1px solid rgba(0,0,0,0.1)',
-          top: '64px'
+          top: '64px',
+          borderRadius: '16px'
         }}
       >
         <div className="flex flex-col p-5" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '20px' }}>
           <Link 
             href="/" 
+            onClick={() => onClose()}
             className="flex items-center px-3 py-3 hover:bg-gray-100 transition-colors no-underline rounded-lg"
             style={{ 
               display: 'flex', 
@@ -86,6 +88,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose }) 
 
           <Link 
             href="/open-chat" 
+            onClick={() => onClose()}
             className="flex items-center px-3 py-3 hover:bg-gray-100 transition-colors no-underline rounded-lg"
             style={{ 
               display: 'flex', 
@@ -103,6 +106,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose }) 
 
           <Link 
             href="/essays" 
+            onClick={() => onClose()}
             className="flex items-center px-3 py-3 hover:bg-gray-100 transition-colors no-underline rounded-lg"
             style={{ 
               display: 'flex', 

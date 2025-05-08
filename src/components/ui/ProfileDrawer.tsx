@@ -44,7 +44,7 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
         ref={drawerRef}
         onClick={e => e.stopPropagation()}
         className={`
-          fixed top-[50px] right-[50px] w-[220px] bg-white
+          fixed right-[50px] w-[220px] bg-white
           transform transition-transform duration-300 ease-in-out z-[101]
           ${isOpen ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'}
           overflow-hidden rounded-2xl
@@ -54,12 +54,14 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
           backgroundColor: 'white', 
           borderRadius: '16px',
           padding: '20px',
-          boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)'
+          boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)',
+          top: '64px'
         }}
       >
         <div className="flex flex-col" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <Link 
             href="/settings/custom-npc" 
+            onClick={() => onClose()}
             className="flex items-center px-3 py-3 hover:bg-gray-100 transition-colors no-underline rounded-lg"
             style={{ 
               display: 'flex', 
@@ -77,6 +79,7 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
 
           <Link 
             href="/chat-history" 
+            onClick={() => onClose()}
             className="flex items-center px-3 py-3 hover:bg-gray-100 transition-colors no-underline rounded-lg"
             style={{ 
               display: 'flex', 
@@ -95,7 +98,8 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
           <div className="border-t" style={{ borderTop: '1px solid #e5e7eb', margin: '8px 6px' }}></div>
           
           <Link 
-            href="/settings/account" 
+            href="/settings#account" 
+            onClick={() => onClose()}
             className="flex items-center px-3 py-3 hover:bg-gray-100 transition-colors no-underline rounded-lg"
             style={{ 
               display: 'flex', 
@@ -119,6 +123,7 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
             onClick={(e) => {
               e.preventDefault();
               signOut({ callbackUrl: '/' });
+              onClose();
             }}
             className="flex items-center px-3 py-3 hover:bg-gray-100 transition-colors no-underline rounded-lg"
             style={{ 

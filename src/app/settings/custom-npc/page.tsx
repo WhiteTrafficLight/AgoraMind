@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 import CustomNpcCreator from '@/components/CustomNpcCreator';
 import Modal from '@/components/ui/Modal';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -40,6 +41,16 @@ export default function CustomNpcPage() {
     }
   };
   useEffect(() => { fetchNpcs(); }, []);
+
+  // 상대 URL로 변환하는 함수
+  const getRelativePortraitUrl = (url: string) => {
+    // 백엔드 URL에서 상대 경로로 변환 (http://localhost:8000/portraits/file.jpg -> /portraits/file.jpg)
+    if (!url) return '';
+    if (url.startsWith('http://localhost:8000/portraits/')) {
+      return `/portraits/${url.split('/portraits/')[1]}`;
+    }
+    return url;
+  };
 
   // 이미지 생성 후 DB 업데이트 함수 추가
   const updateNpcPortrait = async (npcId: string, portraitUrl: string) => {
@@ -81,7 +92,9 @@ export default function CustomNpcPage() {
       const data = await res.json();
       console.log('Portrait generation response:', data, 'status:', res.status);
       if (res.ok && data.url) {
-        setPortraitMap(prev => ({ ...prev, [npc.id]: data.url }));
+        // URL을 상대 경로로 변환하여 저장
+        const relativeUrl = getRelativePortraitUrl(data.url);
+        setPortraitMap(prev => ({ ...prev, [npc.id]: relativeUrl }));
         // DB에 portrait_url 업데이트
         await updateNpcPortrait(npc.id, data.url);
       } else {
@@ -132,30 +145,65 @@ export default function CustomNpcPage() {
             ) : (
               <div className="md:grid md:grid-cols-2 md:gap-8">
                 {npcs.map(npc => (
-                  <div key={npc.id} className="bg-white border-t border-b border-gray-200 py-6 overflow-hidden relative" style={{ marginBottom: '2rem' }}>
-                    <div className="p-5 flex items-start">
+                  <div 
+                    key={npc.id} 
+                    style={{ 
+                      backgroundColor: 'white',
+                      borderTop: '1px solid #e5e7eb',
+                      borderBottom: '1px solid #e5e7eb',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      marginBottom: '2rem',
+                      paddingTop: '2rem',
+                      paddingBottom: '2rem',
+                      minHeight: '240px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      padding: '0 1.25rem'
+                    }}>
                       {/* Portrait or spinner */}
-                      <div className="mr-4 self-center">
-                        <div className="relative" style={{ width: '115px', height: '115px' }}>
-                          <img
-                            src={portraitMap[npc.id] || npc.portrait_url || '/Profile.png'}
-                            crossOrigin="anonymous"
-                            alt={npc.name}
-                            className="rounded-full object-cover"
-                            style={{ 
-                              width: '115px', 
-                              height: '115px',
-                              maxWidth: '115px',
-                              maxHeight: '115px'
-                            }}
-                            onError={(e) => {
-                              console.error(`Image load error for ${npc.id}:`, e);
-                              (e.target as HTMLImageElement).src = '/Profile.png';
-                            }}
-                          />
+                      <div style={{ 
+                        marginRight: '1.5rem',
+                        alignSelf: 'center'
+                      }}>
+                        <div className="relative" style={{ width: '170px', height: '170px' }}>
+                          {npc.portrait_url || portraitMap[npc.id] ? (
+                            <div className="rounded-full overflow-hidden relative" style={{ width: '170px', height: '170px' }}>
+                              <img
+                                src={getRelativePortraitUrl(portraitMap[npc.id] || npc.portrait_url || '')}
+                                alt={npc.name}
+                                className="rounded-full object-cover"
+                                width={170} 
+                                height={170}
+                                style={{ 
+                                  width: '170px', 
+                                  height: '170px',
+                                  objectFit: 'cover'
+                                }}
+                                onError={(e) => {
+                                  console.error(`Image load error for ${npc.id}:`, e);
+                                  (e.target as HTMLImageElement).src = '/Profile.png';
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <img
+                              src="/Profile.png"
+                              alt={`${npc.name} placeholder`}
+                              className="rounded-full object-cover"
+                              width={170}
+                              height={170}
+                              style={{ width: '170px', height: '170px' }}
+                            />
+                          )}
                           {loadingPortrait === npc.id && (
                             <div className="absolute inset-0 z-10 flex justify-center items-center bg-white bg-opacity-50 rounded-full">
-                              <div className="animate-spin rounded-full h-12 w-12 border-2 border-t-2 border-gray-900"></div>
+                              <div className="animate-spin rounded-full h-16 w-16 border-2 border-t-2 border-gray-900"></div>
                             </div>
                           )}
                         </div>
@@ -164,23 +212,84 @@ export default function CustomNpcPage() {
                         )}
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg mb-2">{npc.name}</h3>
-                        <p className="text-gray-600 text-sm mb-3">{npc.description}</p>
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {npc.concepts.map((concept: string, idx: number) => (
-                            <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                        <h3 style={{ 
+                          fontWeight: 'bold',
+                          fontSize: '1.75rem',
+                          marginBottom: '0.75rem' 
+                        }}>{npc.name}</h3>
+                        <p style={{ 
+                          color: '#4b5563',
+                          fontSize: '1.125rem',
+                          marginBottom: '1rem',
+                          lineHeight: '1.5'
+                        }}>{npc.description}</p>
+                        <div style={{ 
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '0.5rem',
+                          marginBottom: '1rem'
+                        }}>
+                          {npc.concepts.map((concept, idx) => (
+                            <span 
+                              key={idx} 
+                              style={{
+                                padding: '0.375rem 0.75rem',
+                                backgroundColor: '#f3f4f6',
+                                color: '#1f2937',
+                                fontSize: '0.875rem',
+                                borderRadius: '9999px',
+                                fontWeight: '500'
+                              }}
+                            >
                               {concept}
                             </span>
                           ))}
                         </div>
-                        <div className="flex gap-4 mt-4 justify-end" style={{ position: 'absolute', right: '20px', bottom: '12px', zIndex: 20 }}>
-                          <button className="text-sm text-gray-500 hover:text-gray-800 transition">
-                            <PencilIcon className="h-4 w-4 inline mr-1" />
-                            Edit
+                        <div style={{ 
+                          display: 'flex', 
+                          gap: '8px', 
+                          marginTop: '16px', 
+                          justifyContent: 'flex-end',
+                          position: 'absolute', 
+                          right: '20px', 
+                          bottom: '20px', 
+                          zIndex: 20 
+                        }}>
+                          <button 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              width: '48px', 
+                              height: '48px', 
+                              borderRadius: '50%',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer'
+                            }}
+                            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
+                            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            aria-label="Edit philosopher"
+                          >
+                            <PencilIcon style={{ width: '24px', height: '24px', color: '#4b5563' }} />
                           </button>
-                          <button className="text-sm text-red-500 hover:text-red-700 transition font-medium">
-                            <TrashIcon className="h-4 w-4 inline mr-1" />
-                            Delete
+                          <button 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              width: '48px', 
+                              height: '48px', 
+                              borderRadius: '50%',
+                              border: 'none',
+                              background: 'transparent',
+                              cursor: 'pointer'
+                            }}
+                            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
+                            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            aria-label="Delete philosopher"
+                          >
+                            <TrashIcon style={{ width: '24px', height: '24px', color: '#ef4444' }} />
                           </button>
                         </div>
                       </div>

@@ -12,6 +12,15 @@ const nextConfig: NextConfig = {
     'http://192.168.0.36:3000',
     'http://*', // 모든 HTTP 요청 허용
   ],
+  // Rewrite rule to forward portrait requests to API server
+  async rewrites() {
+    return [
+      {
+        source: '/portraits/:path*',
+        destination: 'http://localhost:8000/portraits/:path*',
+      },
+    ];
+  },
   // API Routes 설정
   async headers() {
     return [

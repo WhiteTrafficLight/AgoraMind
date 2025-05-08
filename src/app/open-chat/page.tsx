@@ -1,11 +1,19 @@
 'use client';
 
+/**
+ * UI Improvements:
+ * 1. Changed the participants indicator to show a user icon with the count in a button with gray background and black border
+ * 2. Limited the width of the search bar to prevent overflow using max-w-2xl class
+ * 3. Replaced the text "Refresh" button with an icon-only button using ArrowPathIcon
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserIcon, PlusIcon, XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { UserIcon, PlusIcon, XMarkIcon, InformationCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import chatService, { ChatRoom, ChatRoomCreationParams } from '@/lib/ai/chatService';
 import { io, Socket } from 'socket.io-client';
+import { toast } from 'react-hot-toast';
 
 // Declare global window properties for TypeScript
 declare global {
@@ -44,12 +52,13 @@ export default function OpenChatPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showParticipants, setShowParticipants] = useState<number | null>(null);
   const [showCreateChatModal, setShowCreateChatModal] = useState(false);
-  const [showJoinConfirmation, setShowJoinConfirmation] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeChats, setActiveChats] = useState<ChatRoom[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'recent' | 'popular'>('all');
+  const [chatToJoin, setChatToJoin] = useState<ChatRoom | null>(null);
   
   // Create chat form state
   const [newChatTitle, setNewChatTitle] = useState('');
@@ -68,6 +77,11 @@ export default function OpenChatPage() {
   const [customNpcs, setCustomNpcs] = useState<Philosopher[]>([]);
   const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
+  
+  // 찬반토론을 위한 NPC 입장 저장
+  const [npcPositions, setNpcPositions] = useState<Record<string, 'pro' | 'con'>>({});
+  
+  const [dialogueType, setDialogueType] = useState<string>('free');
   
   // 채팅룸 목록 로드 함수
   const loadChatRooms = async () => {
@@ -303,21 +317,76 @@ export default function OpenChatPage() {
     'Heidegger', 'Wittgenstein', 'Confucius', 'Lao Tzu', 'Buddha'
   ];
   
-  // Filter chats based on search query
+  // Filter chats based on search query and active tab
   const filteredChats = activeChats
-    .filter(chat =>
-      chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      [...chat.participants.users, ...chat.participants.npcs].some(
-        p => p.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    );
+    .filter(chat => {
+      // First apply search query filter
+      const matchesSearch = 
+        chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        [...chat.participants.users, ...chat.participants.npcs].some(
+          p => p.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      
+      if (!matchesSearch) return false;
+      
+      // Then apply tab filter
+      switch (activeTab) {
+        case 'all':
+          return true;
+        case 'active':
+          // Assuming we have active participants or recent activity
+          const oneDayAgo = new Date();
+          oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+          return new Date(chat.lastActivity) > oneDayAgo;
+        case 'recent':
+          // Sort by creation date or last activity
+          const oneWeekAgo = new Date();
+          oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+          return new Date(chat.lastActivity) > oneWeekAgo;
+        case 'popular':
+          // Sort by number of participants
+          return chat.totalParticipants >= 3;
+        default:
+          return true;
+      }
+    });
 
   // Toggle NPC selection
   const toggleNPC = (npc: string) => {
     if (selectedNPCs.includes(npc)) {
       setSelectedNPCs(selectedNPCs.filter(n => n !== npc));
+      
+      // 찬반토론 모드에서는 입장 정보도 제거
+      if (dialogueType === 'debate') {
+        const updatedPositions = { ...npcPositions };
+        delete updatedPositions[npc];
+        setNpcPositions(updatedPositions);
+      }
     } else {
       setSelectedNPCs([...selectedNPCs, npc]);
+      
+      // 찬반토론 모드에서는 기본 입장 설정 (기본: 균형 맞추기)
+      if (dialogueType === 'debate') {
+        const proCount = Object.values(npcPositions).filter(p => p === 'pro').length;
+        const conCount = Object.values(npcPositions).filter(p => p === 'con').length;
+        
+        // 더 적은 쪽에 할당
+        const defaultPosition = proCount <= conCount ? 'pro' : 'con';
+        setNpcPositions({
+          ...npcPositions,
+          [npc]: defaultPosition
+        });
+      }
+    }
+  };
+
+  // 철학자의 찬성/반대 입장 설정
+  const setNpcPosition = (npcId: string, position: 'pro' | 'con') => {
+    if (selectedNPCs.includes(npcId)) {
+      setNpcPositions({
+        ...npcPositions,
+        [npcId]: position
+      });
     }
   };
 
@@ -325,86 +394,93 @@ export default function OpenChatPage() {
   const handleCreateChat = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newChatTitle.trim() || selectedNPCs.length === 0) return;
+    if (isCreating) return;
+    setIsCreating(true);
     
     try {
-      setIsCreating(true);
+      // Generate initial message if no context is provided
+      const shouldGenerateInitialMessage = 
+        (activeContextTab === 'text' && !newChatContext.trim()) ||
+        (activeContextTab === 'url' && !contextUrl.trim()) ||
+        (activeContextTab === 'file' && !contextFileContent);
       
-      // 컨텍스트 데이터 선택
-      let finalContext = '';
+      let contextToUse = '';
       
-      // 활성 탭에 따라 컨텍스트 설정
       if (activeContextTab === 'text') {
-        finalContext = newChatContext;
+        contextToUse = newChatContext.trim();
       } else if (activeContextTab === 'url') {
-        finalContext = newChatContext;
+        // URL 컨텍스트의 경우 URL 자체를 사용 (URL 내용 추출은 서버에서 처리)
+        contextToUse = contextUrl.trim();
       } else if (activeContextTab === 'file') {
-        finalContext = newChatContext;
+        contextToUse = contextFileContent.trim();
       }
       
-      // LLM 설정 가져오기 (로컬 스토리지)
-      let llmProvider = 'openai';
-      let llmModel = 'gpt-4o';
-      
-      if (typeof window !== 'undefined' && window.localStorage) {
-        llmProvider = localStorage.getItem('llmProvider') || 'openai';
-        llmModel = llmProvider === 'openai' 
-          ? (localStorage.getItem('openaiModel') || 'gpt-4o')
-          : (localStorage.getItem('ollamaModel') || 'llama3');
+      // Need at least one NPC selected
+      if (selectedNPCs.length === 0) {
+        toast.error('Please select at least one philosopher');
+        setIsCreating(false);
+        return;
       }
       
-      // 통합된 채팅방 생성 API 호출
-      const chatParams: ChatRoomCreationParams = {
-        title: newChatTitle,
-        context: finalContext,
-        contextUrl: contextUrl || undefined,
-        contextFileContent: contextFileContent || undefined,
-        maxParticipants,
-        npcs: selectedNPCs,
-        isPublic: isPublic,
-        currentUser: `User_${Math.floor(Math.random() * 10000)}`,
-        // 초기 메시지 생성 플래그 추가
-        generateInitialMessage: true,
-        llmProvider,
-        llmModel
-      };
-      
-      // 재시도 로직 추가
-      let newChat;
-      let retries = 0;
-      const MAX_RETRIES = 3;
-      
-      while (retries < MAX_RETRIES) {
-        try {
-          console.log(`Creating new chat room (attempt ${retries + 1}/${MAX_RETRIES}):`, chatParams.title);
-          newChat = await chatService.createChatRoom(chatParams);
-          console.log('Chat room created successfully:', newChat.id);
-          break; // 성공하면 반복 중단
-        } catch (error) {
-          retries++;
-          console.error(`Failed to create chat room (attempt ${retries}/${MAX_RETRIES}):`, error);
-          if (retries >= MAX_RETRIES) throw error;
-          
-          // 지수 백오프 (1초, 2초, 4초...)
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+      // 찬반토론 모드일 때는 최소 양쪽에 한 명 이상 필요
+      if (dialogueType === 'debate') {
+        const hasProNpc = selectedNPCs.some(npc => npcPositions[npc] === 'pro');
+        const hasConNpc = selectedNPCs.some(npc => npcPositions[npc] === 'con');
+        
+        if (!hasProNpc || !hasConNpc) {
+          toast.error('Pro-Con debate requires at least one philosopher on each side');
+          setIsCreating(false);
+          return;
         }
       }
       
-      // 폼 초기화 및 모달 닫기
+      // Chat parameters
+      const chatParams: ChatRoomCreationParams = {
+        title: newChatTitle,
+        maxParticipants: 10,
+        npcs: selectedNPCs,
+        isPublic: true,
+        generateInitialMessage: shouldGenerateInitialMessage,
+        dialogueType
+      };
+      
+      // 찬반토론 모드일 때 npcPositions 정보 추가
+      if (dialogueType === 'debate') {
+        chatParams.npcPositions = npcPositions;
+      }
+      
+      // 컨텍스트 관련 파라미터 추가
+      if (contextToUse) {
+        chatParams.context = contextToUse;
+      }
+      
+      if (activeContextTab === 'url' && contextUrl) {
+        chatParams.contextUrl = contextUrl;
+      }
+      
+      if (activeContextTab === 'file' && contextFileContent) {
+        chatParams.contextFileContent = contextFileContent;
+      }
+      
+      // Create chat room
+      let newChat: ChatRoom;
+      try {
+          newChat = await chatService.createChatRoom(chatParams);
+        console.log('채팅방 생성 성공:', newChat);
+        
+        // Redirect to the new chat
+        router.push(`/chat/${newChat.id}`);
+        
+        // Reset form and close modal
       resetForm();
       setShowCreateChatModal(false);
-      
-      // 방금 생성한 채팅방으로 이동 - ID를 문자열로 확실하게 변환
-      const chatIdStr = String(newChat.id);
-      console.log(`✅ 이동할 채팅방 URL: /chat?id=${chatIdStr}`);
-      
-      // 약간의 지연 후 이동 (상태가 모두 초기화될 시간을 주기 위해)
-      setTimeout(() => {
-        router.push(`/chat?id=${chatIdStr}`);
-      }, 500);
     } catch (error) {
-      console.error('Failed to create chat room:', error);
-      alert('채팅방 생성에 실패했습니다. 다시 시도해주세요.');
+        console.error('채팅방 생성 실패:', error);
+        toast.error('Failed to create chat room. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      toast.error('An error occurred while creating the chat room');
     } finally {
       setIsCreating(false);
     }
@@ -414,13 +490,13 @@ export default function OpenChatPage() {
   const resetForm = () => {
     setNewChatTitle('');
     setNewChatContext('');
+    setSelectedNPCs([]);
     setContextUrl('');
     setContextFile(null);
     setContextFileContent('');
     setActiveContextTab('text');
-    setMaxParticipants(5);
-    setSelectedNPCs([]);
-    setIsPublic(true);
+    setDialogueType('free');
+    setNpcPositions({});
   };
 
   // Handle joining a chat
@@ -770,38 +846,193 @@ export default function OpenChatPage() {
           <h1 className="text-2xl font-bold">Open Philosophical Dialogues</h1>
           <div className="flex items-center gap-2">
             <div className={`h-3 w-3 rounded-full ${socketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <button 
-              onClick={handleCreateChatClick}
-              className="flex items-center gap-2 bg-black bg-opacity-85 text-white px-4 py-2 rounded-full hover:bg-gray-800 hover:bg-opacity-95 transition-colors backdrop-filter backdrop-blur-sm"
-            >
-              <PlusIcon className="h-5 w-5" />
-              Create New Chat
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={handleCreateChatClick}
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  backgroundColor: 'black',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  border: 'none',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  transition: 'transform 0.2s ease, background-color 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  document.getElementById('create-chat-tooltip')?.classList.remove('hidden');
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.backgroundColor = '#333';
+                }}
+                onMouseOut={(e) => {
+                  document.getElementById('create-chat-tooltip')?.classList.add('hidden');
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.backgroundColor = 'black';
+                }}
+                aria-label="Create New Chat"
+              >
+                <PlusIcon style={{ width: '24px', height: '24px', color: 'white' }} />
+              </button>
+              <div 
+                id="create-chat-tooltip"
+                className="hidden"
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 10px)',
+                  right: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  color: 'white',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  whiteSpace: 'nowrap',
+                  zIndex: 50,
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                  animation: 'tooltipFade 0.2s ease'
+                }}
+              >
+                Create New Chat
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '18px',
+                    width: '0',
+                    height: '0',
+                    borderLeft: '6px solid transparent',
+                    borderRight: '6px solid transparent',
+                    borderBottom: '6px solid rgba(0, 0, 0, 0.8)'
+                  }}
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div className="bg-white border border-black p-4 rounded-md mb-6">
+        <div className="bg-white p-4 rounded-md mb-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <div className="mb-4">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by title or participant..."
-              className="w-full p-2 border border-black rounded-md"
+              style={{
+                width: '100%',
+                maxWidth: '600px',
+                padding: '8px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.375rem'
+              }}
             />
           </div>
           
-          <div className="flex gap-2 mb-4 flex-wrap">
-            <button className="bg-black bg-opacity-85 text-white px-3 py-1 rounded-full">All</button>
-            <button className="border border-black border-opacity-80 bg-white bg-opacity-85 px-3 py-1 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors">Active</button>
-            <button className="border border-black border-opacity-80 bg-white bg-opacity-85 px-3 py-1 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors">Recent</button>
-            <button className="border border-black border-opacity-80 bg-white bg-opacity-85 px-3 py-1 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors">Popular</button>
+          <div className="flex mb-4 border-b">
+            <button 
+              onClick={() => setActiveTab('all')}
+              className={`py-2 px-4 relative ${
+                activeTab === 'all' ? 'text-black font-medium' : 'text-gray-500'
+              }`}
+              style={{
+                borderBottom: activeTab === 'all' ? '2px solid black' : 'none',
+                backgroundColor: activeTab === 'all' ? 'white' : 'transparent',
+                borderLeft: '1px solid #e5e7eb',
+                borderTop: '1px solid #e5e7eb',
+                borderRight: '1px solid #e5e7eb',
+                borderTopLeftRadius: '4px',
+                borderTopRightRadius: '4px',
+                marginBottom: '-1px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              All
+            </button>
+            <button 
+              onClick={() => setActiveTab('active')}
+              className={`py-2 px-4 relative ${
+                activeTab === 'active' ? 'text-black font-medium' : 'text-gray-500'
+              }`}
+              style={{
+                borderBottom: activeTab === 'active' ? '2px solid black' : 'none',
+                backgroundColor: activeTab === 'active' ? 'white' : 'transparent',
+                borderLeft: activeTab === 'active' ? '1px solid #e5e7eb' : 'none',
+                borderTop: activeTab === 'active' ? '1px solid #e5e7eb' : 'none',
+                borderRight: activeTab === 'active' ? '1px solid #e5e7eb' : 'none',
+                borderTopLeftRadius: '4px',
+                borderTopRightRadius: '4px',
+                marginBottom: '-1px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Active
+            </button>
+            <button 
+              onClick={() => setActiveTab('recent')}
+              className={`py-2 px-4 relative ${
+                activeTab === 'recent' ? 'text-black font-medium' : 'text-gray-500'
+              }`}
+              style={{
+                borderBottom: activeTab === 'recent' ? '2px solid black' : 'none',
+                backgroundColor: activeTab === 'recent' ? 'white' : 'transparent',
+                borderLeft: activeTab === 'recent' ? '1px solid #e5e7eb' : 'none',
+                borderTop: activeTab === 'recent' ? '1px solid #e5e7eb' : 'none',
+                borderRight: activeTab === 'recent' ? '1px solid #e5e7eb' : 'none',
+                borderTopLeftRadius: '4px',
+                borderTopRightRadius: '4px',
+                marginBottom: '-1px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Recent
+            </button>
+            <button 
+              onClick={() => setActiveTab('popular')}
+              className={`py-2 px-4 relative ${
+                activeTab === 'popular' ? 'text-black font-medium' : 'text-gray-500'
+              }`}
+              style={{
+                borderBottom: activeTab === 'popular' ? '2px solid black' : 'none',
+                backgroundColor: activeTab === 'popular' ? 'white' : 'transparent',
+                borderLeft: activeTab === 'popular' ? '1px solid #e5e7eb' : 'none',
+                borderTop: activeTab === 'popular' ? '1px solid #e5e7eb' : 'none',
+                borderRight: activeTab === 'popular' ? '1px solid #e5e7eb' : 'none',
+                borderTopLeftRadius: '4px',
+                borderTopRightRadius: '4px',
+                marginBottom: '-1px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Popular
+            </button>
             <button 
               onClick={loadChatRooms} 
-              className="ml-auto border border-black border-opacity-80 bg-white bg-opacity-85 px-3 py-1 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors flex items-center gap-1"
+              style={{
+                marginLeft: 'auto',
+                marginRight: '12px',
+                background: 'transparent',
+                border: 'none',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              aria-label="Refresh chat list"
             >
-              <span>Refresh</span>
-              {isLoading && <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full"></div>}
+              {isLoading ? (
+                <div style={{
+                  animation: 'spin 1s linear infinite',
+                  height: '24px',
+                  width: '24px',
+                  border: '3px solid black',
+                  borderTopColor: 'transparent',
+                  borderRadius: '50%'
+                }}></div>
+              ) : (
+                <ArrowPathIcon style={{ height: '24px', width: '24px', color: 'black', fontWeight: 'bold' }} />
+              )}
             </button>
           </div>
         </div>
@@ -816,26 +1047,43 @@ export default function OpenChatPage() {
             </div>
           ) : filteredChats.length > 0 ? (
             filteredChats.map((chat, index) => (
-              <div key={`chat-${chat.id}-${index}`} className="bg-white border border-black p-4 rounded-md hover:shadow-md transition-shadow">
+              <div key={`chat-${chat.id}-${index}`} className="bg-white border border-black rounded-md hover:shadow-md transition-shadow" style={{ padding: '20px' }}>
                 <div className="flex justify-between items-center">
                   <div 
                     className="block flex-grow cursor-pointer"
-                    onClick={() => setShowJoinConfirmation(typeof chat.id === 'string' ? parseInt(chat.id) : chat.id)}
+                    onClick={() => setChatToJoin(chat)}
+                    style={{ paddingLeft: '16px' }}
                   >
-                    <h3 className="text-xl font-semibold mb-2">{chat.title}</h3>
+                    <h3 style={{ 
+                      fontSize: '1.4rem', 
+                      fontWeight: '600',
+                      marginBottom: '8px'
+                    }}>{chat.title}</h3>
+                    <div style={{ 
+                      fontSize: '0.875rem',
+                      color: '#6b7280',
+                      marginTop: '8px'
+                    }}>Last activity: {chat.lastActivity}</div>
                   </div>
-                  <div className="flex items-center ml-4">
+                  <div className="flex items-center" style={{ marginRight: '12px' }}>
                     <button 
                       onClick={() => setShowParticipants(showParticipants === (typeof chat.id === 'string' ? parseInt(chat.id) : chat.id) ? null : (typeof chat.id === 'string' ? parseInt(chat.id) : chat.id))}
-                      className="flex items-center gap-1 text-gray-600 hover:text-black"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        gap: '8px',
+                        padding: '4px 0',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
                     >
-                      <UserIcon className="h-5 w-5" />
-                      <span>{chat.totalParticipants}</span>
+                      <UserIcon style={{ height: '24px', width: '24px', color: 'black' }} />
+                      <span style={{ fontWeight: 'bold', fontSize: '18px', color: 'black' }}>{chat.totalParticipants}</span>
                     </button>
                   </div>
                 </div>
-                
-                <div className="text-sm text-gray-500 mt-2">Last activity: {chat.lastActivity}</div>
                 
                 {/* Participants dropdown */}
                 {showParticipants === (typeof chat.id === 'string' ? parseInt(chat.id) : chat.id) && (
@@ -866,32 +1114,6 @@ export default function OpenChatPage() {
                     </div>
                   </div>
                 )}
-                
-                {/* Join Chat Confirmation */}
-                {showJoinConfirmation === (typeof chat.id === 'string' ? parseInt(chat.id) : chat.id) && (
-                  <div className="mt-3 p-4 bg-gray-50 rounded-md border border-gray-200">
-                    <div className="text-center">
-                      <h4 className="font-medium mb-2">Would you like to join this chat?</h4>
-                      <p className="text-sm text-gray-600 mb-3">
-                        You will join the philosophical discussion on "{chat.title}" with {chat.participants.npcs.join(', ')} and {chat.participants.users.length} other user(s).
-                      </p>
-                      <div className="flex justify-center gap-3">
-                        <button 
-                          onClick={() => setShowJoinConfirmation(null)}
-                          className="px-4 py-2 border border-black border-opacity-80 bg-white bg-opacity-85 rounded-full hover:bg-gray-100 hover:bg-opacity-90 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button 
-                          onClick={() => handleJoinChat(typeof chat.id === 'string' ? parseInt(chat.id) : chat.id)}
-                          className="px-4 py-2 bg-black bg-opacity-85 text-white rounded-full hover:bg-gray-800 hover:bg-opacity-95 transition-colors"
-                        >
-                          Yes, Join Chat
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             ))
           ) : (
@@ -900,6 +1122,128 @@ export default function OpenChatPage() {
             </div>
           )}
         </div>
+        
+        {/* Join Chat Modal */}
+        {chatToJoin && (
+          <>
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-80 backdrop-blur-md z-[9000]"
+              onClick={() => setChatToJoin(null)}
+              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+            ></div>
+            
+            {/* Modal container */}
+            <div 
+              className="fixed bg-white rounded-2xl w-full max-h-[90vh] overflow-y-auto z-[9001]"
+              style={{ 
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                backgroundColor: 'white',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)',
+                width: '90%',
+                maxWidth: '500px',
+                animation: 'modalAppear 0.3s ease'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Join Chat</h2>
+                <button 
+                  onClick={() => setChatToJoin(null)}
+                  className="text-gray-500 hover:text-gray-800 absolute top-3 right-3 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                  style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 'bold',
+                    border: 'none', 
+                    transition: 'all 0.2s',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    position: 'absolute',
+                    right: '0',
+                    left: 'auto'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="text-center p-4">
+                <h3 className="text-xl font-medium mb-4">{chatToJoin.title}</h3>
+                <p className="text-md text-gray-600 mb-6">
+                  Would you like to join this philosophical discussion with{' '}
+                  {chatToJoin.participants.npcs.map((npc, i) => {
+                    // Try to find the full name instead of just the ID
+                    const npcName = 
+                      philosophers.find(p => p.id.toLowerCase() === npc.toLowerCase())?.name || 
+                      customNpcs.find(p => p.id.toLowerCase() === npc.toLowerCase())?.name || 
+                      npc;
+                    
+                    return (
+                      <span key={npc}>
+                        {i > 0 && i === chatToJoin.participants.npcs.length - 1 ? ' and ' : i > 0 ? ', ' : ''}
+                        <strong>{npcName}</strong>
+                      </span>
+                    );
+                  })} 
+                  {chatToJoin.participants.users.length > 0 && (
+                    <>
+                      {' and '}
+                      <strong>{chatToJoin.participants.users.length}</strong>
+                      {' other '}
+                      {chatToJoin.participants.users.length === 1 ? 'user' : 'users'}
+                    </>
+                  )}?
+                </p>
+                
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={() => setChatToJoin(null)}
+                    style={{
+                      padding: '12px 24px',
+                      borderRadius: '9999px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: 'white',
+                      color: 'black',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#f3f4f6' }}
+                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'white' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleJoinChat(typeof chatToJoin.id === 'string' ? parseInt(chatToJoin.id) : chatToJoin.id);
+                      setChatToJoin(null);
+                    }}
+                    style={{
+                      padding: '12px 24px',
+                      borderRadius: '9999px',
+                      border: 'none',
+                      backgroundColor: 'black',
+                      color: 'white',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#333' }}
+                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'black' }}
+                  >
+                    Yes, Join Chat
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
         
         {/* Create Chat Modal */}
         {showCreateChatModal && (
@@ -957,6 +1301,104 @@ export default function OpenChatPage() {
               {/* 모달 내용 */}
               <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
                 <form onSubmit={handleCreateChat}>
+                  {/* 대화 패턴 선택 섹션 */}
+                  <div className="mb-6">
+                    <label className="block mb-3 font-medium text-lg">Dialogue Pattern</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div 
+                        className={`p-4 border rounded-xl cursor-pointer flex items-center ${
+                          dialogueType === 'free' ? 'border-2 border-black bg-gray-50' : 'border-gray-300'
+                        }`}
+                        onClick={() => {
+                          if (dialogueType !== 'free') {
+                            setSelectedNPCs([]); // 새 대화패턴 선택시 철학자 초기화
+                            setNpcPositions({});
+                            setDialogueType('free');
+                          }
+                        }}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">Free Discussion</div>
+                          <div className="text-sm text-gray-500">Open-format dialogue with no specific structure</div>
+                        </div>
+                        {dialogueType === 'free' && (
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                      </div>
+                      
+                      <div 
+                        className={`p-4 border rounded-xl cursor-pointer flex items-center ${
+                          dialogueType === 'debate' ? 'border-2 border-black bg-gray-50' : 'border-gray-300'
+                        }`}
+                        onClick={() => {
+                          if (dialogueType !== 'debate') {
+                            setSelectedNPCs([]); // 새 대화패턴 선택시 철학자 초기화
+                            setNpcPositions({});
+                            setDialogueType('debate');
+                          }
+                        }}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">Pro-Con Debate</div>
+                          <div className="text-sm text-gray-500">Structured debate with opposing positions</div>
+                        </div>
+                        {dialogueType === 'debate' && (
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                      </div>
+                      
+                      <div 
+                        className={`p-4 border rounded-xl cursor-pointer flex items-center ${
+                          dialogueType === 'socratic' ? 'border-2 border-black bg-gray-50' : 'border-gray-300'
+                        }`}
+                        onClick={() => {
+                          if (dialogueType !== 'socratic') {
+                            setSelectedNPCs([]); // 새 대화패턴 선택시 철학자 초기화
+                            setNpcPositions({});
+                            setDialogueType('socratic');
+                          }
+                        }}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">Socratic Dialogue</div>
+                          <div className="text-sm text-gray-500">Question-based approach to explore a topic</div>
+                        </div>
+                        {dialogueType === 'socratic' && (
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                      </div>
+                      
+                      <div 
+                        className={`p-4 border rounded-xl cursor-pointer flex items-center ${
+                          dialogueType === 'dialectical' ? 'border-2 border-black bg-gray-50' : 'border-gray-300'
+                        }`}
+                        onClick={() => {
+                          if (dialogueType !== 'dialectical') {
+                            setSelectedNPCs([]); // 새 대화패턴 선택시 철학자 초기화
+                            setNpcPositions({});
+                            setDialogueType('dialectical');
+                          }
+                        }}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">Dialectical Discussion</div>
+                          <div className="text-sm text-gray-500">Thesis-Antithesis-Synthesis format</div>
+                        </div>
+                        {dialogueType === 'dialectical' && (
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" style={{ width: '20px', height: '20px' }}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div className="mb-6">
                     <label className="block mb-3 font-medium text-lg">Chat Title</label>
                     <input
@@ -1140,10 +1582,10 @@ export default function OpenChatPage() {
                   <div className="mb-8">
                     <label className="block mb-3 font-medium text-lg">Select Participants</label>
                     
-                    {/* My NPCs 섹션 */}
+                    {/* Custom NPCs 섹션 */}
                     {customNpcs.length > 0 && (
-                      <div className="mb-6">
-                        <h3 className="text-md font-medium mb-3 text-gray-700">My NPCs</h3>
+                      <div className="mb-4">
+                        <h3 className="text-md font-medium mb-3 text-gray-700">Custom Philosophers</h3>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                           {customNpcs.map(npc => (
                             <div 
@@ -1168,6 +1610,33 @@ export default function OpenChatPage() {
                                   ⓘ
                                 </button>
                               </div>
+                              {/* 찬반토론 모드에서 선택된 철학자의 경우 찬성/반대 버튼 표시 */}
+                              {dialogueType === 'debate' && selectedNPCs.includes(npc.id) && (
+                                <div className="flex mt-1 gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => setNpcPosition(npc.id, 'pro')}
+                                    className={`text-xs rounded py-1 flex-1 transition-colors ${
+                                      npcPositions[npc.id] === 'pro' 
+                                        ? 'bg-green-600 text-white' 
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    }`}
+                                  >
+                                    Pro
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setNpcPosition(npc.id, 'con')}
+                                    className={`text-xs rounded py-1 flex-1 transition-colors ${
+                                      npcPositions[npc.id] === 'con' 
+                                        ? 'bg-red-600 text-white' 
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    }`}
+                                  >
+                                    Con
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -1201,6 +1670,33 @@ export default function OpenChatPage() {
                                 ⓘ
                               </button>
                             </div>
+                            {/* 찬반토론 모드에서 선택된 철학자의 경우 찬성/반대 버튼 표시 */}
+                            {dialogueType === 'debate' && selectedNPCs.includes(philosopher.id) && (
+                              <div className="flex mt-1 gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setNpcPosition(philosopher.id, 'pro')}
+                                  className={`text-xs rounded py-1 flex-1 transition-colors ${
+                                    npcPositions[philosopher.id] === 'pro' 
+                                      ? 'bg-green-600 text-white' 
+                                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                  }`}
+                                >
+                                  Pro
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setNpcPosition(philosopher.id, 'con')}
+                                  className={`text-xs rounded py-1 flex-1 transition-colors ${
+                                    npcPositions[philosopher.id] === 'con' 
+                                      ? 'bg-red-600 text-white' 
+                                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                  }`}
+                                >
+                                  Con
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1208,7 +1704,135 @@ export default function OpenChatPage() {
                     
                     {/* Selected NPCs display - 선택된 철학자 표시 섹션 */}
                     {selectedNPCs.length > 0 && (
-                      <div className="mt-6 flex flex-wrap gap-4">
+                      <div className="mt-6">
+                        {dialogueType === 'debate' ? (
+                          <div>
+                            <h3 className="text-md font-medium mb-4 text-gray-700">Selected Philosophers</h3>
+                            <div className="flex justify-between gap-4">
+                              {/* 찬성 측 철학자들 */}
+                              <div className="flex-1 border-r border-gray-300 pr-4">
+                                <h4 className="text-sm font-semibold text-green-700 mb-3">Pro Side</h4>
+                                <div className="flex flex-wrap gap-4">
+                                  {selectedNPCs
+                                    .filter(npcId => npcPositions[npcId] === 'pro')
+                                    .map(npcId => {
+                                      // 커스텀 NPC 또는 기본 철학자에서 찾기
+                                      const npc = customNpcs.find(p => p.id === npcId) || philosophers.find(p => p.id === npcId);
+                                      if (!npc) return null;
+                                      const avatarUrl = npc.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=128&font-size=0.5`;
+                                      return (
+                                        <div key={npcId} className="relative flex flex-col items-center" style={{ width: '120px' }}>
+                                          <img
+                                            src={avatarUrl}
+                                            alt={npc.name}
+                                            width={120}
+                                            height={120}
+                                            style={{
+                                              objectFit: 'cover',
+                                              objectPosition: 'top center',
+                                              borderRadius: '50%',
+                                              border: '3px solid #22c55e', // green-500
+                                              boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)'
+                                            }}
+                                            onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=128&font-size=0.5`; }}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleNPC(npcId)}
+                                            aria-label="Remove influence"
+                                            style={{
+                                              position: 'absolute',
+                                              top: '4px',
+                                              right: '4px',
+                                              width: '24px',
+                                              height: '24px',
+                                              backgroundColor: 'white',
+                                              borderRadius: '50%',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              fontSize: '14px',
+                                              color: '#4B5563',
+                                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                              border: 'none',
+                                              cursor: 'pointer'
+                                            }}
+                                          >
+                                            &times;
+                                          </button>
+                                          <span style={{ marginTop: '4px', fontSize: '12px', textAlign: 'center', color: '#374151', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                                            {npc.name}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                              {/* 반대 측 철학자들 */}
+                              <div className="flex-1 pl-4">
+                                <h4 className="text-sm font-semibold text-red-700 mb-3">Con Side</h4>
+                                <div className="flex flex-wrap gap-4">
+                                  {selectedNPCs
+                                    .filter(npcId => npcPositions[npcId] === 'con')
+                                    .map(npcId => {
+                                      // 커스텀 NPC 또는 기본 철학자에서 찾기
+                                      const npc = customNpcs.find(p => p.id === npcId) || philosophers.find(p => p.id === npcId);
+                                      if (!npc) return null;
+                                      const avatarUrl = npc.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=128&font-size=0.5`;
+                                      return (
+                                        <div key={npcId} className="relative flex flex-col items-center" style={{ width: '120px' }}>
+                                          <img
+                                            src={avatarUrl}
+                                            alt={npc.name}
+                                            width={120}
+                                            height={120}
+                                            style={{
+                                              objectFit: 'cover',
+                                              objectPosition: 'top center',
+                                              borderRadius: '50%',
+                                              border: '3px solid #ef4444', // red-500
+                                              boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)'
+                                            }}
+                                            onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=128&font-size=0.5`; }}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleNPC(npcId)}
+                                            aria-label="Remove influence"
+                                            style={{
+                                              position: 'absolute',
+                                              top: '4px',
+                                              right: '4px',
+                                              width: '24px',
+                                              height: '24px',
+                                              backgroundColor: 'white',
+                                              borderRadius: '50%',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              fontSize: '14px',
+                                              color: '#4B5563',
+                                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                              border: 'none',
+                                              cursor: 'pointer'
+                                            }}
+                                          >
+                                            &times;
+                                          </button>
+                                          <span style={{ marginTop: '4px', fontSize: '12px', textAlign: 'center', color: '#374151', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                                            {npc.name}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-6">
+                            <h3 className="text-md font-medium mb-3 text-gray-700">Selected Philosophers</h3>
+                            <div className="flex flex-wrap gap-4">
                         {selectedNPCs.map(npcId => {
                           // 커스텀 NPC 또는 기본 철학자에서 찾기
                           const npc = customNpcs.find(p => p.id === npcId) || philosophers.find(p => p.id === npcId);
@@ -1259,6 +1883,9 @@ export default function OpenChatPage() {
                             </div>
                           );
                         })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1304,6 +1931,26 @@ export default function OpenChatPage() {
           to {
             opacity: 1;
             transform: translate(-50%, -50%) scale(1);
+          }
+        }
+        
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+        
+        @keyframes tooltipFade {
+          from {
+            opacity: 0;
+            transform: translateY(-5px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
         

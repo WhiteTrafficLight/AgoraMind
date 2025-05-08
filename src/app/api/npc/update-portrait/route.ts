@@ -36,11 +36,16 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // 이미지 URL 업데이트 (http://localhost:8000으로 시작하는 전체 URL)
-    // URL 형식 확인 - 상대 경로인 경우 전체 URL로 변환
-    npc.portrait_url = portraitUrl.startsWith('http') 
-      ? portraitUrl 
-      : `http://localhost:8000${portraitUrl.startsWith('/') ? '' : '/'}${portraitUrl}`;
+    // URL 처리 개선: http://localhost:8000/portraits/xyz.jpg -> /portraits/xyz.jpg
+    let finalUrl = portraitUrl;
+    if (portraitUrl.startsWith('http://localhost:8000/portraits/')) {
+      finalUrl = `/portraits/${portraitUrl.split('/portraits/')[1]}`;
+    } else if (!portraitUrl.startsWith('/portraits/') && !portraitUrl.startsWith('http')) {
+      finalUrl = `/portraits/${portraitUrl}`;
+    }
+    
+    // 이미지 URL 저장
+    npc.portrait_url = finalUrl;
     await npc.save();
     
     return NextResponse.json({

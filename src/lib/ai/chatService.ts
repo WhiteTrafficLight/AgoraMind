@@ -29,6 +29,7 @@ export interface ChatRoom {
   isPublic: boolean;
   npcDetails?: NpcDetail[]; // NPC 상세 정보 추가
   initial_message?: ChatMessage; // 서버에서 생성된 초기 메시지
+  dialogueType?: string; // 대화 패턴 타입 (자유토론, 찬반토론, 소크라테스식 등)
 }
 
 // NPC 상세 정보 인터페이스 추가
@@ -57,6 +58,8 @@ export interface ChatRoomCreationParams {
   generateInitialMessage?: boolean;
   llmProvider?: string;
   llmModel?: string;
+  dialogueType?: string; // 대화 패턴 타입 추가
+  npcPositions?: Record<string, 'pro' | 'con'>; // 찬반토론을 위한 NPC 입장 정보
 }
 
 // 디버그 모드 설정 - 로깅 제어용

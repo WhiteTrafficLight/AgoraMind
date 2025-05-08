@@ -6,6 +6,8 @@ export interface IUser extends mongoose.Document {
   email: string;
   password?: string;
   googleId?: string;
+  profileImage?: string;
+  bio?: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -39,6 +41,15 @@ const UserSchema = new mongoose.Schema<IUser>(
       unique: true,
       sparse: true, // Allows for null/undefined values (for non-Google users)
     },
+    profileImage: {
+      type: String,
+      default: null
+    },
+    bio: {
+      type: String,
+      default: '',
+      maxlength: [500, 'Bio cannot be more than 500 characters']
+    }
   },
   { timestamps: true }
 );
