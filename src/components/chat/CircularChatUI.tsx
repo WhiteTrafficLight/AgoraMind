@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { PaperAirplaneIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, ArrowLeftIcon, StopIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
 import socketClient from '@/lib/socket/socketClient';
 
@@ -42,6 +43,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
   initialMessages = [],
   onBack
 }) => {
+  const router = useRouter();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [isThinking, setIsThinking] = useState(false);
@@ -53,6 +55,11 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [timelinePosition, setTimelinePosition] = useState(1); // 1 = newest message, 0 = oldest
   const [activeMessageIndex, setActiveMessageIndex] = useState<number | null>(null);
+  const [messageContainerRef, setMessageContainerRef] = useState<HTMLDivElement | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [showPodcastModal, setShowPodcastModal] = useState(false);
+  const [isGeneratingPodcast, setIsGeneratingPodcast] = useState(false);
+  const [podcastProgress, setPodcastProgress] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const [circleRadius, setCircleRadius] = useState(0);
@@ -61,8 +68,6 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
     height: typeof window !== 'undefined' ? window.innerHeight : 768
   });
   const [userProfilePicture, setUserProfilePicture] = useState<string | null>(null);
-  const [messageContainerRef, setMessageContainerRef] = useState<HTMLDivElement | null>(null);
-  const [isScrolling, setIsScrolling] = useState(false);
   
   // Get the current message to display based on timeline position
   const currentMessage = activeMessageIndex !== null 
@@ -654,11 +659,72 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
     return { x: offsetX, y: offsetY };
   };
   
+  // Handle end conversation button click
+  const handleEndConversation = () => {
+    setShowPodcastModal(true);
+  };
+
+  // Handle podcast modal close
+  const handleCloseModal = () => {
+    setShowPodcastModal(false);
+  };
+
+  // Handle podcast generation
+  const handleCreatePodcast = async () => {
+    setIsGeneratingPodcast(true);
+    setPodcastProgress(5);
+
+    try {
+      // Prepare conversation data
+      const conversationData = messages.map(msg => ({
+        text: msg.text,
+        speaker: msg.isUser ? 'user' : msg.npc_id || msg.sender,
+        speakerName: msg.isUser ? 'User' : getNpcDisplayName(msg.npc_id || msg.sender),
+        timestamp: msg.timestamp
+      }));
+
+      // Call podcast generation API
+      const response = await fetch('/api/podcast/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversation: conversationData,
+          title: chatTitle,
+          participants: participants.npcs.map(npcId => ({
+            id: npcId,
+            name: getNpcDisplayName(npcId)
+          }))
+        }),
+      });
+
+      setPodcastProgress(50);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Podcast generated:', data);
+        setPodcastProgress(100);
+        
+        // Redirect to podcast page
+        setTimeout(() => {
+          router.push('/podcast');
+        }, 1500);
+      } else {
+        throw new Error('Failed to generate podcast');
+      }
+    } catch (error) {
+      console.error('Error generating podcast:', error);
+      setError('Failed to generate podcast. Please try again.');
+      setIsGeneratingPodcast(false);
+    }
+  };
+  
   return (
     <div className="fixed inset-0 bg-white flex flex-col w-full h-full overflow-hidden">
-      {/* Chat header - updated to match ChatUI style */}
+      {/* Chat header with End Conversation button */}
       <div className="bg-white border-b border-gray-200 p-3 flex flex-col items-center relative">
-        {/* Back button - using same styling approach as ChatUI */}
+        {/* Back button */}
         <button 
           onClick={onBack}
           style={{ 
@@ -692,7 +758,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
           </p>
         </div>
         
-        {/* Right area with connection status */}
+        {/* Right area with connection status and End Conversation button */}
         <div 
           style={{ 
             position: 'absolute', 
@@ -714,6 +780,15 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
               Reconnect
             </button>
           )}
+          
+          {/* End Conversation button */}
+          <button 
+            onClick={handleEndConversation}
+            className="ml-2 text-xs px-2 py-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors flex items-center"
+          >
+            <StopIcon className="h-3 w-3 mr-1" />
+            End
+          </button>
         </div>
       </div>
       
@@ -1141,6 +1216,52 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
           </div>
         )}
       </div>
+
+      {/* Podcast generation modal */}
+      {showPodcastModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            {!isGeneratingPodcast ? (
+              <>
+                <h3 className="text-xl font-semibold mb-4">Create Podcast</h3>
+                <p className="mb-6">
+                  Would you like to create a podcast from this conversation? 
+                  This will generate audio for all messages in this chat.
+                </p>
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={handleCloseModal}
+                    className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreatePodcast}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  >
+                    Create Podcast
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <h3 className="text-xl font-semibold mb-6">Generating Podcast</h3>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                  <div 
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out" 
+                    style={{ width: `${podcastProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-gray-600">
+                  {podcastProgress < 100 
+                    ? 'Please wait while we create your podcast...' 
+                    : 'Podcast created successfully! Redirecting...'}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

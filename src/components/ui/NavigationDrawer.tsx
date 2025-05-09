@@ -125,6 +125,24 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose }) 
             </svg>
             <span className="text-sm font-medium text-black" style={{color: "black", fontWeight: 500, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'}}>Essays</span>
           </Link>
+
+          <Link 
+            href="/podcast" 
+            onClick={() => onClose()}
+            className="flex items-center px-3 py-3 hover:bg-gray-100 transition-colors no-underline rounded-lg"
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              padding: '14px 8px',
+              borderRadius: '8px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16" style={{color: "black", marginRight: '10px'}}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14a2 2 0 01-2 2h-1a2 2 0 01-2-2v-4a2 2 0 012-2h1a2 2 0 012 2v4zM7 14a2 2 0 002 2h1a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4zM3 18V12a9 9 0 0118 0v6"></path>
+            </svg>
+            <span className="text-sm font-medium text-black" style={{color: "black", fontWeight: 500, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'}}>Podcast</span>
+          </Link>
         </div>
       </div>
     </>

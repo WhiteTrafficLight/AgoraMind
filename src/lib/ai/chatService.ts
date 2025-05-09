@@ -29,7 +29,7 @@ export interface ChatRoom {
   isPublic: boolean;
   npcDetails?: NpcDetail[]; // NPC 상세 정보 추가
   initial_message?: ChatMessage; // 서버에서 생성된 초기 메시지
-  dialogueType?: 'free' | 'debate' | 'socratic' | 'dialectical'; // Add dialogueType property
+  dialogueType?: string; // Modified to accept any string value from database
 }
 
 // NPC 상세 정보 인터페이스 추가

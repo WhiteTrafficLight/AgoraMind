@@ -349,6 +349,7 @@ class ChatRoomDB {
       totalParticipants: room.totalParticipants,
       lastActivity: room.lastActivity,
       isPublic: room.isPublic,
+      dialogueType: room.dialogueType || 'free', // Add dialogueType with default of 'free'
       messages: [] // 모든 룸의 메시지를 로드하지 않음 (필요할 때만 로드)
     }));
   }

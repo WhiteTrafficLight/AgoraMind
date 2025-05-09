@@ -72,6 +72,7 @@ export default function ChatPage() {
         // 채팅방 메시지 상태 확인
         const messageCount = room.messages?.length || 0;
         console.log(`🔍 CHAT PAGE: Successfully loaded room #${room.id} (${room.title}) with ${messageCount} messages`);
+        console.log(`🔍 CHAT PAGE: Dialog type: "${room.dialogueType || 'not set'}"`, room);
         
         if (messageCount > 0 && room.messages) {
           // 메시지 내용 간략히 로깅
@@ -87,6 +88,12 @@ export default function ChatPage() {
           console.log('🔍 CHAT PAGE: No users in room, redirecting to open chat');
           router.push('/open-chat');
           return;
+        }
+        
+        // Ensure dialogueType is set (default to 'free' if not explicitly set in database)
+        if (!room.dialogueType) {
+          console.log('🔧 CHAT PAGE: Setting default dialogueType to "free"');
+          room.dialogueType = 'free';
         }
         
         // 이전 상태와 완전히 다른 새 객체로 설정하여 상태 격리
@@ -126,7 +133,7 @@ export default function ChatPage() {
           </button>
         </div>
       ) : chatData ? (
-        chatData.dialogueType === 'free' ? (
+        chatData.dialogueType === 'free' || !chatData.dialogueType ? (
           <CircularChatUI
             chatId={chatData.id}
             chatTitle={chatData.title}

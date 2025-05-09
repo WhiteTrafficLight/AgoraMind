@@ -470,15 +470,15 @@ export default function OpenChatPage() {
       try {
         setIsCreating(true);
         console.log('Creating chat with params:', chatParams);
-        newChat = await chatService.createChatRoom(chatParams);
+          newChat = await chatService.createChatRoom(chatParams);
         console.log('Chat creation response:', newChat);
         
         // Redirect to the new chat
         router.push(`/chat?id=${newChat.id}`);
         
         // Reset form and close modal
-        resetForm();
-        setShowCreateChatModal(false);
+      resetForm();
+      setShowCreateChatModal(false);
     } catch (error) {
         console.error('Failed to create chat:', error);
         toast.error('Failed to create chat room. Please try again.');
@@ -895,7 +895,7 @@ export default function OpenChatPage() {
                   e.currentTarget.style.backgroundColor = 'black';
                 }}
                 aria-label="Create New Chat"
-              >
+            >
                 <PlusIcon style={{ width: '24px', height: '24px', color: 'white' }} />
             </button>
               <div 
@@ -1221,7 +1221,7 @@ export default function OpenChatPage() {
                       {chatToJoin.participants.users.length === 1 ? 'user' : 'users'}
                     </>
                   )}?
-                </p>
+                      </p>
                 
                 <div className="flex justify-center gap-4">
                         <button 
@@ -1265,7 +1265,7 @@ export default function OpenChatPage() {
                     </div>
                   </div>
           </>
-        )}
+          )}
         
         {/* Create Chat Modal */}
         {showCreateChatModal && (
