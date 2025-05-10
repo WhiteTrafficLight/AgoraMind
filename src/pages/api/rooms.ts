@@ -123,7 +123,14 @@ export default async function handler(
       console.log('POST 요청 처리 - 채팅룸 생성');
       
       const params = req.body as ChatRoomCreationParams;
-      log('요청 본문:', params);
+      console.log('📢 요청 본문:', JSON.stringify(params, null, 2));
+      console.log('📢 대화 타입:', params.dialogueType);
+      
+      if (params.dialogueType === 'debate') {
+        console.log('📢 찬반토론 모드 감지됨');
+        console.log('📢 npcPositions:', JSON.stringify(params.npcPositions));
+        console.log('📢 사용자 역할:', params.userDebateRole);
+      }
 
       // 유효성 검사
       if (!params.title || !params.title.trim()) {
@@ -151,13 +158,67 @@ export default async function handler(
         totalParticipants: 1 + params.npcs.length,
         lastActivity: 'Just now',
         messages: [],
-        isPublic: params.isPublic !== false
+        isPublic: params.isPublic !== false,
+        dialogueType: params.dialogueType || 'free' // 명시적으로 dialogueType 설정
       };
+      
+      // 찬반토론 모드인 경우 pro, con, neutral 필드 설정
+      if (params.dialogueType === 'debate' && params.npcPositions) {
+        console.log('📢 찬반토론 정보 설정 중');
+        
+        // pro, con, neutral 초기화
+        newRoom.pro = [];
+        newRoom.con = [];
+        newRoom.neutral = [];
+        
+        // NPC 위치 설정
+        for (const npcId of params.npcs) {
+          const position = params.npcPositions[npcId];
+          if (position === 'pro') {
+            newRoom.pro.push(npcId);
+            console.log(`📢 NPC를 PRO에 추가: ${npcId}`);
+          } else if (position === 'con') {
+            newRoom.con.push(npcId);
+            console.log(`📢 NPC를 CON에 추가: ${npcId}`);
+          } else {
+            newRoom.neutral.push(npcId);
+            console.log(`📢 NPC를 NEUTRAL에 추가: ${npcId}`);
+          }
+        }
+        
+        // 사용자 위치 설정
+        if (params.userDebateRole) {
+          if (params.userDebateRole === 'pro') {
+            newRoom.pro.push(currentUser);
+            console.log(`📢 사용자를 PRO에 추가: ${currentUser}`);
+          } else if (params.userDebateRole === 'con') {
+            newRoom.con.push(currentUser);
+            console.log(`📢 사용자를 CON에 추가: ${currentUser}`);
+          } else { // neutral
+            newRoom.neutral.push(currentUser);
+            console.log(`📢 사용자를 NEUTRAL에 추가: ${currentUser}`);
+          }
+        } else {
+          // 기본값은 neutral
+          newRoom.neutral.push(currentUser);
+          console.log(`📢 역할이 지정되지 않아 사용자를 NEUTRAL에 추가: ${currentUser}`);
+        }
+        
+        console.log(`📢 최종 Pro 목록: ${newRoom.pro.join(', ')}`);
+        console.log(`📢 최종 Con 목록: ${newRoom.con.join(', ')}`);
+        console.log(`📢 최종 Neutral 목록: ${newRoom.neutral.join(', ')}`);
+      }
 
       // 채팅룸 데이터베이스에 저장
+      console.log('📢 채팅룸 저장 전 최종 객체:', JSON.stringify(newRoom, null, 2));
       const createdRoom = await chatRoomDB.createChatRoom(newRoom);
 
       console.log(`✅ Chat room created with ID: ${createdRoom.id}, title: "${createdRoom.title}"`);
+      console.log(`✅ dialogueType: ${createdRoom.dialogueType || 'not set'}`);
+      
+      if (createdRoom.pro) console.log(`✅ Pro: ${createdRoom.pro.join(', ')}`);
+      if (createdRoom.con) console.log(`✅ Con: ${createdRoom.con.join(', ')}`);
+      if (createdRoom.neutral) console.log(`✅ Neutral: ${createdRoom.neutral.join(', ')}`);
       
       // Socket.IO 이벤트 발생 (서버에 Socket.IO 인스턴스가 있는 경우)
       if (res.socket.server.io) {

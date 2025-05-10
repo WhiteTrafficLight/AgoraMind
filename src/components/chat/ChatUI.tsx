@@ -1682,7 +1682,7 @@ Namespace: ${rawSocket.nsp || '/'}
   useEffect(() => {
     // 모니터링은 필요하지만 로그 출력은 제거
   }, [isThinking, thinkingNpcId]);
-  
+
   return (
     <div className="fixed inset-0 bg-white flex flex-col w-full h-full overflow-hidden">
       {/* Chat header */}
@@ -1881,7 +1881,7 @@ Namespace: ${rawSocket.nsp || '/'}
               <>
                 {/* 향상된 디버깅 정보 (개발 모드에서만 표시) - 삭제 */}
                 
-                <div className="flex justify-start mb-3">
+              <div className="flex justify-start mb-3">
                   <div className="bg-gray-100 text-gray-600 rounded-lg p-3 shadow-md flex items-center" style={{
                     animation: 'pulse 1.5s infinite ease-in-out',
                     borderLeft: '4px solid #10b981',
@@ -1909,14 +1909,14 @@ Namespace: ${rawSocket.nsp || '/'}
                         <span className="text-xs font-bold text-gray-500">AI</span>
                       </div>
                     )}
-                    <div className="typing-animation">
-                      <span className="dot"></span>
-                      <span className="dot"></span>
-                      <span className="dot"></span>
-                    </div>
-                    <span className="ml-2 font-medium">thinking...</span>
+                  <div className="typing-animation">
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                    <span className="dot"></span>
                   </div>
+                    <span className="ml-2 font-medium">thinking...</span>
                 </div>
+              </div>
               </>
             )}
             

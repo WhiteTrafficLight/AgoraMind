@@ -86,6 +86,9 @@ export default function OpenChatPage() {
   
   const [dialogueType, setDialogueType] = useState<string>('free');
   
+  // 상태 변수 선언 부분에 userDebateRole 추가
+  const [userDebateRole, setUserDebateRole] = useState<'pro' | 'con' | 'neutral'>('neutral');
+  
   // 채팅룸 목록 로드 함수
   const loadChatRooms = async () => {
     try {
@@ -450,6 +453,7 @@ export default function OpenChatPage() {
       // 찬반토론 모드일 때 npcPositions 정보 추가
       if (dialogueType === 'debate') {
         chatParams.npcPositions = npcPositions;
+        chatParams.userDebateRole = userDebateRole; // 사용자 역할 추가
       }
       
       // 컨텍스트 관련 파라미터 추가
@@ -504,6 +508,7 @@ export default function OpenChatPage() {
     setActiveContextTab('text');
     setDialogueType('free');
     setNpcPositions({});
+    setUserDebateRole('neutral');
   };
 
   // Handle joining a chat
@@ -2194,47 +2199,127 @@ export default function OpenChatPage() {
                         )}
                       </div>
                       
+                      {/* 찬반토론 모드일 때 사용자 역할 선택 섹션 추가 */}
+                      {dialogueType === 'debate' && (
+                        <div style={{ marginBottom: '1.5rem' }}>
+                          <h3 style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '0.75rem', fontFamily: 'inherit' }}>Select Your Role in the Debate</h3>
+                          <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem', marginBottom: '1rem' }}>
+                            <div 
+                              onClick={() => setUserDebateRole('pro')}
+                              style={{ 
+                                flex: 1,
+                                padding: '1rem',
+                                borderRadius: '0.5rem',
+                                border: userDebateRole === 'pro' ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                                backgroundColor: userDebateRole === 'pro' ? '#ebf5ff' : 'white',
+                                cursor: 'pointer',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ 
+                                fontWeight: '600', 
+                                color: userDebateRole === 'pro' ? '#2563eb' : '#374151',
+                                marginBottom: '0.5rem'
+                              }}>
+                                Pro (Affirmative)
+                                </div>
+                              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                                Support the proposition
+                              </div>
+                            </div>
+                            
+                            <div 
+                              onClick={() => setUserDebateRole('con')}
+                              style={{ 
+                                flex: 1,
+                                padding: '1rem',
+                                borderRadius: '0.5rem',
+                                border: userDebateRole === 'con' ? '2px solid #ef4444' : '1px solid #e5e7eb',
+                                backgroundColor: userDebateRole === 'con' ? '#fee2e2' : 'white',
+                                cursor: 'pointer',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ 
+                                fontWeight: '600', 
+                                color: userDebateRole === 'con' ? '#dc2626' : '#374151',
+                                marginBottom: '0.5rem'
+                              }}>
+                                Con (Negative)
+                        </div>
+                              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                                Oppose the proposition
+                      </div>
+                            </div>
+                            
+                            <div 
+                              onClick={() => setUserDebateRole('neutral')}
+                              style={{ 
+                                flex: 1,
+                                padding: '1rem',
+                                borderRadius: '0.5rem',
+                                border: userDebateRole === 'neutral' ? '2px solid #6b7280' : '1px solid #e5e7eb',
+                                backgroundColor: userDebateRole === 'neutral' ? '#f9fafb' : 'white',
+                                cursor: 'pointer',
+                                textAlign: 'center'
+                              }}
+                            >
+                              <div style={{ 
+                                fontWeight: '600', 
+                                color: userDebateRole === 'neutral' ? '#4b5563' : '#374151',
+                                marginBottom: '0.5rem'
+                              }}>
+                                Neutral (Moderator)
+                              </div>
+                              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                                Moderate the debate
+                            </div>
+                          </div>
+                      </div>
+                    </div>
+                      )}
+                    
                       {/* 선택된 철학자 표시 영역 */}
-                      {selectedNPCs.length > 0 && (
+                    {selectedNPCs.length > 0 && (
                         <div style={{ marginBottom: '1.5rem' }}>
                           <h3 style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '0.75rem', fontFamily: 'inherit' }}>Selected Philosophers ({selectedNPCs.length})</h3>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-                            {selectedNPCs.map(npcId => {
+                        {selectedNPCs.map(npcId => {
                               // 커스텀 NPC와 기본 철학자에서 검색
                               const npc = [...philosophers, ...customNpcs].find(p => p.id === npcId);
-                              if (!npc) return null;
+                          if (!npc) return null;
                               
-                              return (
+                          return (
                                 <div key={npcId} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100px' }}>
                                   <div style={{ position: 'relative' }}>
-                                    <img
+                              <img
                                       src={npc.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=64`}
-                                      alt={npc.name}
-                                      style={{
+                                alt={npc.name}
+                                style={{
                                         width: '64px',
                                         height: '64px',
-                                        borderRadius: '50%',
+                                  borderRadius: '50%',
                                         objectFit: 'cover',
                                         objectPosition: 'center top',
                                         aspectRatio: '1/1'
-                                      }}
-                                    />
-                                    <button
-                                      onClick={() => toggleNPC(npcId)}
-                                      style={{
-                                        position: 'absolute',
+                                }}
+                              />
+                              <button
+                                onClick={() => toggleNPC(npcId)}
+                                style={{
+                                  position: 'absolute',
                                         top: '-4px',
                                         right: '-4px',
-                                        backgroundColor: 'white',
-                                        borderRadius: '50%',
+                                  backgroundColor: 'white',
+                                  borderRadius: '50%',
                                         width: '24px',
                                         height: '24px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
                                         border: '1px solid #e5e7eb',
                                         cursor: 'pointer',
-                                        fontSize: '16px',
+                                  fontSize: '16px',
                                         padding: '0',
                                         lineHeight: '1',
                                         fontFamily: 'Arial, sans-serif',
@@ -2255,16 +2340,16 @@ export default function OpenChatPage() {
                                             borderRadius: '9999px',
                                             backgroundColor: npcPositions[npcId] === 'pro' ? '#3b82f6' : '#e5e7eb',
                                             color: npcPositions[npcId] === 'pro' ? 'white' : '#4b5563',
-                                            border: 'none',
-                                            cursor: 'pointer'
-                                          }}
+                                  border: 'none',
+                                  cursor: 'pointer'
+                                }}
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setNpcPosition(npcId, 'pro');
-                                          }}
-                                        >
+                                }}
+                              >
                                           Pro
-                                        </button>
+                              </button>
                                         <button
                                           style={{
                                             padding: '0.25rem 0.5rem',
@@ -2294,14 +2379,14 @@ export default function OpenChatPage() {
                                     textOverflow: 'ellipsis', 
                                     whiteSpace: 'nowrap' 
                                   }}>
-                                    {npc.name}
-                                  </span>
-                                </div>
-                              );
-                            })}
+                                {npc.name}
+                              </span>
+                            </div>
+                          );
+                        })}
                           </div>
-                        </div>
-                      )}
+                      </div>
+                    )}
                       
                       {/* 커스텀 NPC 영역 */}
                     {customNpcs.length > 0 && (
@@ -2350,7 +2435,7 @@ export default function OpenChatPage() {
                                     }}
                                   />
                                   <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>{npc.name}</span>
-                                </div>
+                  </div>
                                 <button
                                   onClick={(e) => {
                                     e.preventDefault();
@@ -2481,8 +2566,8 @@ export default function OpenChatPage() {
                   justifyContent: 'space-between', // 균등 분배
                   pointerEvents: 'auto' // 이 컨테이너 내부의 요소는 클릭 가능
                 }}>
-                  <button
-                    type="button"
+                    <button
+                      type="button"
                     onClick={goToPreviousStep}
                                 style={{
                       width: '36px',
@@ -2507,7 +2592,7 @@ export default function OpenChatPage() {
                     disabled={createChatStep <= 1}
                   >
                     &lt;
-                  </button>
+                    </button>
                   
                   <div style={{ 
                     fontSize: '14px', 
@@ -2522,7 +2607,7 @@ export default function OpenChatPage() {
                     {createChatStep}/3
                   </div>
                   
-                              <button
+                    <button
                                 type="button"
                     onClick={goToNextStep}
                                 style={{

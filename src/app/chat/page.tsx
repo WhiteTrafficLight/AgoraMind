@@ -4,7 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ChatUI from '@/components/chat/ChatUI';
 import CircularChatUI from '@/components/chat/CircularChatUI';
-import chatService, { ChatRoom } from '@/lib/ai/chatService';
+import DebateChatUI from '@/components/chat/DebateChatUI';
+import chatService, { ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 
 export default function ChatPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chatData, setChatData] = useState<ChatRoom | null>(null);
+  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
 
   // 페이지 진입 시 body 스타일 변경
   useEffect(() => {
@@ -40,11 +42,16 @@ export default function ChatPage() {
 
     console.log('Chat page received ID:', chatIdParam, typeof chatIdParam);
 
-    // 숫자형 ID로 변환 시도
-    let chatId: string | number = chatIdParam;
-    if (!isNaN(Number(chatIdParam))) {
-      chatId = Number(chatIdParam);
-      console.log('Converted ID to number:', chatId);
+    // ID를 숫자로 변환 - 명시적으로 숫자 타입으로 변환
+    const chatId = Number(chatIdParam);
+    console.log('Using chat ID as number:', chatId, `(${typeof chatId})`);
+    
+    // ID 추가 검증 
+    if (isNaN(chatId) || chatId <= 0) {
+      console.error(`Invalid chat ID format: ${chatIdParam}`);
+      setError('Invalid chat room ID format');
+      setLoading(false);
+      return;
     }
 
     const loadChatData = async () => {
@@ -62,12 +69,20 @@ export default function ChatPage() {
           return;
         }
         
-        // ID 일치 여부 확인 - 중요!
-        if (room.id && String(room.id) !== String(chatId)) {
-          console.error(`ID mismatch: requested=${chatId}, received=${room.id}`);
+        // ID 타입 및 일치 여부 확인
+        console.log(`🔍 CHAT PAGE: Room returned with ID: ${room.id} (${typeof room.id})`);
+        
+        // 🔧 ID 타입이 숫자인지 확인하여 일관성 유지
+        const roomIdNum = typeof room.id === 'string' ? parseInt(room.id) : room.id;
+        
+        if (roomIdNum !== chatId) {
+          console.error(`ID mismatch: requested=${chatId}, received=${roomIdNum}`);
           setError('Incorrect chat room loaded');
           return;
         }
+        
+        // 🔧 ID를 명시적으로 숫자로 설정
+        room.id = chatId;
         
         // 채팅방 메시지 상태 확인
         const messageCount = room.messages?.length || 0;
@@ -113,6 +128,55 @@ export default function ChatPage() {
     router.push('/open-chat');
   };
 
+  // 메시지 전송 및 AI 응답 생성 함수
+  const handleSendMessage = async (message: string) => {
+    if (!chatData) return;
+    
+    try {
+      // 사용자 메시지 전송
+      await chatService.sendMessage(chatData.id, message);
+      
+      // AI 응답 생성 시작
+      setIsGeneratingResponse(true);
+      
+      // 채팅룸 데이터 새로고침 (사용자 메시지 포함)
+      const updatedRoom = await chatService.getChatRoomById(chatData.id);
+      if (updatedRoom) {
+        setChatData(JSON.parse(JSON.stringify(updatedRoom)));
+      }
+      
+      // AI 응답 생성 요청 - ID를 string으로 변환하여 전달
+      await chatService.getAIResponse(String(chatData.id));
+      
+      // 최종 채팅룸 데이터 새로고침 (AI 응답 포함)
+      const finalRoom = await chatService.getChatRoomById(chatData.id);
+      if (finalRoom) {
+        setChatData(JSON.parse(JSON.stringify(finalRoom)));
+      }
+    } catch (error) {
+      console.error('Failed to send message or get AI response:', error);
+    } finally {
+      setIsGeneratingResponse(false);
+    }
+  };
+
+  // 채팅룸 새로고침 함수
+  const handleRefreshChat = async () => {
+    if (!chatData) return;
+    
+    setLoading(true);
+    try {
+      const refreshedRoom = await chatService.getChatRoomById(chatData.id);
+      if (refreshedRoom) {
+        setChatData(JSON.parse(JSON.stringify(refreshedRoom)));
+      }
+    } catch (error) {
+      console.error('Failed to refresh chat:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 w-screen h-screen bg-white">
       {loading ? (
@@ -135,20 +199,35 @@ export default function ChatPage() {
       ) : chatData ? (
         chatData.dialogueType === 'free' || !chatData.dialogueType ? (
           <CircularChatUI
-            chatId={chatData.id}
+            chatId={Number(chatData.id)}
             chatTitle={chatData.title}
             participants={chatData.participants}
-            initialMessages={chatData.messages}
+            initialMessages={chatData.messages || []}
             onBack={() => router.push('/open-chat')}
+          />
+        ) : chatData.dialogueType === 'debate' ? (
+          <DebateChatUI
+            room={{
+              ...chatData,
+              id: Number(chatData.id) // Ensure ID is a number
+            }}
+            messages={chatData.messages || []}
+            npcDetails={chatData.npcDetails || []}
+            onSendMessage={handleSendMessage}
+            onRefresh={handleRefreshChat}
+            isLoading={loading}
+            isGeneratingResponse={isGeneratingResponse}
+            username="You"
+            onEndChat={() => router.push('/open-chat')}
           />
         ) : (
-          <ChatUI 
-            chatId={chatData.id}
-            chatTitle={chatData.title}
-            participants={chatData.participants}
-            initialMessages={chatData.messages}
-            onBack={() => router.push('/open-chat')}
-          />
+        <ChatUI 
+          chatId={Number(chatData.id)}
+          chatTitle={chatData.title}
+          participants={chatData.participants}
+          initialMessages={chatData.messages || []}
+          onBack={() => router.push('/open-chat')}
+        />
         )
       ) : (
         <div className="flex h-full justify-center items-center">

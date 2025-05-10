@@ -16,7 +16,7 @@ export interface ChatMessage {
 }
 
 export interface ChatRoom {
-  id: string | number;
+  id: number; // 항상 숫자로 통일
   title: string;
   context?: string;
   participants: {
@@ -30,6 +30,10 @@ export interface ChatRoom {
   npcDetails?: NpcDetail[]; // NPC 상세 정보 추가
   initial_message?: ChatMessage; // 서버에서 생성된 초기 메시지
   dialogueType?: string; // Modified to accept any string value from database
+  // 찬반토론을 위한 필드 추가
+  pro?: string[]; // 찬성측 참여자들 (NPC IDs와 사용자)
+  con?: string[]; // 반대측 참여자들 (NPC IDs와 사용자)
+  neutral?: string[]; // 중립 참여자들 (NPC IDs와 사용자)
 }
 
 // NPC 상세 정보 인터페이스 추가
@@ -60,6 +64,7 @@ export interface ChatRoomCreationParams {
   llmModel?: string;
   dialogueType?: string; // 대화 패턴 타입 추가
   npcPositions?: Record<string, 'pro' | 'con'>; // 찬반토론을 위한 NPC 입장 정보
+  userDebateRole?: 'pro' | 'con' | 'neutral'; // 찬반토론에서 사용자의 역할
 }
 
 // 디버그 모드 설정 - 로깅 제어용
@@ -120,20 +125,36 @@ class ChatService {
   
   // 캐시 관련 변수 및 상수 추가
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5분
-  private cacheTimestamps: Record<string, number> = {};
+  private cacheTimestamps: Record<number, number> = {};
 
   // 생성자 - API 사용 여부 설정 가능
   constructor(useAPI: boolean = true) {
     this.useAPI = useAPI;
   }
   
-  // ID 표준화 유틸리티 함수 추가
-  private normalizeId(id: string | number): string {
-    return String(id);
+  // ID 표준화 유틸리티 함수 - 숫자로 통일
+  private normalizeId(id: string | number): number {
+    if (id === null || id === undefined) {
+      console.error('normalizeId: Null or undefined ID provided');
+      return 0; // 유효하지 않은 ID는 0으로 처리
+    }
+    
+    // 문자열이면 앞뒤 공백 제거 후 숫자로 변환
+    const strId = typeof id === 'string' ? id.trim() : String(id);
+    const numId = Number(strId);
+    
+    // NaN 체크
+    if (isNaN(numId)) {
+      console.error(`ID 정규화 오류: "${strId}"는 숫자로 변환할 수 없음`);
+      return 0; // 변환 불가능한 경우 0 반환
+    }
+    
+    console.log(`ID 정규화: ${id} (${typeof id}) -> ${numId} (숫자)`);
+    return numId;
   }
   
   // 캐시 유효성 확인 메서드
-  private isCacheValid(id: string): boolean {
+  private isCacheValid(id: number): boolean {
     const timestamp = this.cacheTimestamps[id];
     if (!timestamp) return false;
     
@@ -143,18 +164,32 @@ class ChatService {
   
   // 캐시 업데이트 메서드
   private updateCache(room: ChatRoom): void {
+    // 항상 room.id가 있는지 확인
+    if (room.id === null || room.id === undefined) {
+      console.error('❌ Attempted to cache room with no ID', room);
+      return;
+    }
+    
     const normalizedId = this.normalizeId(room.id);
+    
+    // 디버그 정보 추가
+    console.log(`🔄 Updating cache for room ${normalizedId} (original ID: ${room.id}, type: ${typeof room.id})`);
+    
+    // ID를 숫자로 통일
+    room.id = normalizedId;
     
     // 새로운 객체로 복사하여 완전히 격리
     const isolatedRoom: ChatRoom = JSON.parse(JSON.stringify(room));
     
     // 기존 캐시 항목 찾기
-    const existingIndex = this.chatRooms.findIndex(r => this.normalizeId(r.id) === normalizedId);
+    const existingIndex = this.chatRooms.findIndex(r => r.id === normalizedId);
     
     if (existingIndex >= 0) {
       this.chatRooms[existingIndex] = isolatedRoom;
+      console.log(`✅ Updated existing cache entry for room ${normalizedId}`);
     } else {
       this.chatRooms.push(isolatedRoom);
+      console.log(`✅ Added new cache entry for room ${normalizedId}`);
     }
     
     // 캐시 타임스탬프 업데이트
@@ -242,13 +277,13 @@ class ChatService {
     return `${prefix}${timestamp}-${randomStr}-${randomStr2}`;
   }
 
-  // Get a specific chat room by ID
+  // Get a specific chat room by ID - 개선된 버전
   async getChatRoomById(id: string | number): Promise<ChatRoom | null> {
     const normalizedId = this.normalizeId(id);
     
     log('\n=======================================');
     log('🔍 FETCHING CHAT ROOM');
-    log('ID:', normalizedId);
+    log('ID:', normalizedId, `(원본: ${id}, 타입: ${typeof id})`);
     
     // 1. 먼저 캐시 확인
     const cachedRoom = this.chatRooms.find(room => this.normalizeId(room.id) === normalizedId);
@@ -256,8 +291,10 @@ class ChatService {
     // 유효한 캐시가 있으면 사용
     if (cachedRoom && this.isCacheValid(normalizedId)) {
       log(`✅ Using valid cache for room ${normalizedId}`);
-      // 깊은 복사본 반환
-      return JSON.parse(JSON.stringify(cachedRoom));
+      // ID를 명시적으로 문자열로 설정하고 깊은 복사본 반환
+      const roomCopy = JSON.parse(JSON.stringify(cachedRoom));
+      roomCopy.id = normalizedId;
+      return roomCopy;
     }
     
     // 2. API 요청
@@ -273,13 +310,13 @@ class ChatService {
         try {
           response = await fetch(`/api/rooms?id=${normalizedId}`);
       
-      if (!response.ok) {
+          if (!response.ok) {
             // 상태 코드별 세분화된 오류 처리
             if (response.status === 404) {
               log(`❌ Room ${normalizedId} not found`);
               return null;
             }
-        throw new Error(`Failed to fetch chat room: ${response.status}`);
+            throw new Error(`Failed to fetch chat room: ${response.status}`);
           }
           
           break; // 성공하면 루프 종료
@@ -302,13 +339,31 @@ class ChatService {
       
       const room = await response.json();
       
-      // 응답 유효성 검사
-      if (!room || this.normalizeId(room.id) !== normalizedId) {
+      // ID가 없는 경우 처리
+      if (!room || !room.id) {
         log(`❌ Invalid room data received for ID ${normalizedId}`);
         return null;
       }
       
+      // ID 일치 여부 확인 (항상 문자열로 비교)
+      const responseId = this.normalizeId(room.id);
+      if (responseId !== normalizedId) {
+        log(`⚠️ ID 불일치 감지: 요청=${normalizedId}, 응답=${responseId}`);
+        log(`⚠️ 문자열 변환 후 재확인 중...`);
+        
+        // 다시 한번 문자열 변환 후 비교 (ID 타입 불일치 처리)
+        if (String(responseId) !== String(normalizedId)) {
+          log(`❌ ID 불일치 확인됨: 요청=${normalizedId}, 응답=${responseId}`);
+          return null;
+        }
+        
+        log(`✅ 문자열 변환 후 ID 일치 확인됨`);
+        // ID를 정규화하여 명시적으로 설정
+        room.id = normalizedId;
+      }
+      
       log('✅ Room found!');
+      log('Room ID:', room.id, `(타입: ${typeof room.id})`);
       log('Room Title:', room.title);
       log('Participants:', room.participants);
       
@@ -319,6 +374,7 @@ class ChatService {
         // 참여자가 없는 방은 사용할 수 없음을 명확히 함
         return {
           ...room,
+          id: normalizedId, // ID를 명시적으로 문자열로 설정
           messages: []
         };
       }
@@ -374,7 +430,7 @@ class ChatService {
             
             if (!isDuplicate) {
               room.messages.push(room.initial_message);
-          } else {
+            } else {
               log('⚠️ Duplicate initial message detected, not adding');
             }
           } else {
@@ -387,6 +443,9 @@ class ChatService {
         // 사용 후 삭제하여 중복 방지
         delete room.initial_message;
       }
+      
+      // ID를 명시적으로 문자열로 설정
+      room.id = normalizedId;
       
       // 캐시 업데이트
       this.updateCache(room);
@@ -402,10 +461,12 @@ class ChatService {
       // 3. API 실패 시 유효하지 않더라도 캐시된 데이터 반환
       if (cachedRoom) {
         log(`⚠️ Using stale cache for room ${normalizedId} due to API error`);
-        return JSON.parse(JSON.stringify(cachedRoom));
+        const roomCopy = JSON.parse(JSON.stringify(cachedRoom));
+        roomCopy.id = normalizedId; // ID를 명시적으로 문자열로 설정
+        return roomCopy;
       }
       
-        return null;
+      return null;
     }
   }
 
@@ -908,6 +969,12 @@ class ChatService {
       // 4. 대화 기록 (최근 10개 메시지)
       const recentMessages = (room.messages || []).slice(-10);
       
+      // 마지막 사용자 메시지 추출 (반드시 필요)
+      const lastUserMessage = [...recentMessages].reverse().find(msg => msg.isUser);
+      if (!lastUserMessage) {
+        throw new Error("No user message found to generate response for");
+      }
+      
       // 5. Custom NPC 정보 구성 (AI 응답 생성에 사용)
       const npcDescriptions = room.npcDetails?.map(npc => {
         let description = `${npc.name}:`;
@@ -934,17 +1001,20 @@ class ChatService {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-          'x-llm-provider': 'openai',
-          'x-llm-model': 'gpt-4o'
+            'x-llm-provider': 'openai',
+            'x-llm-model': 'gpt-4o'
           },
           body: JSON.stringify({
-          npcs: room.participants.npcs,
-          npc_descriptions: npcDescriptions,
-          topic: topic,
-          context: context,
-          previous_dialogue: dialogueText,
-          use_rag: true // RAG 기능 활성화
-        })
+            npcs: room.participants.npcs,
+            npc_descriptions: npcDescriptions,
+            topic: topic,
+            context: context,
+            previous_dialogue: dialogueText,
+            use_rag: true, // RAG 기능 활성화
+            // 필수 필드 추가 - room_id를 문자열로 변환하여 전송
+            room_id: String(normalizedId),
+            user_message: lastUserMessage.text
+          })
       });
 
       if (!response.ok) {

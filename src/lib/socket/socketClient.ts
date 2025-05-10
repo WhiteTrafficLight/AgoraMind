@@ -23,6 +23,8 @@ interface ClientToServerEvents {
   'get-active-users': (roomId: string | number) => void;
   'ping': (data: { time: number, username: string }) => void;
   'refresh-room': (data: { roomId: string | number }) => void;
+  'join': (data: { roomId: string | number }) => void;
+  'leave': (data: { roomId: string | number }) => void;
   [event: string]: (...args: any[]) => void;  // Allow any other event
 }
 
@@ -34,7 +36,9 @@ interface EventHandler<T> {
 // Socket.io client wrapper class
 class SocketClient {
   private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
+  private isInitialized: boolean = false;
   private username: string = '';
+  private rooms: number[] = []; // 참여 중인 채팅방 ID 목록
   private listeners: Record<string, Function[]> = {
     'new-message': [],
     'thinking': [],
@@ -411,47 +415,70 @@ Time: ${new Date().toLocaleTimeString()}
     });
   }
   
-  // Join a chat room
-  public joinRoom(roomId: string | number) {
-    console.log(`Attempting to join room: ${roomId}`);
-    
-    // Check if socket exists and is connected before attempting to join
-    if (!this.socket) {
-      console.error('Cannot join room: Socket not initialized');
+  /**
+   * 특정 채팅방에 참여
+   * @param roomId 채팅방 ID
+   * @returns 성공 여부
+   */
+  joinRoom(roomId: number | string): boolean {
+    if (!this.socket || !this.isConnected()) {
+      console.error('Cannot join room: Socket not connected');
       return false;
     }
     
-    // Always try to join, but log connection status
-    if (!this.socket.connected) {
-      console.warn(`Socket not connected when joining room ${roomId}, connection will be pending`);
+    // 항상 숫자로 변환하여 로깅 및 전송
+    const normalizedId = Number(roomId);
+    console.log(`SocketClient: Joining room ${roomId} (${typeof roomId}) -> ${normalizedId} (number)`);
+    
+    if (isNaN(normalizedId) || normalizedId <= 0) {
+      console.error(`Invalid room ID: ${roomId}`);
+      return false;
     }
     
-    try {
-      this.socket.emit('join-room', {
-        roomId,
-        username: this.username
-      });
-      console.log(`Join room request sent for: ${roomId}`);
+    // 이미 참여한 방인지 확인
+    if (this.rooms.includes(normalizedId)) {
+      console.log(`Already in room: ${normalizedId}`);
       return true;
-    } catch (error) {
-      console.error('Error joining room:', error);
+    }
+    
+    // 'join-room' 이벤트로 수정 - 서버가 이 이벤트를 기대하므로
+    this.socket.emit('join-room', { roomId: normalizedId, username: this.username });
+    this.rooms.push(normalizedId);
+    
+    return true;
+  }
+
+  /**
+   * 특정 채팅방에서 나가기
+   * @param roomId 채팅방 ID
+   * @returns 성공 여부
+   */
+  leaveRoom(roomId: number | string): boolean {
+    if (!this.socket || !this.isConnected()) {
+      console.error('Cannot leave room: Socket not connected');
       return false;
     }
-  }
-  
-  // Leave a chat room
-  public leaveRoom(roomId: string | number) {
-    if (!this.socket?.connected) {
-      console.error('Socket not connected');
-      return;
+    
+    // 항상 숫자로 변환하여 로깅 및 전송
+    const normalizedId = Number(roomId);
+    console.log(`SocketClient: Leaving room ${roomId} (${typeof roomId}) -> ${normalizedId} (number)`);
+    
+    if (isNaN(normalizedId) || normalizedId <= 0) {
+      console.error(`Invalid room ID: ${roomId}`);
+      return false;
     }
     
-    console.log('Socket leaving room:', roomId, typeof roomId);
+    // 참여한 방인지 확인
+    const index = this.rooms.indexOf(normalizedId);
+    if (index === -1) {
+      console.log(`Not in room: ${normalizedId}`);
+      return false;
+    }
     
-    this.socket.emit('leave-room', {
-      roomId,
-      username: this.username
-    });
+    this.socket.emit('leave-room', { roomId: normalizedId, username: this.username });
+    this.rooms.splice(index, 1);
+    
+    return true;
   }
   
   // Send a message to a chat room
@@ -474,8 +501,14 @@ Time: ${new Date().toLocaleTimeString()}
     try {
       console.log('📨 Socket 메시지 전송 시작 - 방:', roomId, '타입:', typeof roomId);
       
-      // IMPORTANT: Convert roomId to string for consistency
-      const roomIdStr = String(roomId);
+      // IMPORTANT: Convert roomId to number for consistency
+      const roomIdNum = Number(roomId);
+      if (isNaN(roomIdNum)) {
+        console.error('❌ Invalid room ID:', roomId);
+        return false;
+      }
+      
+      console.log(`📨 Socket: Using normalized roomId: ${roomIdNum} (number)`);
       
       // Create a formatted message object - simplified for reliable transmission
       const messageObj = customMessageObj || {
@@ -500,11 +533,11 @@ Time: ${new Date().toLocaleTimeString()}
       console.log('🔆 Socket ID:', this.socket?.id);
       
       try {
-        // Directly use this.socket.emit with a simplified payload
+        // 'send-message' 이벤트 사용
         console.log('⚡️ 실제 socket.emit 직전:', {
           eventName: 'send-message',
           payload: {
-            roomId: roomIdStr,
+            roomId: roomIdNum,
             message: messageObj,
             useRAG
           }
@@ -519,11 +552,11 @@ Time: ${new Date().toLocaleTimeString()}
         });
         
         this.socket.emit('send-message', {
-          roomId: roomIdStr,
+          roomId: roomIdNum,
           message: messageObj,
           useRAG: useRAG
         });
-        console.log(`✅ 메시지 emit 완료 - 이벤트명: "send-message", 데이터:`, { roomId: roomIdStr, message: messageObj, useRAG });
+        console.log(`✅ 메시지 emit 완료 - 이벤트명: "send-message", 데이터:`, { roomId: roomIdNum, message: messageObj, useRAG });
       } catch (emitError) {
         console.error('🔥 EMIT ERROR:', emitError);
         throw emitError;

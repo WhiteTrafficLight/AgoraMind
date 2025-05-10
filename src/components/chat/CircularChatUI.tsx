@@ -26,7 +26,7 @@ interface NpcDetail {
 }
 
 interface CircularChatUIProps {
-  chatId: string | number;
+  chatId: number;
   chatTitle: string;
   participants: {
     users: string[];
@@ -68,6 +68,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
     height: typeof window !== 'undefined' ? window.innerHeight : 768
   });
   const [userProfilePicture, setUserProfilePicture] = useState<string | null>(null);
+  const [isLoadingRoom, setIsLoadingRoom] = useState(true);
   
   // Get the current message to display based on timeline position
   const currentMessage = activeMessageIndex !== null 
@@ -145,12 +146,15 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         const instance = await socketClient.init(username);
         console.log('Socket client initialization completed');
         
+        // Ensure chatId is always a number for consistency
+        const chatIdNumber = typeof chatId === 'string' ? parseInt(chatId) : chatId;
+        
         instance.on('connect', () => {
           console.log('Socket connected - updating UI state');
           setIsSocketConnected(true);
           setError('');
           
-          const joinResult = instance.joinRoom(chatId);
+          const joinResult = instance.joinRoom(chatIdNumber);
           console.log('Room join result:', joinResult ? 'success' : 'failure');
         });
         
@@ -161,14 +165,19 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         setSocketClientInstance(instance);
         
         // Join room
-        console.log('Attempting to join room:', chatId);
-        const joinResult = instance.joinRoom(chatId);
+        console.log(`Attempting to join room: ${chatIdNumber} (${typeof chatIdNumber})`);
+        const joinResult = instance.joinRoom(chatIdNumber);
         console.log('Room join result:', joinResult ? 'success' : 'failure');
         
         // Set up event listeners
-        instance.on('new-message', (data: { roomId: string, message: ChatMessage }) => {
-          console.log('New message received:', data);
-          if (String(data.roomId) === String(chatId) && data.message) {
+        instance.on('new-message', (data: { roomId: number, message: ChatMessage }) => {
+          console.log('New message received via socket:', data);
+          // 🔧 Fix: Convert roomId to number for consistent comparison
+          const messageRoomId = typeof data.roomId === 'string' ? parseInt(data.roomId) : data.roomId;
+          
+          // 🔧 Fix: Proper roomId comparison
+          if (messageRoomId === chatIdNumber && data.message) {
+            console.log(`✅ Message belongs to current room ${chatIdNumber}, adding to UI`);
             // Add the new message
             setMessages(prev => [...prev, {...data.message, isNew: true}]);
             
@@ -180,11 +189,19 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
             // Update timeline position to show latest message
             setTimelinePosition(1);
             setActiveMessageIndex(null);
+          } else {
+            console.log(`⚠️ Message for room ${messageRoomId} ignored (current room: ${chatIdNumber})`);
           }
         });
         
         instance.on('thinking', () => {
           setIsThinking(true);
+        });
+        
+        // 🔧 Add npc-selected event handler for better user experience
+        instance.on('npc-selected', (data: { npc_id: string }) => {
+          console.log('NPC selected for response:', data.npc_id);
+          // You could add UI indicators to show which NPC is responding
         });
         
         instance.on('disconnect', () => {
@@ -196,10 +213,11 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         // Cleanup on component unmount
         return () => {
           if (instance.isConnected()) {
-            instance.leaveRoom(chatId);
+            instance.leaveRoom(chatIdNumber);
           }
           instance.off('new-message', () => {});
           instance.off('thinking', () => {});
+          instance.off('npc-selected', () => {});
           instance.off('disconnect', () => {});
           instance.off('connect', () => {});
         };
@@ -371,9 +389,15 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         return;
       }
       
+      // 🔧 Fix: Ensure we're sending the numeric roomId
+      const roomIdNum = typeof chatId === 'string' ? parseInt(chatId) : chatId;
+      
       // Send message via socket
+      console.log(`Emitting send-message event for room ${roomIdNum} (${typeof roomIdNum})`, messageObj);
+      
+      // 🔧 Fix: Use emit with 'send-message' event instead of incorrect event name
       socketClientInstance.emit('send-message', {
-        roomId: chatId,
+        roomId: roomIdNum,
         message: messageObj
       });
       
@@ -494,35 +518,100 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
       // Load messages on initial render
       const loadMessages = async () => {
         try {
-          if (messages.length === 0) {
-            console.log('Loading messages for chat:', chatId);
-            const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rooms`;
-            const response = await fetch(`${apiUrl}?id=${chatId}`);
+          setIsLoadingRoom(true);
+          
+          // 초기 메시지가 이미 있는 경우 API 호출 생략
+          if (initialMessages && initialMessages.length > 0) {
+            console.log(`✅ Using ${initialMessages.length} initial messages from props`);
+            setMessages(initialMessages);
+            setIsLoadingRoom(false);
+            return;
+          }
+          
+          // 메시지가 없거나 빈 배열인 경우에만 API에서 메시지 로딩
+          console.log(`🔄 Loading messages for chat ID: ${chatId} (${typeof chatId})`);
+          
+          // ID를 숫자로 확인
+          if (typeof chatId !== 'number' || isNaN(chatId) || chatId <= 0) {
+            console.error(`❌ Invalid chat ID: ${chatId}`);
+            setError('Invalid chat room ID format');
+            setIsLoadingRoom(false);
+            return;
+          }
+          
+          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rooms`;
+          const response = await fetch(`${apiUrl}?id=${chatId}`);
+          
+          if (!response.ok) {
+            console.error(`❌ Failed to load room data: ${response.status} ${response.statusText}`);
+            setError('Failed to load chat room. It may have been deleted.');
+            setIsLoadingRoom(false);
+            return;
+          }
+          
+          const data = await response.json();
+          console.log(`📝 API Response:`, data ? `Room found (title: ${data.title})` : 'Room not found');
+          
+          // data가 null이거나 undefined인 경우 체크
+          if (!data) {
+            console.error(`❌ No data returned from API for room ID: ${chatId}`);
+            setError('Chat room not found or has been deleted.');
+            setIsLoadingRoom(false);
+            return;
+          }
+          
+          // id 필드 확인
+          if (data.id === undefined) {
+            console.error(`❌ Response missing ID field for room ID: ${chatId}`);
+            setError('Invalid room data received from server');
+            setIsLoadingRoom(false);
+            return;
+          }
+          
+          // ID 일치 여부 확인 (숫자 변환)
+          const responseId = Number(data.id);
+          if (isNaN(responseId) || responseId !== chatId) {
+            console.error(`❌ ID mismatch: requested=${chatId}, received=${data.id} (${responseId})`);
+            setError('Incorrect chat room data loaded');
+            setIsLoadingRoom(false);
+            return;
+          }
+          
+          // messages 필드가 없는 경우 체크
+          if (!data.messages) {
+            console.log(`⚠️ No messages field in room data for ID: ${chatId}, initializing empty array`);
+            data.messages = [];
+          }
+          
+          console.log(`✅ Loaded ${data.messages.length} messages from API`);
+          
+          try {
+            // Sort messages by timestamp (null 체크 추가)
+            const sortedMessages = data.messages.sort((a: ChatMessage, b: ChatMessage) => {
+              return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            });
             
-            if (response.ok) {
-              const data = await response.json();
-              console.log(`Loaded ${data.messages?.length} messages from API`);
-              
-              // Sort messages by timestamp
-              const sortedMessages = data.messages?.sort((a: ChatMessage, b: ChatMessage) => {
-                return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-              }) || [];
-              
-              setMessages(sortedMessages);
-              
-              // Set timeline to latest message
-              setTimelinePosition(1);
-              setActiveMessageIndex(null);
-            }
+            setMessages(sortedMessages);
+            
+            // Set timeline to latest message
+            setTimelinePosition(1);
+            setActiveMessageIndex(null);
+          } catch (sortError) {
+            console.error('❌ Error sorting messages:', sortError);
+            // 정렬 실패 시 원본 메시지 그대로 사용
+            setMessages(data.messages);
           }
         } catch (error) {
-          console.error('Error loading messages:', error);
+          console.error('❌ Error loading messages:', error);
+          setError('Failed to load messages. Please try refreshing the page.');
+        } finally {
+          setIsLoadingRoom(false);
         }
       };
       
       loadMessages();
     }
-  }, [chatId, username, messages.length]);
+  }, [chatId, username, initialMessages]);
   
   // Add a message change animation effect
   useEffect(() => {
@@ -794,428 +883,444 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
       
       {/* Error message display */}
       {error && (
-        <div className="bg-red-50 text-red-700 p-2 text-sm text-center">
-          {error}
-          {!isSocketConnected && (
-            <button 
-              onClick={handleReconnect}
-              className="ml-2 underline"
-            >
-              Try again
-            </button>
-          )}
+        <div className="bg-red-50 text-red-700 p-3 text-sm text-center border-b border-red-100">
+          <div className="font-semibold mb-1">Error</div>
+          <div>{error}</div>
+          <button 
+            onClick={onBack}
+            className="mt-2 px-4 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors inline-flex items-center"
+          >
+            <ArrowLeftIcon className="h-3 w-3 mr-1" />
+            Back to Open Chat
+          </button>
         </div>
       )}
 
-      {/* Main circular chat area */}
-      <div className="flex-1 relative overflow-hidden flex items-center justify-center">
-        {/* Circle layout with participants */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div 
-            id="elliptical-table"
-            className="relative" 
-            style={{ 
-              width: '80vmin', 
-              height: '80vmin',
-              maxWidth: '600px',
-              maxHeight: '600px'
-            }}
-          >
-            {/* Add the 3D table visualization - matched to participant orbit */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" 
-              style={{ 
-                width: `${circleRadius * 2.8 * 2}px`,
-                height: `${circleRadius * 0.95 * 2}px`,
-                borderRadius: '50%',
-                background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.9) 0%, rgba(249,250,251,0.6) 60%, rgba(249,250,251,0) 100%)',
-                boxShadow: 'inset 0 0 20px rgba(0,0,0,0.05)',
-                zIndex: 5
-              }}
-            >
-              {/* Table effect - subtle concentric ellipses */}
-              <div 
-                style={{ 
-                  position: 'absolute', 
-                  top: '5%', 
-                  left: '5%', 
-                  right: '5%', 
-                  bottom: '5%', 
-                  borderRadius: '50%', 
-                  border: '1px solid rgba(229, 231, 235, 0.3)'
-                }}
-              ></div>
-              <div 
-                style={{ 
-                  position: 'absolute', 
-                  top: '15%', 
-                  left: '15%', 
-                  right: '15%', 
-                  bottom: '15%', 
-                  borderRadius: '50%', 
-                  border: '1px solid rgba(229, 231, 235, 0.3)'
-                }}
-              ></div>
-              <div 
-                style={{ 
-                  position: 'absolute', 
-                  top: '25%', 
-                  left: '25%', 
-                  right: '25%', 
-                  bottom: '25%', 
-                  borderRadius: '50%', 
-                  border: '1px solid rgba(229, 231, 235, 0.3)'
-                }}
-              ></div>
-            </div>
-            
-            {/* Message bubbles - now showing multiple messages */}
-            {getLastMessages().map((msg, index) => {
-              const position = getMessagePosition(msg);
-              const opacity = getMessageOpacity(index);
-              const isActive = index === 0; // First message is active
-              
-              return (
-                <div 
-                  key={`message-${msg.id}`}
-                  className={`absolute z-20 transition-all duration-300 ease-in-out`}
-                  style={{ 
-                    top: `calc(50% + ${position.y}px)`,
-                    left: `calc(50% + ${position.x}px)`,
-                    transform: `translate(-50%, -50%) scale(${1 - index * 0.05})`,
-                    opacity: opacity,
-                    zIndex: 20 - index,
-                    maxWidth: windowDimensions.width < 768 ? '85%' : '70%',
-                    width: windowDimensions.width < 768 ? '85%' : '70%',
-                    maxHeight: windowDimensions.width < 768 ? '35%' : '40%',
-                  }}
-                >
-                  <div 
-                    className="overflow-auto"
-                    style={{ 
-                      border: isActive ? '2px solid #e5e7eb' : '1px solid #e5e7eb',
-                      padding: windowDimensions.width < 768 ? '12px' : '24px',
-                      transition: 'all 0.15s ease',
-                      backgroundColor: '#ffffff',
-                      boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
-                      backdropFilter: 'blur(0)',
-                      borderRadius: '16px',
-                    }}
-                    ref={isActive ? setMessageContainerRef : null}
-                    onScroll={isActive ? handleMessageScroll : undefined}
-                  >
-                    <div className="font-semibold mb-2">
-                      {msg.isUser 
-                        ? (msg.sender === username ? 'User' : msg.sender)
-                        : (msg.senderName || getNpcDisplayName(msg.npc_id || msg.sender))
-                      }
-                    </div>
-                    <div className="text-gray-800">
-                      {msg.text}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-2 text-right">
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            
-            {messages.length === 0 && (
-              <div 
-                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10"
-                style={{ 
-                  maxHeight: windowDimensions.width < 768 ? '35%' : '40%', 
-                  overflow: 'auto',
-                  border: '2px solid #e5e7eb',
-                  width: windowDimensions.width < 768 ? '85%' : '70%',
-                  maxWidth: '500px',
-                  padding: windowDimensions.width < 768 ? '12px' : '24px',
-                  backgroundColor: '#ffffff',
-                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
-                  backdropFilter: 'blur(0)',
-                  borderRadius: '16px',
-                }}
-                ref={setMessageContainerRef}
-              >
-                <div className="text-gray-500 italic text-center">
-                  No messages yet. Start the conversation!
-                </div>
-              </div>
-            )}
-            
-            {/* Render NPCs in a circle - optimized positioning */}
-            {participants.npcs.map((npcId, index) => {
-              const position = calculateCirclePosition(
-                index, 
-                participants.npcs.length, 
-                circleRadius
-              );
-              
-              const isActive = npcId === activeSpeakerId;
-              
-              return (
-                <div 
-                  key={npcId}
-                  id={`npc-${npcId}`}
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '50%',
-                    transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
-                    zIndex: isActive ? 20 : 10,
-                    opacity: isActive ? 1 : 0.8,
-                    transition: 'all 0.5s ease-in-out'
-                  }}
-                >
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    transform: isActive ? 'scale(1.1)' : 'scale(1)',
-                    transition: 'transform 0.3s ease'
-                  }}>
-                    <div style={{
-                      width: windowDimensions.width < 768 ? '50px' : '70px',
-                      height: windowDimensions.width < 768 ? '50px' : '70px',
-                      borderRadius: '50%',
-                      overflow: 'hidden',
-                      border: isActive ? '4px solid #3b82f6' : '4px solid #e5e7eb',
-                      boxShadow: isActive ? '0 10px 15px -3px rgba(0, 0, 0, 0.1)' : 'none',
-                      transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
-                    }}>
-                      <img 
-                        src={getNpcProfileImage(npcId)}
-                        alt={getNpcDisplayName(npcId)}
-                        style={{ 
-                          objectFit: 'cover',
-                          objectPosition: 'center',
-                          width: '100%',
-                          height: '100%',
-                          filter: isActive ? 'none' : 'brightness(0.7) grayscale(30%)',
-                          transition: 'filter 0.3s ease'
-                        }}
-                        onError={(e) => {
-                          console.error("NPC image loading error:", e);
-                          const target = e.target as HTMLImageElement;
-                          target.onerror = null; // 무한 루프 방지
-                          target.src = getDefaultAvatar(getNpcDisplayName(npcId));
-                        }}
-                      />
-                    </div>
-                    <div style={{
-                      fontSize: windowDimensions.width < 768 ? '0.75rem' : '0.875rem',
-                      marginTop: '8px',
-                      fontWeight: 500,
-                      color: isActive ? '#000000' : '#6b7280',
-                      textAlign: 'center',
-                      maxWidth: '100px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      transition: 'color 0.3s ease'
-                    }}>
-                      {getNpcDisplayName(npcId)}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            
-            {/* User at the bottom - optimized positioning */}
+      {/* Loading state */}
+      {isLoadingRoom && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mb-2"></div>
+            <div className="text-gray-500">Loading conversation...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Main circular chat area - only show when not loading and no error */}
+      {!isLoadingRoom && !error && (
+        <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+          {/* Circle layout with participants */}
+          <div className="absolute inset-0 flex items-center justify-center">
             <div 
-              id="user-avatar"
-              style={{
-                position: 'absolute',
-                left: '50%',
-                top: '50%',
-                transform: `translate(calc(-50% + ${getUserPosition(circleRadius).x}px), calc(-50% + ${getUserPosition(circleRadius).y}px))`,
-                zIndex: username === activeSpeakerId ? 20 : 10,
-                opacity: username === activeSpeakerId ? 1 : 0.8,
-                transition: 'all 0.5s ease-in-out'
+              id="elliptical-table"
+              className="relative" 
+              style={{ 
+                width: '80vmin', 
+                height: '80vmin',
+                maxWidth: '600px',
+                maxHeight: '600px'
               }}
             >
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                transform: username === activeSpeakerId ? 'scale(1.1)' : 'scale(1)',
-                transition: 'transform 0.3s ease'
-              }}>
-                <div style={{
-                  width: windowDimensions.width < 768 ? '50px' : '70px',
-                  height: windowDimensions.width < 768 ? '50px' : '70px',
+              {/* Add the 3D table visualization - matched to participant orbit */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none" 
+                style={{ 
+                  width: `${circleRadius * 2.8 * 2}px`,
+                  height: `${circleRadius * 0.95 * 2}px`,
                   borderRadius: '50%',
-                  overflow: 'hidden',
-                  border: username === activeSpeakerId ? '4px solid #3b82f6' : '4px solid #e5e7eb',
-                  boxShadow: username === activeSpeakerId ? '0 10px 15px -3px rgba(0, 0, 0, 0.1)' : 'none',
-                  transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
-                }}>
-                  <img 
-                    src={getUserProfileImage()}
-                    alt="User"
+                  background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.9) 0%, rgba(249,250,251,0.6) 60%, rgba(249,250,251,0) 100%)',
+                  boxShadow: 'inset 0 0 20px rgba(0,0,0,0.05)',
+                  zIndex: 5
+                }}
+              >
+                {/* Table effect - subtle concentric ellipses */}
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    top: '5%', 
+                    left: '5%', 
+                    right: '5%', 
+                    bottom: '5%', 
+                    borderRadius: '50%', 
+                    border: '1px solid rgba(229, 231, 235, 0.3)'
+                  }}
+                ></div>
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    top: '15%', 
+                    left: '15%', 
+                    right: '15%', 
+                    bottom: '15%', 
+                    borderRadius: '50%', 
+                    border: '1px solid rgba(229, 231, 235, 0.3)'
+                  }}
+                ></div>
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    top: '25%', 
+                    left: '25%', 
+                    right: '25%', 
+                    bottom: '25%', 
+                    borderRadius: '50%', 
+                    border: '1px solid rgba(229, 231, 235, 0.3)'
+                  }}
+                ></div>
+              </div>
+              
+              {/* Message bubbles - now showing multiple messages */}
+              {getLastMessages().map((msg, index) => {
+                const position = getMessagePosition(msg);
+                const opacity = getMessageOpacity(index);
+                const isActive = index === 0; // First message is active
+                
+                return (
+                  <div 
+                    key={`message-${msg.id}`}
+                    className={`absolute z-20 transition-all duration-300 ease-in-out`}
                     style={{ 
-                      objectFit: 'cover',
-                      width: '100%',
-                      height: '100%',
-                      filter: username === activeSpeakerId ? 'none' : 'brightness(0.7) grayscale(30%)',
-                      transition: 'filter 0.3s ease'
+                      top: `calc(50% + ${position.y}px)`,
+                      left: `calc(50% + ${position.x}px)`,
+                      transform: `translate(-50%, -50%) scale(${1 - index * 0.05})`,
+                      opacity: opacity,
+                      zIndex: 20 - index,
+                      maxWidth: windowDimensions.width < 768 ? '85%' : '70%',
+                      width: windowDimensions.width < 768 ? '85%' : '70%',
+                      maxHeight: windowDimensions.width < 768 ? '35%' : '40%',
                     }}
-                    onError={(e) => {
-                      console.error("Profile image loading error:", e);
-                      const target = e.target as HTMLImageElement;
-                      target.onerror = null; // 무한 루프 방지
-                      target.src = getDefaultAvatar(username || 'User');
-                    }}
-                  />
+                  >
+                    <div 
+                      className="overflow-auto"
+                      style={{ 
+                        border: isActive ? '2px solid #e5e7eb' : '1px solid #e5e7eb',
+                        padding: windowDimensions.width < 768 ? '12px' : '24px',
+                        transition: 'all 0.15s ease',
+                        backgroundColor: '#ffffff',
+                        boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
+                        backdropFilter: 'blur(0)',
+                        borderRadius: '16px',
+                      }}
+                      ref={isActive ? setMessageContainerRef : null}
+                      onScroll={isActive ? handleMessageScroll : undefined}
+                    >
+                      <div className="font-semibold mb-2">
+                        {msg.isUser 
+                          ? (msg.sender === username ? 'User' : msg.sender)
+                          : (msg.senderName || getNpcDisplayName(msg.npc_id || msg.sender))
+                        }
+                      </div>
+                      <div className="text-gray-800">
+                        {msg.text}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2 text-right">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {messages.length === 0 && (
+                <div 
+                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10"
+                  style={{ 
+                    maxHeight: windowDimensions.width < 768 ? '35%' : '40%', 
+                    overflow: 'auto',
+                    border: '2px solid #e5e7eb',
+                    width: windowDimensions.width < 768 ? '85%' : '70%',
+                    maxWidth: '500px',
+                    padding: windowDimensions.width < 768 ? '12px' : '24px',
+                    backgroundColor: '#ffffff',
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
+                    backdropFilter: 'blur(0)',
+                    borderRadius: '16px',
+                  }}
+                  ref={setMessageContainerRef}
+                >
+                  <div className="text-gray-500 italic text-center">
+                    No messages yet. Start the conversation!
+                  </div>
                 </div>
+              )}
+              
+              {/* Render NPCs in a circle - optimized positioning */}
+              {participants.npcs.map((npcId, index) => {
+                const position = calculateCirclePosition(
+                  index, 
+                  participants.npcs.length, 
+                  circleRadius
+                );
+                
+                const isActive = npcId === activeSpeakerId;
+                
+                return (
+                  <div 
+                    key={npcId}
+                    id={`npc-${npcId}`}
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: '50%',
+                      transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
+                      zIndex: isActive ? 20 : 10,
+                      opacity: isActive ? 1 : 0.8,
+                      transition: 'all 0.5s ease-in-out'
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                      transition: 'transform 0.3s ease'
+                    }}>
+                      <div style={{
+                        width: windowDimensions.width < 768 ? '50px' : '70px',
+                        height: windowDimensions.width < 768 ? '50px' : '70px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        border: isActive ? '4px solid #3b82f6' : '4px solid #e5e7eb',
+                        boxShadow: isActive ? '0 10px 15px -3px rgba(0, 0, 0, 0.1)' : 'none',
+                        transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
+                      }}>
+                        <img 
+                          src={getNpcProfileImage(npcId)}
+                          alt={getNpcDisplayName(npcId)}
+                          style={{ 
+                            objectFit: 'cover',
+                            objectPosition: 'center',
+                            width: '100%',
+                            height: '100%',
+                            filter: isActive ? 'none' : 'brightness(0.7) grayscale(30%)',
+                            transition: 'filter 0.3s ease'
+                          }}
+                          onError={(e) => {
+                            console.error("NPC image loading error:", e);
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null; // 무한 루프 방지
+                            target.src = getDefaultAvatar(getNpcDisplayName(npcId));
+                          }}
+                        />
+                      </div>
+                      <div style={{
+                        fontSize: windowDimensions.width < 768 ? '0.75rem' : '0.875rem',
+                        marginTop: '8px',
+                        fontWeight: 500,
+                        color: isActive ? '#000000' : '#6b7280',
+                        textAlign: 'center',
+                        maxWidth: '100px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        transition: 'color 0.3s ease'
+                      }}>
+                        {getNpcDisplayName(npcId)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {/* User at the bottom - optimized positioning */}
+              <div 
+                id="user-avatar"
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: `translate(calc(-50% + ${getUserPosition(circleRadius).x}px), calc(-50% + ${getUserPosition(circleRadius).y}px))`,
+                  zIndex: username === activeSpeakerId ? 20 : 10,
+                  opacity: username === activeSpeakerId ? 1 : 0.8,
+                  transition: 'all 0.5s ease-in-out'
+                }}
+              >
                 <div style={{
-                  fontSize: windowDimensions.width < 768 ? '0.75rem' : '0.875rem',
-                  marginTop: '8px',
-                  fontWeight: 500,
-                  color: username === activeSpeakerId ? '#000000' : '#6b7280',
-                  textAlign: 'center',
-                  transition: 'color 0.3s ease'
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  transform: username === activeSpeakerId ? 'scale(1.1)' : 'scale(1)',
+                  transition: 'transform 0.3s ease'
                 }}>
-                  User
+                  <div style={{
+                    width: windowDimensions.width < 768 ? '50px' : '70px',
+                    height: windowDimensions.width < 768 ? '50px' : '70px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    border: username === activeSpeakerId ? '4px solid #3b82f6' : '4px solid #e5e7eb',
+                    boxShadow: username === activeSpeakerId ? '0 10px 15px -3px rgba(0, 0, 0, 0.1)' : 'none',
+                    transition: 'border-color 0.3s ease, box-shadow 0.3s ease'
+                  }}>
+                    <img 
+                      src={getUserProfileImage()}
+                      alt="User"
+                      style={{ 
+                        objectFit: 'cover',
+                        width: '100%',
+                        height: '100%',
+                        filter: username === activeSpeakerId ? 'none' : 'brightness(0.7) grayscale(30%)',
+                        transition: 'filter 0.3s ease'
+                      }}
+                      onError={(e) => {
+                        console.error("Profile image loading error:", e);
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null; // 무한 루프 방지
+                        target.src = getDefaultAvatar(username || 'User');
+                      }}
+                    />
+                  </div>
+                  <div style={{
+                    fontSize: windowDimensions.width < 768 ? '0.75rem' : '0.875rem',
+                    marginTop: '8px',
+                    fontWeight: 500,
+                    color: username === activeSpeakerId ? '#000000' : '#6b7280',
+                    textAlign: 'center',
+                    transition: 'color 0.3s ease'
+                  }}>
+                    User
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
       
-      {/* Timeline controls */}
-      <div className="w-full flex-none flex items-center justify-center py-4">
-        <div className="max-w-md w-full px-4">
-          <div className="relative">
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={timelinePosition}
-              onChange={handleTimelineChange}
-              onMouseDown={handleTimelineStart}
-              onTouchStart={handleTimelineStart}
-              onMouseUp={handleTimelineEnd}
-              onTouchEnd={handleTimelineEnd}
-              className="w-full slider-thumb"
-              style={{
-                height: '6px',
-                appearance: 'none',
-                borderRadius: '3px',
-                background: 'linear-gradient(to right, #3b82f6, #93c5fd)',
-                outline: 'none',
-              }}
-            />
-          </div>
-          <div className="text-center text-sm text-gray-500 mt-2">
-            {timelinePosition < 1 && activeMessageIndex !== null && (
-              <div>
-                Viewing past messages {activeMessageIndex !== null 
-                  ? `(${activeMessageIndex + 1} of ${messages.length})`
-                  : `(${messages.length})`}
-              </div>
-            )}
-            {timelinePosition === 1 && messages.length > 0 && (
-              <div>Latest message</div>
-            )}
-            {messages.length === 0 && (
-              <div>No messages yet</div>
-            )}
+      {/* Timeline controls - only show when not loading and no error */}
+      {!isLoadingRoom && !error && (
+        <div className="w-full flex-none flex items-center justify-center py-4">
+          <div className="max-w-md w-full px-4">
+            <div className="relative">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={timelinePosition}
+                onChange={handleTimelineChange}
+                onMouseDown={handleTimelineStart}
+                onTouchStart={handleTimelineStart}
+                onMouseUp={handleTimelineEnd}
+                onTouchEnd={handleTimelineEnd}
+                className="w-full slider-thumb"
+                style={{
+                  height: '6px',
+                  appearance: 'none',
+                  borderRadius: '3px',
+                  background: 'linear-gradient(to right, #3b82f6, #93c5fd)',
+                  outline: 'none',
+                }}
+              />
+            </div>
+            <div className="text-center text-sm text-gray-500 mt-2">
+              {timelinePosition < 1 && activeMessageIndex !== null && (
+                <div>
+                  Viewing past messages {activeMessageIndex !== null 
+                    ? `(${activeMessageIndex + 1} of ${messages.length})`
+                    : `(${messages.length})`}
+                </div>
+              )}
+              {timelinePosition === 1 && messages.length > 0 && (
+                <div>Latest message</div>
+              )}
+              {messages.length === 0 && (
+                <div>No messages yet</div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
-      {/* Input area - updated to match ChatUI style */}
-      <div className="bg-white border-t border-gray-200 p-3 w-full" style={{ paddingBottom: '16px' }}>
-        <form onSubmit={handleSendMessage} style={{
-          maxWidth: '95%',
-          margin: '0 auto',
-          padding: '0 8px'
-        }}>
-          <div 
-            style={{
-              position: 'relative',
-              width: '95%', 
-              backgroundColor: '#f8f8f8',
-              borderRadius: '24px',
-              padding: '8px 16px',
-              marginTop: '8px',
-              display: 'flex',
-              alignItems: 'flex-end',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-              zIndex: 10
-            }}
-          >
-            <textarea
-              ref={inputRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Type a message (Press Enter to send)"
+      {/* Input area - only show when not loading and no error */}
+      {!isLoadingRoom && !error && (
+        <div className="bg-white border-t border-gray-200 p-3 w-full" style={{ paddingBottom: '16px' }}>
+          <form onSubmit={handleSendMessage} style={{
+            maxWidth: '95%',
+            margin: '0 auto',
+            padding: '0 8px'
+          }}>
+            <div 
               style={{
-                flexGrow: 1,
-                minHeight: '36px',
-                maxHeight: '120px',
-                background: 'transparent',
-                border: 'none',
-                resize: 'none',
-                padding: '8px 0',
-                outline: 'none',
-                fontSize: '14px',
-                lineHeight: 1.5
-              }}
-              disabled={!isSocketConnected || isSending || isThinking}
-            />
-            <button
-              type="submit"
-              style={{
-                flexShrink: 0,
-                backgroundColor: message.trim() === '' || !isSocketConnected || isSending || isThinking ? '#e0e0e0' : '#0084ff',
-                color: message.trim() === '' || !isSocketConnected || isSending || isThinking ? '#a0a0a0' : 'white',
-                borderRadius: '50%',
-                width: '36px',
-                height: '36px',
+                position: 'relative',
+                width: '95%', 
+                backgroundColor: '#f8f8f8',
+                borderRadius: '24px',
+                padding: '8px 16px',
+                marginTop: '8px',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginLeft: '8px',
-                transition: 'all 0.2s',
-                border: 'none',
-                cursor: message.trim() === '' || !isSocketConnected || isSending || isThinking ? 'not-allowed' : 'pointer',
-                opacity: message.trim() === '' || !isSocketConnected || isSending || isThinking ? 0.5 : 1
+                alignItems: 'flex-end',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+                zIndex: 10
               }}
-              disabled={message.trim() === '' || !isSocketConnected || isSending || isThinking}
             >
-              {isSending ? (
-                <div style={{
-                  width: '20px',
-                  height: '20px',
-                  border: '2px solid white',
-                  borderTopColor: 'transparent',
+              <textarea
+                ref={inputRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Type a message (Press Enter to send)"
+                style={{
+                  flexGrow: 1,
+                  minHeight: '36px',
+                  maxHeight: '120px',
+                  background: 'transparent',
+                  border: 'none',
+                  resize: 'none',
+                  padding: '8px 0',
+                  outline: 'none',
+                  fontSize: '14px',
+                  lineHeight: 1.5
+                }}
+                disabled={!isSocketConnected || isSending || isThinking || error !== null}
+              />
+              <button
+                type="submit"
+                style={{
+                  flexShrink: 0,
+                  backgroundColor: message.trim() === '' || !isSocketConnected || isSending || isThinking || error !== null ? '#e0e0e0' : '#0084ff',
+                  color: message.trim() === '' || !isSocketConnected || isSending || isThinking || error !== null ? '#a0a0a0' : 'white',
                   borderRadius: '50%',
-                  animation: 'spin 1s linear infinite'
-                }}></div>
-              ) : (
-                <PaperAirplaneIcon className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-        </form>
-        
-        {/* Thinking indicator - below textarea */}
-        {isThinking && (
-          <div className="text-xs text-gray-500 mt-1 text-center">
-            <span className="inline-block w-5 h-3 relative overflow-hidden mr-1">
-              <span className="absolute w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ left: '0%', animationDelay: '0s' }}></span>
-              <span className="absolute w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ left: '33%', animationDelay: '0.2s' }}></span>
-              <span className="absolute w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ left: '66%', animationDelay: '0.4s' }}></span>
-            </span>
-            Thinking...
-          </div>
-        )}
-      </div>
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginLeft: '8px',
+                  transition: 'all 0.2s',
+                  border: 'none',
+                  cursor: message.trim() === '' || !isSocketConnected || isSending || isThinking || error !== null ? 'not-allowed' : 'pointer',
+                  opacity: message.trim() === '' || !isSocketConnected || isSending || isThinking || error !== null ? 0.5 : 1
+                }}
+                disabled={message.trim() === '' || !isSocketConnected || isSending || isThinking || error !== null}
+              >
+                {isSending ? (
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    border: '2px solid white',
+                    borderTopColor: 'transparent',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                ) : (
+                  <PaperAirplaneIcon className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          </form>
+          
+          {/* Thinking indicator - below textarea */}
+          {isThinking && (
+            <div className="text-xs text-gray-500 mt-1 text-center">
+              <span className="inline-block w-5 h-3 relative overflow-hidden mr-1">
+                <span className="absolute w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ left: '0%', animationDelay: '0s' }}></span>
+                <span className="absolute w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ left: '33%', animationDelay: '0.2s' }}></span>
+                <span className="absolute w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ left: '66%', animationDelay: '0.4s' }}></span>
+              </span>
+              Thinking...
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Podcast generation modal */}
       {showPodcastModal && (
