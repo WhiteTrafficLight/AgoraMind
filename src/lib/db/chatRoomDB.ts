@@ -142,15 +142,15 @@ class ChatRoomDB {
       
       try {
         // 최대 ID + 1 로직을 기본 방식으로 사용
-        const maxIdRoom = await db.collection<DBChatRoom>('chatRooms')
-          .find({})
-          .sort({ roomId: -1 })
-          .limit(1)
-          .toArray();
-        
-        if (maxIdRoom.length > 0 && maxIdRoom[0].roomId) {
+          const maxIdRoom = await db.collection<DBChatRoom>('chatRooms')
+            .find({})
+            .sort({ roomId: -1 })
+            .limit(1)
+            .toArray();
+          
+          if (maxIdRoom.length > 0 && maxIdRoom[0].roomId) {
           // roomId를 직접 숫자로 증가 (parseInt 필요 없음)
-          roomId = maxIdRoom[0].roomId + 1;
+            roomId = maxIdRoom[0].roomId + 1;
           console.log(`최대 ID 기반으로 새 ID 생성: ${roomId}`);
         } else {
           console.log(`채팅방이 없어 첫 ID 생성: ${roomId}`);
@@ -166,12 +166,12 @@ class ChatRoomDB {
           // 타입을 명시적으로 지정하여 타입 오류 해결
           const countersCollection = db.collection<CounterDoc>('counters');
           await countersCollection.findOneAndUpdate(
-            { _id: 'roomId' },
+              { _id: 'roomId' },
             { $set: { seq: roomId } },
             { upsert: true }
-          );
+            );
           console.log(`카운터를 안전하게 업데이트/생성: ${roomId}`);
-        } catch (counterError) {
+      } catch (counterError) {
           // 카운터 오류는 무시 - ID 생성 로직은 이미 완료됨
           console.warn('카운터 업데이트 중 오류 (무시됨):', counterError);
         }

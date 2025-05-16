@@ -458,7 +458,7 @@ Time: ${new Date().toLocaleTimeString()}
       console.error('Cannot leave room: Socket not connected');
       return false;
     }
-    
+  
     // 항상 숫자로 변환하여 로깅 및 전송
     const normalizedId = Number(roomId);
     console.log(`SocketClient: Leaving room ${roomId} (${typeof roomId}) -> ${normalizedId} (number)`);

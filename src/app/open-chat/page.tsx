@@ -183,65 +183,33 @@ export default function OpenChatPage() {
   
   // 컴포넌트 마운트 시 소켓 초기화 및 채팅룸 로드
   useEffect(() => {
-    // 초기화 순서 보장: 소켓 먼저 초기화 후 데이터 로드
     const init = async () => {
-      // 1. 소켓 초기화
-      await initializeSocket();
+      // 1. 사용자 프로필 정보 가져오기 (이름 표시에 필요)
+      await fetchUserProfile();
       
-      // 2. 채팅룸 데이터 로드
+      // 2. 초기화 및 데이터 로드
+      await initializeSocket();
       await loadChatRooms();
 
-      // 3. 디버깅용: 전역 창에 소켓 참조 노출
-      if (typeof window !== 'undefined') {
-        console.log('🔄 소켓 디버깅 변수 설정');
-        // @ts-ignore
-        window._debug = {
-          getSocket: () => socketRef.current,
-          socketConnected,
-          getActiveChats: () => activeChats,
-          reloadRooms: loadChatRooms,
-          roomsCount: activeChats.length,
-          // 새 디버깅 함수 추가
-          forceReconnect: () => {
-            if (socketRef.current) {
-              console.log("수동으로 소켓 재연결 시도");
-              socketRef.current.disconnect();
-              setTimeout(() => {
-                socketRef.current?.connect();
-              }, 500);
-            } else {
-              console.log("소켓 참조가 없습니다. 초기화 부터 다시 시도합니다.");
-              initializeSocket();
-            }
-          }
-        };
-        console.log('🔍 디버깅: window._debug로 소켓 상태를 확인할 수 있습니다');
-        console.log('🔍 사용 예: window._debug.socketConnected');
-        console.log('🔍 채팅룸 새로고침: window._debug.reloadRooms()');
-        console.log('🔍 소켓 재연결: window._debug.forceReconnect()');
-        
-        // 소켓 디버깅 정보도 함께 체크
-        // @ts-ignore
-        if (window._socketDebug) {
-          console.log('Socket.IO 디버깅 정보:', window._socketDebug);
-          // 소켓 연결 상태 동기화
-          // @ts-ignore
-          if (window._socketDebug.connected !== undefined) {
-            setSocketConnected(window._socketDebug.connected);
-          }
-        }
-      }
+      // 3. 철학자 정보 로드
+      await Promise.all([
+        fetchPhilosophers(),
+        fetchCustomNpcs()
+      ]);
     };
     
     init();
     
-    // 컴포넌트 언마운트 시 소켓 연결 해제
+    // Initialize socket
+    // initializeSocket();
+    
+    // Also load available philosophers
+    // fetchPhilosophers();
+    // fetchCustomNpcs();
+    
     return () => {
-      if (socketRef.current) {
-        console.log('Disconnecting socket');
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+      // Clean up any resources like socket connections
+      // socketClient.disconnect();
     };
   }, []);
   
@@ -449,6 +417,15 @@ export default function OpenChatPage() {
         generateInitialMessage: shouldGenerateInitialMessage,
         dialogueType
       };
+      
+      // Include username for user display in moderator messages
+      if (username) {
+        // 상태 변수에서 username 사용 (sessionStorage 대신)
+        chatParams.username = username;
+        console.log(`채팅방 생성 시 사용자 이름 포함: ${username}`);
+      } else {
+        console.log('사용자 이름이 없음, 기본값 사용됨');
+      }
       
       // 찬반토론 모드일 때 npcPositions 정보 추가
       if (dialogueType === 'debate') {
@@ -861,6 +838,53 @@ export default function OpenChatPage() {
   const goToPreviousStep = () => {
     if (createChatStep > 1) {
       setCreateChatStep((prev) => (prev - 1) as 1 | 2 | 3);
+    }
+  };
+
+  // Add username state
+  const [username, setUsername] = useState<string>('');
+  
+  // 사용자 프로필 정보 가져오기
+  const fetchUserProfile = async () => {
+    try {
+      const response = await fetch('/api/user/profile');
+      if (response.ok) {
+        const profileData = await response.json();
+        console.log('User profile data:', profileData);
+        
+        // DB에서 가져온 실제 username 사용
+        if (profileData.username) {
+          setUsername(profileData.username);
+          // 세션 스토리지에도 저장 (UI 일관성 위해)
+          sessionStorage.setItem('chat_username', profileData.username);
+          console.log(`✅ DB에서 사용자 이름 가져옴: ${profileData.username}`);
+        } else {
+          // 프로필에 username이 없으면 기본값 설정
+          const storedUsername = sessionStorage.getItem('chat_username');
+          if (storedUsername) {
+            setUsername(storedUsername);
+          } else {
+            const randomUsername = `User_${Math.floor(Math.random() * 10000)}`;
+            setUsername(randomUsername);
+            sessionStorage.setItem('chat_username', randomUsername);
+            console.log(`⚠️ DB에 username 없음, 랜덤 이름 생성: ${randomUsername}`);
+          }
+        }
+      } else {
+        throw new Error('Failed to fetch user profile');
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      // 오류 발생 시 세션 스토리지에서 가져오거나 새로 생성
+      const storedUsername = sessionStorage.getItem('chat_username');
+      if (storedUsername) {
+        setUsername(storedUsername);
+      } else {
+        const randomUsername = `User_${Math.floor(Math.random() * 10000)}`;
+        setUsername(randomUsername);
+        sessionStorage.setItem('chat_username', randomUsername);
+        console.log(`⚠️ 프로필 API 오류, 기본 이름 사용: ${randomUsername}`);
+      }
     }
   };
 

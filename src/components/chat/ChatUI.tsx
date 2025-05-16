@@ -15,6 +15,8 @@ interface ChatMessage extends ChatMessageBase {
   portrait_url?: string;
   npc_id?: string;
   citations?: Citation[]; // 인용 정보 추가
+  isSystemMessage?: boolean; // 시스템 메시지 여부
+  role?: string; // 메시지 역할 (moderator 등)
 }
 
 // Citation 인터페이스 추가

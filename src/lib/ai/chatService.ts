@@ -13,6 +13,8 @@ export interface ChatMessage {
   isUser: boolean;
   timestamp: Date;
   citations?: Citation[]; // 인용 정보 배열 추가
+  isSystemMessage?: boolean; // 시스템 메시지 여부
+  role?: string; // 메시지 역할 (moderator 등)
 }
 
 export interface ChatRoom {
@@ -59,6 +61,7 @@ export interface ChatRoomCreationParams {
   npcs: string[];
   isPublic?: boolean;
   currentUser?: string;
+  username?: string; // Current user's display name
   generateInitialMessage?: boolean;
   llmProvider?: string;
   llmModel?: string;
@@ -310,13 +313,13 @@ class ChatService {
         try {
           response = await fetch(`/api/rooms?id=${normalizedId}`);
       
-          if (!response.ok) {
+      if (!response.ok) {
             // 상태 코드별 세분화된 오류 처리
             if (response.status === 404) {
               log(`❌ Room ${normalizedId} not found`);
               return null;
             }
-            throw new Error(`Failed to fetch chat room: ${response.status}`);
+        throw new Error(`Failed to fetch chat room: ${response.status}`);
           }
           
           break; // 성공하면 루프 종료
@@ -414,8 +417,43 @@ class ChatService {
         // 빈 메시지가 아닌지 확인
         if (room.initial_message.text && room.initial_message.text.trim() !== "") {
           
-          // System 메시지가 아닌지, Welcome 메시지가 아닌지 확인
-          if (room.initial_message.sender !== 'System' && 
+          // 진행자(모더레이터) 메시지인지 확인 (Moderator, isSystemMessage=true, role=moderator)
+          if (room.initial_message.sender === 'Moderator' || 
+              room.initial_message.isSystemMessage || 
+              room.initial_message.role === 'moderator') {
+            
+            log('✅ Valid moderator message found, adding to message list');
+            log('Moderator message details:', {
+              sender: room.initial_message.sender,
+              isSystemMessage: room.initial_message.isSystemMessage,
+              role: room.initial_message.role,
+              textPreview: room.initial_message.text.substring(0, 100)
+            });
+            
+            // 중복 메시지가 아닌지 확인
+            const isDuplicate = room.messages.some((msg: ChatMessage) => 
+              msg.text === room.initial_message.text && 
+              (msg.sender === room.initial_message.sender || msg.sender === 'Moderator') && 
+              !msg.isUser
+            );
+            
+            if (!isDuplicate) {
+              // 모더레이터 필드 명시적 설정 보장
+              const moderatorMessage: ChatMessage = {
+                ...room.initial_message,
+                sender: 'Moderator',
+                isSystemMessage: true,
+                role: 'moderator'
+              };
+              
+              room.messages.push(moderatorMessage);
+              log('✅ Added moderator message to message list');
+            } else {
+              log('⚠️ Duplicate moderator message detected, not adding');
+            }
+          }
+          // System 메시지가 아닌지, Welcome 메시지가 아닌지 확인 (일반 NPC 메시지)
+          else if (room.initial_message.sender !== 'System' && 
               !room.initial_message.text.toLowerCase().startsWith("welcome to")) {
             
             log('✅ Valid initial message found, adding to message list');
@@ -430,7 +468,7 @@ class ChatService {
             
             if (!isDuplicate) {
               room.messages.push(room.initial_message);
-            } else {
+          } else {
               log('⚠️ Duplicate initial message detected, not adding');
             }
           } else {
@@ -466,7 +504,7 @@ class ChatService {
         return roomCopy;
       }
       
-      return null;
+        return null;
     }
   }
 
@@ -554,6 +592,30 @@ class ChatService {
       try {
         rawRoomData = await safeParseJson(response);
       console.log('✅ Server created room:', rawRoomData.id, rawRoomData.title);
+        
+        // 추가 디버깅 로그 - initial_message 확인
+        if (rawRoomData.initial_message) {
+          console.log('✅ Initial message received from server:', {
+            id: rawRoomData.initial_message.id,
+            sender: rawRoomData.initial_message.sender,
+            isSystemMessage: rawRoomData.initial_message.isSystemMessage,
+            role: rawRoomData.initial_message.role,
+            textPreview: rawRoomData.initial_message.text.substring(0, 100)
+          });
+          
+          // Moderator 메시지인지 확인
+          if (
+            rawRoomData.initial_message.sender === 'Moderator' ||
+            rawRoomData.initial_message.isSystemMessage === true ||
+            rawRoomData.initial_message.role === 'moderator'
+          ) {
+            console.log('🎯 Moderator message detected in initial_message!');
+          } else {
+            console.log('⚠️ Initial message is not from Moderator:', rawRoomData.initial_message.sender);
+          }
+        } else {
+          console.log('⚠️ No initial_message field in server response');
+        }
       } catch (error) {
         console.error('❌ Failed to parse API response:', error);
         throw new Error('Unable to parse API response: ' + (error as Error).message);
@@ -577,8 +639,144 @@ class ChatService {
         console.log('📝 Processing initial message from server');
         console.log('Initial message:', newRoom.initial_message);
         
+        // 진행자 메시지인지 확인 (Moderator, isSystemMessage=true, role=moderator)
+        if (newRoom.initial_message.sender === 'Moderator' || 
+            newRoom.initial_message.isSystemMessage || 
+            newRoom.initial_message.role === 'moderator') {
+          
+          console.log('✅ Found moderator message for debate, adding to room');
+          console.log('✅ Moderator message details:');
+          console.log('sender:', newRoom.initial_message.sender);
+          console.log('isSystemMessage:', newRoom.initial_message.isSystemMessage);
+          console.log('role:', newRoom.initial_message.role);
+          console.log('text preview:', newRoom.initial_message.text?.substring(0, 100));
+          console.log('full message text:', newRoom.initial_message.text);
+          
+          // 빈 메시지가 아닌지 확인
+          if (newRoom.initial_message.text && newRoom.initial_message.text.trim() !== "") {
+            // 중복 메시지가 아닌지 확인
+            const isDuplicate = newRoom.messages.some(msg => 
+              msg.text === newRoom.initial_message?.text && 
+              msg.sender === newRoom.initial_message?.sender
+            );
+            
+            if (!isDuplicate) {
+              // 모더레이터 메시지를 messages 배열에 추가
+              // isSystemMessage와 role 필드 유지하며 추가
+              const moderatorMsg: ChatMessage = {
+                ...newRoom.initial_message,
+                isSystemMessage: true,
+                role: 'moderator'
+              };
+              newRoom.messages.push(moderatorMsg);
+              console.log('✅ Added moderator message with isSystemMessage and role fields to room');
+              console.log('✅ Final moderator message:', moderatorMsg);
+              
+              // 찬반토론 모드인 경우 모더레이터 메시지 후 찬성측 NPC가 자동으로 입장 표명
+              if (newRoom.dialogueType === 'debate' && newRoom.pro && newRoom.pro.length > 0) {
+                console.log('📣 Debate mode: Automatically generating first pro NPC response');
+                
+                // NPC 상세 정보 로드
+                if (!newRoom.npcDetails) {
+                  console.log('🔄 Loading NPC details for debate message generation');
+                  newRoom.npcDetails = await this.loadNpcDetails(newRoom.participants.npcs);
+                }
+                
+                // 첫 번째 찬성측 NPC 선택
+                const firstProNpcId = newRoom.pro[0];
+                
+                if (newRoom.participants.npcs.includes(firstProNpcId)) {
+                  try {
+                    console.log(`📣 Generating automatic response from pro NPC: ${firstProNpcId}`);
+                    
+                    // 토론 주제에서 키워드 추출
+                    const topicKeywords = newRoom.title.split(' ').filter(word => word.length > 3);
+                    
+                    // 찬성 입장 표명 메시지 준비
+                    const stanceMessage = 
+                      newRoom.initial_message.text.includes('찬성 입장:') ? 
+                        newRoom.initial_message.text.split('찬성 입장:')[1]?.split('\n')[0]?.trim() :
+                        `${newRoom.title}에 찬성합니다`;
+                    
+                    // 입장 표명 메시지 템플릿
+                    let proResponse = '';
+                    
+                    // API 요청 준비
+                    const lastMessage = newRoom.messages[newRoom.messages.length - 1];
+                    
+                    // 기존 메시지 기록 구성 (모더레이터 메시지만 포함)
+                    const dialogueContext = `Moderator: ${lastMessage.text}`;
+                    
+                    // NPC 설명 가져오기
+                    const npcDetail = newRoom.npcDetails.find(npc => npc.id === firstProNpcId);
+                    const npcName = npcDetail?.name || firstProNpcId;
+                    
+                    // 채팅방 ID 정규화
+                    const normalizedId = this.normalizeId(newRoom.id);
+                    
+                    // AI 응답 생성 API 호출
+                    console.log(`🤖 Requesting AI response for opening statement from ${npcName}`);
+                    
+                    const response = await fetch('/api/chat/generate', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'x-llm-provider': 'openai', 
+                        'x-llm-model': 'gpt-4o'
+                      },
+                      body: JSON.stringify({
+                        npcs: [firstProNpcId],  // 한 명의 NPC만 응답
+                        room_id: String(normalizedId),
+                        topic: newRoom.title,
+                        context: newRoom.context || "",
+                        previous_dialogue: dialogueContext,
+                        user_message: "Please provide your opening statement supporting the pro side of this debate.",
+                        use_rag: true,  // RAG 활성화
+                      })
+                    });
+                    
+                    if (response.ok) {
+                      const data = await response.json();
+                      proResponse = data.response;
+                      
+                      console.log(`✅ Generated NPC response from ${npcName}:`, proResponse.substring(0, 100) + '...');
+                      
+                      // 응답 메시지 생성
+                      const npcMessage: ChatMessage = {
+                        id: this.generateUniqueId('npc-'),
+                        text: proResponse,
+                        sender: firstProNpcId,
+                        isUser: false,
+                        timestamp: new Date(),
+                        citations: data.citations
+                      };
+                      
+                      // 채팅방에 메시지 추가
+                      newRoom.messages.push(npcMessage);
+                      console.log(`✅ Added pro NPC ${npcName} message to room`);
+                      
+                      // DB에 메시지 저장
+                      await this.saveInitialMessage(newRoom.id, npcMessage);
+                      console.log(`✅ Saved pro NPC message to DB`);
+                    } else {
+                      console.error('❌ Failed to generate pro NPC response:', await response.text());
+                    }
+                  } catch (err) {
+                    console.error('❌ Error generating automatic pro NPC response:', err);
+                  }
+                } else {
+                  console.warn(`⚠️ First pro participant ${firstProNpcId} is not an NPC`);
+                }
+              }
+            } else {
+              console.log('⚠️ Duplicate moderator message detected, not adding');
+            }
+          } else {
+            console.log('⚠️ Empty moderator message detected, not adding');
+          }
+        }
         // 빈 메시지가 아닌지 확인하고, 시스템 메시지가 아닌지 확인
-        if (newRoom.initial_message.text && 
+        else if (newRoom.initial_message.text && 
             newRoom.initial_message.text.trim() !== "" && 
             newRoom.initial_message.sender !== 'System' &&
             !newRoom.initial_message.text.toLowerCase().startsWith("welcome to")) {
@@ -599,7 +797,7 @@ class ChatService {
             console.log('⚠️ Duplicate initial message detected, not adding');
           }
         } else {
-          console.log('⚠️ Invalid initial message detected (empty or system message), not adding');
+          log('⚠️ Invalid initial message detected (empty or system message), not adding');
           
           // 빈 메시지가 생성된 경우 우리가 직접 유의미한 메시지 생성
           if (!newRoom.initial_message.text || newRoom.initial_message.text.trim() === "") {
@@ -861,8 +1059,9 @@ class ChatService {
   }
 
   // Send user message to a chat room
-  async sendMessage(roomId: string | number, message: string, username?: string): Promise<ChatMessage> {
-    console.log(`🔄 Sending message to room ${roomId} from ${username || 'user'}`);
+  async sendMessage(roomId: string | number, message: string, messageData: any = {}): Promise<ChatMessage> {
+    console.log(`🔄 ChatService: Sending message to room ${roomId}`);
+    console.log(`🔄 ChatService: Message data:`, messageData);
 
     try {
       // 1. 채팅방 정보 가져오기
@@ -871,75 +1070,58 @@ class ChatService {
         throw new Error(`Chat room with ID ${roomId} not found`);
       }
 
-      // 2. 메시지 객체 생성
+      // 2. 사용자 메시지 객체 생성 - messageData에서 id, sender, role 등 중요 필드 보존
       const messageObj: ChatMessage = {
-      id: this.generateUniqueId('user-'),
-        text: message,
-        sender: username || 'User',
+        id: messageData?.id || this.generateUniqueId('user-'),
+        text: message.trim(),  // 앞뒤 공백 제거
+        sender: messageData?.sender || 'User',
       isUser: true,
-      timestamp: new Date()
-    };
-    
-      // 3. API 요청 준비
-      const normalizedId = this.normalizeId(roomId);
-      const requestBody = {
-        roomId: normalizedId,
-        message: {
-          ...messageObj,
-          timestamp: messageObj.timestamp instanceof Date 
-            ? messageObj.timestamp.toISOString() 
-            : messageObj.timestamp
-        }
+        timestamp: messageData?.timestamp || new Date().toISOString(),
+        role: messageData?.role // 역할 정보 보존 (debate에서 중요)
       };
 
-      // 4. API 요청 - 사용자 메시지 저장
-      const MAX_RETRIES = 3;
-      let retryCount = 0;
-      let response: Response | null = null;
+      // 인용 정보 있을 경우 포함
+      if (messageData?.citations) {
+        messageObj.citations = messageData.citations;
+      }
 
-      while (retryCount < MAX_RETRIES) {
-        try {
-          console.log(`🔄 Sending message to API`, requestBody);
-          response = await fetch('/api/messages', {
+      // 3. API를 통해 메시지 저장
+      console.log(`💾 ChatService: Saving message to API - ID: ${messageObj.id}, Role: ${messageObj.role || 'none'}`);
+      
+      const apiUrl = '/api/messages';
+      const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
-          });
-
-          if (!response) {
-            throw new Error('No response received from API');
-          }
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomId,
+          message: messageObj,
+          isInitial: false
+        }),
+      });
 
           if (!response.ok) {
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('text/html')) {
-              const htmlResponse = await response.text();
-              throw new Error(`API returned HTML error page: Status ${response.status}`);
-            }
-            throw new Error(`Failed to save message: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ ChatService: Failed to save message: ${response.status}`, errorText);
+        throw new Error(`Failed to save message: ${response.status} ${errorText}`);
           }
-          break;
-        } catch (error) {
-          retryCount++;
-          console.error(`API call failed (attempt ${retryCount}/${MAX_RETRIES}):`, error);
-          if (retryCount >= MAX_RETRIES) throw error;
-          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)));
-        }
+
+      const result = await response.json();
+      console.log(`✅ ChatService: Message saved successfully:`, result);
+
+      // 4. 이벤트 발생 - 소켓 통신용
+      if (typeof window !== 'undefined') {
+        const messageEvent = new CustomEvent('user-message-sent', { 
+          detail: { messageObj, roomId }
+        });
+        window.dispatchEvent(messageEvent);
       }
 
-      // 5. 로컬 캐시 업데이트
-      const roomIndex = this.chatRooms.findIndex(r => this.normalizeId(r.id) === normalizedId);
-      if (roomIndex >= 0) {
-        if (!this.chatRooms[roomIndex].messages) {
-          this.chatRooms[roomIndex].messages = [];
-        }
-        this.chatRooms[roomIndex].messages!.push(messageObj);
-      }
-
-      console.log(`✅ Message sent successfully`);
+      // 5. API 응답에서 저장된 메시지 객체 반환
       return messageObj;
     } catch (error) {
-      console.error('❌ Error sending message:', error);
+      console.error('❌ ChatService: Error in sendMessage:', error);
       throw error;
     }
   }
@@ -1001,20 +1183,20 @@ class ChatService {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-llm-provider': 'openai',
-            'x-llm-model': 'gpt-4o'
+          'x-llm-provider': 'openai',
+          'x-llm-model': 'gpt-4o'
           },
           body: JSON.stringify({
-            npcs: room.participants.npcs,
-            npc_descriptions: npcDescriptions,
-            topic: topic,
-            context: context,
-            previous_dialogue: dialogueText,
+          npcs: room.participants.npcs,
+          npc_descriptions: npcDescriptions,
+          topic: topic,
+          context: context,
+          previous_dialogue: dialogueText,
             use_rag: true, // RAG 기능 활성화
             // 필수 필드 추가 - room_id를 문자열로 변환하여 전송
             room_id: String(normalizedId),
             user_message: lastUserMessage.text
-          })
+        })
       });
 
       if (!response.ok) {
@@ -1143,7 +1325,7 @@ class ChatService {
             throw new Error('No response received from API');
           }
           
-          console.log(`API Response Status: ${apiResponse.status} ${apiResponse.statusText}`);
+          console.log(`API Response Status: ${apiResponse.status}`);
           console.log('Response Headers:', [...apiResponse.headers.entries()].map(([k, v]) => `${k}: ${v}`).join(', '));
           
           if (!apiResponse.ok) {

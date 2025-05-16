@@ -100,8 +100,9 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // System message validation - reject if sender is "System"
-    if (message.sender === 'System') {
+    // Debate messages can come from "Moderator" or "System", so we only reject if sender is exactly "System"
+    // and the message is not a debate-related message
+    if (message.sender === 'System' && !message.role && !message.isSystemMessage) {
       console.error('❌ System message rejected');
       return NextResponse.json(
         { error: 'System messages are not allowed' },

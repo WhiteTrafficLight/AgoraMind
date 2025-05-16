@@ -4,6 +4,7 @@ import type { Server as HttpServer } from 'http';
 import type { Server as SocketIOServer } from 'socket.io';
 import { ChatRoom, ChatRoomCreationParams } from '@/lib/ai/chatService';
 import chatRoomDB from '@/lib/db/chatRoomDB';
+import mongoose from 'mongoose';
 
 // Socket 서버 관련 타입 정의
 interface SocketServer extends HttpServer {
@@ -27,6 +28,28 @@ function log(...args: any[]) {
     console.log(...args);
   }
 }
+
+// MongoDB 연결 함수 추가
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) {
+    console.log('MongoDB already connected');
+    return;
+  }
+
+  try {
+    const mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017/agoramind';
+    await mongoose.connect(mongoUrl);
+    isConnected = true;
+    console.log('MongoDB connected successfully');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
+  }
+};
+
+// db 객체 초기화
+const db = mongoose.connection;
 
 export default async function handler(
   req: NextApiRequest,
@@ -148,7 +171,7 @@ export default async function handler(
 
       // 새 채팅룸 객체 생성
       const newRoom: ChatRoom = {
-        id: Date.now().toString(),
+        id: Date.now(),
         title: params.title,
         context: params.context || '',
         participants: {
@@ -188,6 +211,7 @@ export default async function handler(
         
         // 사용자 위치 설정
         if (params.userDebateRole) {
+          console.log(`📢 사용자 역할: ${params.userDebateRole}`);
           if (params.userDebateRole === 'pro') {
             newRoom.pro.push(currentUser);
             console.log(`📢 사용자를 PRO에 추가: ${currentUser}`);
@@ -207,6 +231,253 @@ export default async function handler(
         console.log(`📢 최종 Pro 목록: ${newRoom.pro.join(', ')}`);
         console.log(`📢 최종 Con 목록: ${newRoom.con.join(', ')}`);
         console.log(`📢 최종 Neutral 목록: ${newRoom.neutral.join(', ')}`);
+
+        // 디베이트 모드에서는 파이썬 API 서버에 모더레이터 메시지 생성 요청
+        if (params.dialogueType === 'debate' && params.generateInitialMessage) {
+          try {
+            console.log('📢 파이썬 API 서버에 모더레이터 메시지 생성 요청 시작');
+            
+            // 파이썬 API 서버 URL (환경 변수 또는 기본값)
+            const pythonApiUrl = process.env.PYTHON_API_URL || 'http://localhost:8000';
+            
+            // Pro/Con 참가자(NPC+유저) 목록 생성
+            // NPC와 유저를 모두 포함하는 전체 pro/con 배열 사용
+            const proNpcIds = newRoom.pro || [];
+            const conNpcIds = newRoom.con || [];
+
+            console.log(`📢 모더레이터 메시지 위한 proNpcIds: ${proNpcIds.join(', ')} (${proNpcIds.length}개)`);
+            console.log(`📢 모더레이터 메시지 위한 conNpcIds: ${conNpcIds.join(', ')} (${conNpcIds.length}개)`);
+            
+            // 유저 이름 매핑 객체 (User123 -> WhiteTrafficLight 등)
+            const userData: Record<string, string> = {};
+            
+            // 유저 ID -> 표시명 매핑 (요청 파라미터 중 username 확인)
+            if (params.username) {
+              // 사용자 ID가 사용자 이름과 다른 경우에만 매핑에 추가
+              if (currentUser !== params.username) {
+                userData[currentUser] = params.username;
+                console.log(`📢 유저 이름 매핑 추가: ${currentUser} -> ${params.username}`);
+              }
+              console.log(`📢 실제 사용자 이름(username)을 사용: ${params.username}`);
+            }
+            
+            // NPC 이름 정보 조회 및 매핑 생성
+            console.log('📢 NPC 이름 정보 조회 시작');
+            console.log(`📢 NPC 포지션 정보: ${JSON.stringify(params.npcPositions)}`);
+            
+            // NPC ID -> 이름 매핑 객체
+            const npcNames: Record<string, string> = {};
+            
+            // 모든 NPC ID 목록 (중복 제거)
+            const allNpcIds = [...new Set([...proNpcIds, ...conNpcIds])].filter(id => id !== currentUser);
+            
+            // 각 NPC에 대해 이름 조회
+            for (const npcId of allNpcIds) {
+              console.log(`🔍 Fetching NPC details for ID: ${npcId}`);
+              
+              try {
+                // 먼저 UUID 형태인지 확인
+                let isUuid = false;
+                try {
+                  // UUID 형식인지 확인
+                  if (npcId.length > 30 && npcId.includes('-')) {
+                    isUuid = true;
+                    console.log(`🔍 Searching by backend_id (UUID): ${npcId}`);
+                  }
+                } catch (e) {
+                  // UUID 형식이 아니면 무시
+                }
+                
+                // 1. UUID 형식이면 MongoDB에서 직접 조회
+                if (isUuid) {
+                  try {
+                    // MongoDB에 연결
+                    await connectDB();
+                    const npcCollection = db.collection('npcs');
+                    
+                    // backend_id로 NPC 검색
+                    const customNpc = await npcCollection.findOne({ backend_id: npcId });
+                    
+                    if (customNpc) {
+                      console.log(`✅ Found custom NPC: ${customNpc.name}`);
+                      console.log(`   _id: ${customNpc._id}, backend_id: ${npcId}`);
+                      
+                      // 매핑에 추가
+                      npcNames[npcId] = customNpc.name;
+                      continue; // 찾았으므로 다음 NPC로
+                    } else {
+                      console.log(`⚠️ Custom NPC not found with backend_id: ${npcId}`);
+                    }
+                  } catch (dbError) {
+                    console.error(`❌ MongoDB error: ${dbError}`);
+                  }
+                }
+                
+                // 2. API를 통해 조회
+                const apiUrl = `${pythonApiUrl}/api/npc/get?id=${npcId}`;
+                console.log(`🔄 Trying backend API at ${apiUrl}`);
+                
+                const response = await fetch(apiUrl);
+                if (response.ok) {
+                  const npcData = await response.json();
+                  if (npcData && npcData.name) {
+                    console.log(`✅ Got NPC details from backend: ${npcData.name}`);
+                    console.log(`📢 NPC 이름 매핑 추가: ${npcId} -> ${npcData.name}`);
+                    console.log(`📢 NPC 정보 조회 결과: ${JSON.stringify(npcData).substring(0, 100)}...`);
+                    
+                    // 매핑에 추가
+                    npcNames[npcId] = npcData.name;
+                  } else {
+                    console.log(`⚠️ API returned data without name for NPC: ${npcId}`);
+                  }
+                } else {
+                  console.log(`⚠️ Failed to get NPC details: ${response.status}`);
+                  
+                  // 기본 철학자 이름 하드코딩
+                  const defaultNames: Record<string, string> = {
+                    "socrates": "Socrates",
+                    "plato": "Plato",
+                    "aristotle": "Aristotle",
+                    "kant": "Immanuel Kant",
+                    "hegel": "Georg Wilhelm Friedrich Hegel",
+                    "nietzsche": "Friedrich Nietzsche",
+                    "marx": "Karl Marx",
+                    "sartre": "Jean-Paul Sartre",
+                    "camus": "Albert Camus", 
+                    "beauvoir": "Simone de Beauvoir",
+                    "confucius": "Confucius",
+                    "heidegger": "Martin Heidegger",
+                    "wittgenstein": "Ludwig Wittgenstein"
+                  };
+                  
+                  if (npcId.toLowerCase() in defaultNames) {
+                    const defaultName = defaultNames[npcId.toLowerCase()];
+                    console.log(`📢 기본 철학자 이름 사용: ${npcId} -> ${defaultName}`);
+                    npcNames[npcId] = defaultName;
+                  } else if (isUuid) {
+                    console.log(`❌ 심각: 커스텀 NPC(${npcId})의 실제 이름을 찾지 못했습니다!`);
+                    console.log(`📢 기본 이름 사용: ${npcId} -> Unknown Philosopher`);
+                    npcNames[npcId] = "Unknown Philosopher";
+                  } else {
+                    console.log(`📢 기본 이름 사용: ${npcId} -> ${npcId}`);
+                    npcNames[npcId] = npcId.charAt(0).toUpperCase() + npcId.slice(1);
+                  }
+                }
+              } catch (error) {
+                console.error(`❌ Error fetching NPC details: ${error}`);
+              }
+            }
+            
+            console.log(`📢 최종 NPC 이름 정보: ${JSON.stringify(npcNames)}`);
+            
+            // API 요청 데이터 구성
+            const requestData: {
+              title: string;
+              room_id: string | null;
+              context?: string;
+              npcs: string[];
+              npcPositions: Record<string, string>;
+              proNpcIds: string[];
+              conNpcIds: string[];
+              npcNames: Record<string, string>;
+              userData?: Record<string, string>;
+            } = {
+              title: params.title,
+              room_id: String(newRoom.id),
+              context: params.context || "",
+              npcs: params.npcs,
+              npcPositions: params.npcPositions || {},
+              proNpcIds,
+              conNpcIds,
+              npcNames
+            };
+            
+            // userData가 비어있지 않은 경우에만 포함
+            if (Object.keys(userData).length > 0) {
+              requestData.userData = userData;
+            }
+            
+            console.log(`📢 Python API 요청 데이터: ${JSON.stringify(requestData, null, 2)}`);
+            
+            // API 요청 전송
+            const apiResponse = await fetch(`${pythonApiUrl}/api/moderator/opening`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(requestData),
+            });
+            
+            // 응답 처리
+            if (apiResponse.ok) {
+              const responseData = await apiResponse.json();
+              console.log(`📢 Python API 응답 성공: ${JSON.stringify(responseData)}`);
+              
+              // 모더레이터 메시지 추출
+              if (responseData.initial_message) {
+                console.log(`📢 모더레이터 메시지 받음: ${JSON.stringify(responseData.initial_message)}`);
+                
+                // 모더레이터 메시지 설정
+                const moderatorMessage = {
+                  id: `moderator-${Date.now()}`,
+                  ...responseData.initial_message,
+                  timestamp: new Date().toISOString()
+                };
+                
+                console.log(`📢 모더레이터 메시지 설정 완료`);
+                
+                // 채팅룸에 메시지 추가
+                newRoom.messages = [moderatorMessage];
+                console.log(`📢 채팅룸 메시지 배열에 모더레이터 메시지 추가`);
+                
+                // 초기 메시지 필드 설정 (필요시 다른 곳에서 참조 가능)
+                newRoom.initial_message = moderatorMessage;
+                
+                console.log(`📢 DB 저장 전 채팅룸 데이터 (메시지 포함): ${JSON.stringify({
+                  roomId: newRoom.id,
+                  title: newRoom.title,
+                  messagesCount: newRoom.messages.length
+                })}`);
+                
+                // MongoDB에 연결
+                await connectDB();
+                
+                try {
+                  // 이미 생성된 방이 있는지 확인
+                  const existingRoom = await db.collection('chatrooms').findOne({ roomId: newRoom.id });
+                  
+                  if (existingRoom) {
+                    // 기존 방이 있으면 메시지만 추가
+                    console.log(`📢 기존 방(${newRoom.id})에 모더레이터 메시지 추가`);
+                    await db.collection('chatrooms').updateOne(
+                      { roomId: newRoom.id },
+                      { $push: { messages: moderatorMessage } }
+                    );
+                  } else {
+                    // DB에서 방을 찾을 수 없으면 메시지 테이블에 직접 저장 시도
+                    try {
+                      console.log(`📢 메시지 테이블에 모더레이터 메시지 직접 저장 시도`);
+                      await db.collection('messages').insertOne({
+                        roomId: newRoom.id,
+                        ...moderatorMessage
+                      });
+                    } catch (msgErr) {
+                      console.warn(`⚠️ DB에서 방을 찾을 수 없어 메시지를 직접 저장할 수 없음`);
+                    }
+                  }
+                } catch (dbErr) {
+                  console.error(`❌ MongoDB 오류: ${dbErr}`);
+                }
+              }
+            } else {
+              const errorText = await apiResponse.text();
+              console.error(`❌ Python API 요청 실패: ${apiResponse.status} ${apiResponse.statusText}`);
+              console.error(`❌ Python API 오류 메시지: ${errorText}`);
+            }
+          } catch (error) {
+            console.error(`❌ moderator opening 메시지 생성 중 오류: ${error}`);
+          }
+        }
       }
 
       // 채팅룸 데이터베이스에 저장
