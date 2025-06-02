@@ -8,388 +8,431 @@
    - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 845ms
- ○ Compiling /_not-found/page ...
- GET /api/socket/io?EIO=4&transport=polling&t=5dht9lrv 404 in 2942ms
- GET /api/socket/io?EIO=4&transport=polling&t=5djagvm6 404 in 1242ms
- ✓ Compiled /_not-found/page in 3.2s
- GET /chat?id=5 200 in 1513ms
-GET 요청 처리 - 쿼리: { id: '5' }
-ID 5로 채팅룸 검색 중
+ ✓ Ready in 795ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1715ms
+ GET / 200 in 1965ms
+ ⚠ The "images.domains" configuration is deprecated. Please use "images.remotePatterns" configuration instead.
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 521ms
  ○ Compiling /favicon.ico ...
-검색 결과: 찾음
-채팅룸 5 정보: {
-  title: '유전자 편집 작물로 ‘기후 적응’—기회인가 프랑켄푸드인가',
-  messagesCount: 53,
-  lastMessageFrom: 'User_9221'
-}
- GET /api/rooms?id=5 304 in 534ms
- GET /favicon.ico?favicon.45db1c09.ico 200 in 792ms
- ✓ Compiled /favicon.ico in 1273ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 617ms
-🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-✅ Found custom NPC: 빵빠라스
-   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
- GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 24ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
-}
-✅ Found local philosopher profile: Marx
- GET /api/npc/get?id=marx 200 in 103ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
-}
-✅ Found local philosopher profile: Kant
- GET /api/npc/get?id=kant 200 in 64ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 89ms
- ✓ Compiled /api/socket in 190ms
-🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-✅ Found custom NPC: 빵빠라스
-   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
- GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 166ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 194ms
+ ✓ Compiled /favicon.ico in 689ms
+ GET /api/auth/session 200 in 1397ms
+ ✓ Compiled /api/user/profile in 359ms
+ GET /api/user/profile 200 in 573ms
+(node:13613) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ ○ Compiling /open-chat ...
+ ✓ Compiled /open-chat in 504ms
+ GET /open-chat 200 in 538ms
+ GET /api/user/profile 200 in 42ms
+ GET /api/user/profile 200 in 32ms
 📁 socket.ts: .env.local 파일을 찾았습니다.
 ✅ socket.ts: .env.local 파일에서 설정을 로드했습니다.
 socket.ts - API Key source: .env.local 파일
 socket.ts - API Key check: sk-proj...svYA
 Initializing socket server...
 Socket.IO server initialized
- GET /api/socket 304 in 127ms
-New client connected: lFHZ2aldAIBqAmeKAAAB
-User User_9221 joined room 5
-Getting active users for room: 5
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
-}
-✅ Found local philosopher profile: Marx
- GET /api/npc/get?id=marx 200 in 179ms
-🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-✅ Found custom NPC: 빵빠라스
-   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
- GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 167ms
- GET /api/auth/session 200 in 2033ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
-}
-✅ Found local philosopher profile: Marx
- GET /api/npc/get?id=marx 200 in 87ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
-}
-✅ Found local philosopher profile: Kant
- GET /api/npc/get?id=kant 200 in 121ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
-}
-✅ Found local philosopher profile: Kant
- GET /api/npc/get?id=kant 200 in 46ms
- GET /chat?id=5 200 in 58ms
-Client disconnected: lFHZ2aldAIBqAmeKAAAB
- GET /favicon.ico?favicon.45db1c09.ico 200 in 68ms
-GET 요청 처리 - 쿼리: { id: '5' }
-ID 5로 채팅룸 검색 중
-검색 결과: 찾음
-채팅룸 5 정보: {
-  title: '유전자 편집 작물로 ‘기후 적응’—기회인가 프랑켄푸드인가',
-  messagesCount: 53,
-  lastMessageFrom: 'User_9221'
-}
- GET /api/rooms?id=5 304 in 24ms
- GET /api/auth/session 200 in 63ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 19ms
-🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-✅ Found custom NPC: 빵빠라스
-   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
- GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 19ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
-}
-✅ Found local philosopher profile: Marx
- GET /api/npc/get?id=marx 200 in 50ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
-}
-✅ Found local philosopher profile: Kant
- GET /api/npc/get?id=kant 200 in 55ms
+ GET /api/socket 304 in 81ms
+New client connected: AbZ3yQWlDVCOh_FFAAAB
 Socket server already running
- GET /api/socket 304 in 64ms
-New client connected: XUyRGxrDuVo1g0RmAAAD
-User User_9221 joined room 5
-Getting active users for room: 5
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 249ms
-🔍 Fetching NPC details for ID: e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-🔍 Searching by backend_id (UUID): e0c3872b-2103-4d04-8a2d-801bbd7f43cf
-✅ Found custom NPC: Modern Socrates
-   _id: 680ab82df57902e97ae4ef38, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/modern-socrates_1745532994.png
- GET /api/npc/get?id=e0c3872b-2103-4d04-8a2d-801bbd7f43cf 200 in 37ms
-🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-✅ Found custom NPC: 빵빠라스
-   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
- GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 23ms
-🔍 Fetching NPC details for ID: 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-🔍 Searching by backend_id (UUID): 655a4396-ef73-4e67-8ae6-c9f00f4a20ca
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-✅ Found custom NPC: 빵빠라스
-   _id: 6811406a9ba7d1076eba2e95, backend_id: not set
-   portrait_url: http://localhost:8000/portraits/bbangbbaraseu_1745961092.png
- GET /api/npc/get?id=655a4396-ef73-4e67-8ae6-c9f00f4a20ca 200 in 26ms
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
+ GET /api/socket 304 in 14ms
+New client connected: oU0pRiYRkK10IYN3AAAD
+GET 요청 처리 - 쿼리: {}
+ ✓ Compiled /api/npc/list in 345ms
+ GET /api/rooms 304 in 106ms
+ GET /api/npc/list 200 in 409ms
+GET 요청 처리 - 쿼리: {}
+ GET /api/npc/list 200 in 35ms
+ GET /api/rooms 304 in 20ms
+ GET /api/npc/list 200 in 20ms
+ GET /api/npc/list 200 in 19ms
+API 요청 받음: POST /api/rooms
+POST 요청 처리 - 채팅룸 생성
+📢 요청 본문: {
+  "title": "why is berlin rent so expensive?",
+  "maxParticipants": 10,
+  "npcs": [
+    "socrates",
+    "camus",
+    "buddha"
+  ],
+  "isPublic": true,
+  "generateInitialMessage": true,
+  "dialogueType": "free",
+  "username": "WhiteTrafficLight"
+}
+📢 대화 타입: free
+📢 채팅룸 저장 전 최종 객체: {
+  "id": 1748432995358,
+  "title": "why is berlin rent so expensive?",
+  "context": "",
+  "participants": {
+    "users": [
+      "User123"
+    ],
+    "npcs": [
+      "socrates",
+      "camus",
+      "buddha"
+    ]
+  },
+  "totalParticipants": 4,
+  "lastActivity": "Just now",
+  "messages": [],
+  "isPublic": true,
+  "dialogueType": "free"
+}
+최대 ID 기반으로 새 ID 생성: 131
+카운터를 안전하게 업데이트/생성: 131
+새 채팅방에 할당된 ID: 131
+💾 DB 저장 전 채팅방 데이터: {"roomId":131,"title":"why is berlin rent so expensive?","dialogueType":"free"}
+💾 채팅룸이 ID 131로 저장됨, dialogueType: free
+✅ Chat room created with ID: 131, title: "why is berlin rent so expensive?"
+✅ dialogueType: free
+Broadcasting room-created event
+ POST /api/rooms 201 in 71ms
+ ✓ Compiled /api/npc/get in 349ms
+🔍 Fetching NPC details for ID: socrates
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=socrates
+✅ Got NPC details from backend: Socrates
+ GET /api/npc/get?id=socrates 200 in 391ms
+🔍 Fetching NPC details for ID: camus
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=camus
+✅ Got NPC details from backend: Albert Camus
+ GET /api/npc/get?id=camus 200 in 17ms
+🔍 Fetching NPC details for ID: buddha
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=buddha
+✅ Got NPC details from backend: Buddha (Siddhartha Gautama)
+ GET /api/npc/get?id=buddha 200 in 17ms
+ ✓ Compiled /api/messages in 179ms
+🔄 Processing message POST request
+Message details - RoomID: 131, IsInitial: true
+Sender: Socrates, Length: 139
+🔄 Saving message to room 131
+Message: To understand "why is berlin rent so expensive?", we must first examine our assumptions. What do you...
+Sender: Socrates, isInitial: true
+🔍 Trying to find room with roomId (direct DB access): 131, 131, 131
+✅ Found room with roomId 131 using mongoose model
+Initialized empty messages array for room
+Before initial message processing, room has 0 messages
+Removed 0 messages during initial message processing
+Added new message from Socrates, room now has 1 messages
+MongoDB update result: matched=1, modified=1
+✅ Message saved to room 131
+ POST /api/messages 200 in 222ms
+ ✓ Compiled /chat in 456ms
+ GET /chat?id=131 200 in 480ms
+🔍 Fetching NPC details for ID: socrates
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=socrates
+✅ Got NPC details from backend: Socrates
+ GET /api/npc/get?id=socrates 200 in 50ms
+Socket server already running
+ GET /api/socket 304 in 38ms
+New client connected: y0ROKLeFBwIHHqrSAAAF
+User WhiteTrafficLight joined room 131
+ GET /api/user/profile 200 in 71ms
+🔍 Fetching NPC details for ID: camus
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=camus
+✅ Got NPC details from backend: Albert Camus
+ GET /api/npc/get?id=camus 200 in 50ms
+ GET /api/user/profile 200 in 36ms
+🔍 Fetching NPC details for ID: socrates
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=socrates
+✅ Got NPC details from backend: Socrates
+ GET /api/npc/get?id=socrates 200 in 63ms
+🔍 Fetching NPC details for ID: buddha
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=buddha
+✅ Got NPC details from backend: Buddha (Siddhartha Gautama)
+ GET /api/npc/get?id=buddha 200 in 24ms
+🔍 Fetching NPC details for ID: camus
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=camus
+✅ Got NPC details from backend: Albert Camus
+ GET /api/npc/get?id=camus 200 in 21ms
+🔍 Fetching NPC details for ID: buddha
+🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=buddha
+✅ Got NPC details from backend: Buddha (Siddhartha Gautama)
+ GET /api/npc/get?id=buddha 200 in 15ms
+🚨 socket.id y0ROKLeFBwIHHqrSAAAF send-message RAW data: {
+  roomId: 131,
+  message: {
+    id: 'local-1748433015585',
+    text: 'so, why is it fucking expensive?',
+    sender: 'WhiteTrafficLight',
+    isUser: true,
+    timestamp: '2025-05-28T11:50:15.585Z'
   }
 }
-✅ Found local philosopher profile: Marx
- GET /api/npc/get?id=marx 200 in 56ms
-🔍 Fetching NPC details for ID: marx
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=marx
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
+🚨 'send-message' 이벤트 수신 - 방 ID: 131, 메시지: {
+  id: 'local-1748433015585',
+  text: 'so, why is it fucking expensive?',
+  sender: 'WhiteTrafficLight',
+  isUser: true,
+  timestamp: '2025-05-28T11:50:15.585Z'
+}
+💾 MongoDB에 메시지 저장 중: so, why is it fucking expensiv...
+메시지 저장: ID 131를 숫자 131로 변환
+✅ 메시지가 MongoDB에 저장되었습니다.
+📢 메시지 브로드캐스트 [방 131]: {"id":"local-1748433015585","text":"so, why is it fuckin...","sender":"WhiteTrafficLight"}
+📊 현재 방(131)에 연결된 클라이언트 수: 1명
+✅ 브로드캐스트 완료 - 발신자 제외 방송
+🤖 AI 응답 생성 중... 방 ID: 131
+DB 조회: ID 131 (string)를 숫자 131 (number)로 변환하여 쿼리
+DB 쿼리: { roomId: 131 }
+DB에서 룸 찾음: ID 131 (타입: 숫자)
+DB 조회 결과: 룸 변환 완료, ID 131 (number)
+🔍 자동 대화 모드 확인 결과: 비활성화됨
+🔍 자동 대화 모드 비활성화 - AI API 요청 시작 - 방 ID: 131, 메시지 수: 1
+📤 API 요청 페이로드: {"room_id":"131","user_message":"so, why is it fucking expensive?","npcs":["socrates","camus","buddha"],"topic":"why is berlin rent so expensive?","context":"..."}
+🔗 Python API URL: http://localhost:8000/api/chat/generate
+Socket API POST 요청 받음: {
+  action: 'broadcast',
+  room: '131',
+  event: 'npc-selected',
+  data: { npc_id: 'camus' }
+}
+📢 브로드캐스트 요청 - 방: 131, 이벤트: npc-selected
+✅ 브로드캐스트 완료 - 131 방의 모든 클라이언트에게 npc-selected 이벤트 전송됨
+ POST /api/socket 200 in 10ms
+🔍 Python API 응답 상태: 200 OK
+📥 Python API 응답 데이터: {"response":"The absurdity of exorbitant rents reflects the complex interplay between economic forces and human aspirations. In Berlin, a city once divided by history, the relentless rise in rent pric...
+📚 인용 정보 0개 발견: []
+메시지 저장: ID 131를 숫자 131로 변환
+✅ AI 메시지(ai-1748433019645)가 MongoDB에 저장되었습니다.
+✅ AI 응답 브로드캐스트 완료 - 모든 클라이언트에게 전송됨
+🚨 socket.id y0ROKLeFBwIHHqrSAAAF send-message RAW data: {
+  roomId: 131,
+  message: {
+    id: 'local-1748433079109',
+    text: 'buddaha. what do you think?',
+    sender: 'WhiteTrafficLight',
+    isUser: true,
+    timestamp: '2025-05-28T11:51:19.109Z'
   }
 }
-✅ Found local philosopher profile: Marx
- GET /api/npc/get?id=marx 200 in 60ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
+🚨 'send-message' 이벤트 수신 - 방 ID: 131, 메시지: {
+  id: 'local-1748433079109',
+  text: 'buddaha. what do you think?',
+  sender: 'WhiteTrafficLight',
+  isUser: true,
+  timestamp: '2025-05-28T11:51:19.109Z'
 }
-✅ Found local philosopher profile: Kant
- GET /api/npc/get?id=kant 200 in 92ms
-🔍 Fetching NPC details for ID: kant
-🔄 Trying backend API at http://0.0.0.0:8000/api/npc/get?id=kant
-❌ Backend API 호출 오류: TypeError: fetch failed
-    at async GET (src/app/api/npc/get/route.ts:95:30)
-  93 |       // Python 백엔드 API 호출 시도
-  94 |       console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-> 95 |       const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-     |                              ^
-  96 |         cache: 'no-store'
-  97 |       });
-  98 |        {
-  [cause]: Error: connect ECONNREFUSED 0.0.0.0:8000
-      at <unknown> (Error: connect ECONNREFUSED 0.0.0.0:8000) {
-    errno: -61,
-    code: 'ECONNREFUSED',
-    syscall: 'connect',
-    address: '0.0.0.0',
-    port: 8000
-  }
+💾 MongoDB에 메시지 저장 중: buddaha. what do you think?...
+메시지 저장: ID 131를 숫자 131로 변환
+✅ 메시지가 MongoDB에 저장되었습니다.
+📢 메시지 브로드캐스트 [방 131]: {"id":"local-1748433079109","text":"buddaha. what do you...","sender":"WhiteTrafficLight"}
+📊 현재 방(131)에 연결된 클라이언트 수: 1명
+✅ 브로드캐스트 완료 - 발신자 제외 방송
+🤖 AI 응답 생성 중... 방 ID: 131
+DB 조회: ID 131 (string)를 숫자 131 (number)로 변환하여 쿼리
+DB 쿼리: { roomId: 131 }
+DB에서 룸 찾음: ID 131 (타입: 숫자)
+DB 조회 결과: 룸 변환 완료, ID 131 (number)
+🔍 자동 대화 모드 확인 결과: 비활성화됨
+🔍 자동 대화 모드 비활성화 - AI API 요청 시작 - 방 ID: 131, 메시지 수: 3
+📤 API 요청 페이로드: {"room_id":"131","user_message":"buddaha. what do you think?","npcs":["socrates","camus","buddha"],"topic":"why is berlin rent so expensive?","context":"..."}
+🔗 Python API URL: http://localhost:8000/api/chat/generate
+Socket API POST 요청 받음: {
+  action: 'broadcast',
+  room: '131',
+  event: 'npc-selected',
+  data: { npc_id: 'buddha' }
 }
-✅ Found local philosopher profile: Kant
- GET /api/npc/get?id=kant 200 in 57ms
+📢 브로드캐스트 요청 - 방: 131, 이벤트: npc-selected
+✅ 브로드캐스트 완료 - 131 방의 모든 클라이언트에게 npc-selected 이벤트 전송됨
+ POST /api/socket 200 in 7ms
+🔍 Python API 응답 상태: 200 OK
+📥 Python API 응답 데이터: {"response":"The rise in Berlin's rent reflects the impermanent nature of worldly desires and attachments. Craving for profit and possessions leads to suffering, not only for individuals but for socie...
+📚 인용 정보 0개 발견: []
+메시지 저장: ID 131를 숫자 131로 변환
+✅ AI 메시지(ai-1748433082323)가 MongoDB에 저장되었습니다.
+✅ AI 응답 브로드캐스트 완료 - 모든 클라이언트에게 전송됨
+ GET /open-chat 200 in 71ms
+ GET /api/user/profile 200 in 41ms
+ GET /api/npc/list 200 in 41ms
+Socket server already running
+ GET /api/socket 304 in 14ms
+ GET /api/user/profile 200 in 25ms
+New client connected: pk3QOsTZbNSg360RAAAH
+ GET /api/npc/list 200 in 29ms
+Socket server already running
+ GET /api/socket 304 in 9ms
+GET 요청 처리 - 쿼리: {}
+New client connected: D2VcxLNGK-BXK0kIAAAJ
+ GET /api/rooms 200 in 22ms
+GET 요청 처리 - 쿼리: {}
+ GET /api/rooms 304 in 15ms
+ GET /api/npc/list 200 in 50ms
+ GET /api/npc/list 200 in 15ms
+ ✓ Compiled /podcast in 449ms
+ GET /podcast 200 in 476ms
+ ✓ Compiled /api/podcast/list in 194ms
+ GET /api/podcast/list 200 in 220ms
+ GET /api/podcast/list 200 in 15ms
+Client disconnected: AbZ3yQWlDVCOh_FFAAAB
+Client disconnected: y0ROKLeFBwIHHqrSAAAF
+Client disconnected: pk3QOsTZbNSg360RAAAH
+Client disconnected: D2VcxLNGK-BXK0kIAAAJ
+Client disconnected: oU0pRiYRkK10IYN3AAAD
+New client connected: 6xAlBhxHew0n4FeTAAAL
+New client connected: Naj642LX_ZRPzDeEAAAN
+New client connected: L6P4Y_VU_0O0jCXdAAAR
+New client connected: 0cAaxgWN9nu9a7XYAAAS
+New client connected: O3VE2dgf18eWyTHoAAAT
+Client disconnected: O3VE2dgf18eWyTHoAAAT
+Client disconnected: 6xAlBhxHew0n4FeTAAAL
+Client disconnected: Naj642LX_ZRPzDeEAAAN
+Client disconnected: L6P4Y_VU_0O0jCXdAAAR
+Client disconnected: 0cAaxgWN9nu9a7XYAAAS
+New client connected: GIkpc6peURiGVb9oAAAW
+New client connected: VN1nglqbp92IVMEaAAAX
+New client connected: rt50LPtmHzR3eGWnAAAb
+New client connected: ntxNWn3ET4cIgVzqAAAc
+New client connected: guz818p62msNqIbYAAAd
+Client disconnected: guz818p62msNqIbYAAAd
+Client disconnected: GIkpc6peURiGVb9oAAAW
+Client disconnected: VN1nglqbp92IVMEaAAAX
+Client disconnected: rt50LPtmHzR3eGWnAAAb
+Client disconnected: ntxNWn3ET4cIgVzqAAAc
+New client connected: cp63JBk3YRxn4OSIAAAj
+New client connected: rzNJhh8Yo9IWnzcWAAAk
+New client connected: wuMrSyg_Pu3qXyrTAAAl
+New client connected: qIYX8McrbnW79br-AAAm
+New client connected: aEHsLUFNn-nnJSnhAAAn
+Client disconnected: qIYX8McrbnW79br-AAAm
+Client disconnected: rzNJhh8Yo9IWnzcWAAAk
+Client disconnected: cp63JBk3YRxn4OSIAAAj
+Client disconnected: wuMrSyg_Pu3qXyrTAAAl
+Client disconnected: aEHsLUFNn-nnJSnhAAAn
+New client connected: d5vv4qNbue-TDwrzAAAp
+New client connected: iDdoe1uIbeDWWhxiAAAs
+New client connected: XnlAvvw4phlTF9oqAAAt
+New client connected: r-JjkQ7L3e17HqhRAAAw
+New client connected: OGYPeA0tdrTcOR4oAAAx
+Client disconnected: OGYPeA0tdrTcOR4oAAAx
+Client disconnected: iDdoe1uIbeDWWhxiAAAs
+Client disconnected: d5vv4qNbue-TDwrzAAAp
+Client disconnected: XnlAvvw4phlTF9oqAAAt
+Client disconnected: r-JjkQ7L3e17HqhRAAAw
+New client connected: fecvOx04JVL3iFGoAAA1
+New client connected: rp8gaOOLIsyJf23CAAA3
+New client connected: AYUFK8tU1rJ-WdJrAAA4
+New client connected: J_LJv-tu5pJcUc87AAA6
+New client connected: nJTA46W6KJfHo-LuAAA7
+Client disconnected: nJTA46W6KJfHo-LuAAA7
+Client disconnected: rp8gaOOLIsyJf23CAAA3
+Client disconnected: fecvOx04JVL3iFGoAAA1
+Client disconnected: AYUFK8tU1rJ-WdJrAAA4
+Client disconnected: J_LJv-tu5pJcUc87AAA6
+New client connected: tEIK0ijaZCA827grAAA-
+New client connected: 9JyYkWfvtyM7SZORAAA_
+New client connected: QohU8CBiU9wYKMFOAABD
+New client connected: 7K6RCk-Y6ZM1fweTAABE
+New client connected: ICiWvFJBPGeNh2Z6AABF
+Client disconnected: ICiWvFJBPGeNh2Z6AABF
+Client disconnected: tEIK0ijaZCA827grAAA-
+Client disconnected: 9JyYkWfvtyM7SZORAAA_
+Client disconnected: QohU8CBiU9wYKMFOAABD
+Client disconnected: 7K6RCk-Y6ZM1fweTAABE
+New client connected: aplFNbFx6HlyN_PVAABI
+New client connected: GdveCbkiGRZLSpoGAABJ
+New client connected: BA0zQAbdUAcb1jTgAABM
+New client connected: Cyqbtugr8eeWqCKiAABO
+New client connected: oLJBciDuGs1rWc_gAABP
+Client disconnected: Cyqbtugr8eeWqCKiAABO
+Client disconnected: aplFNbFx6HlyN_PVAABI
+Client disconnected: oLJBciDuGs1rWc_gAABP
+Client disconnected: GdveCbkiGRZLSpoGAABJ
+Client disconnected: BA0zQAbdUAcb1jTgAABM
+New client connected: kPM5Zd2Ogfk-9YyVAABR
+New client connected: w0gEcnP3-vMUDDWNAABU
+New client connected: W2Zzgcg-rjONGy3aAABX
+New client connected: 6HpxRdkKza60l-RmAABY
+New client connected: 2XlgW46DBuS-Y_IIAABZ
+ GET /api/auth/session 200 in 214ms
+ GET /api/user/profile 200 in 452ms
+Client disconnected: 6HpxRdkKza60l-RmAABY
+Client disconnected: kPM5Zd2Ogfk-9YyVAABR
+Client disconnected: W2Zzgcg-rjONGy3aAABX
+Client disconnected: 2XlgW46DBuS-Y_IIAABZ
+Client disconnected: w0gEcnP3-vMUDDWNAABU
+New client connected: mFj0pFg5pffqGnSgAABb
+New client connected: kbmVusXBVpn3NxaoAABe
+New client connected: JUtBOzPMdjmJNW8OAABf
+New client connected: skeCuVgMJDGp4mmnAABi
+New client connected: 3I3ZkYvRQtjiLnehAABj
+Client disconnected: kbmVusXBVpn3NxaoAABe
+Client disconnected: JUtBOzPMdjmJNW8OAABf
+Client disconnected: skeCuVgMJDGp4mmnAABi
+Client disconnected: 3I3ZkYvRQtjiLnehAABj
+Client disconnected: mFj0pFg5pffqGnSgAABb
+New client connected: jN3wTk73FjbdZo2FAABm
+New client connected: Pdu5J8DBPzU3Bm0-AABn
+New client connected: 2XB8pYcBw7vpHHK4AABr
+New client connected: KsY_CKXe9wMRwjcOAABs
+New client connected: 3W900DjW4vFq_i8uAABt
+Client disconnected: jN3wTk73FjbdZo2FAABm
+Client disconnected: Pdu5J8DBPzU3Bm0-AABn
+Client disconnected: 2XB8pYcBw7vpHHK4AABr
+Client disconnected: KsY_CKXe9wMRwjcOAABs
+Client disconnected: 3W900DjW4vFq_i8uAABt
+New client connected: TL9pNjQIy0pQyUN4AABw
+New client connected: oyJ2zdJe_xDMqkTkAABx
+New client connected: eM4u5Sx8DCZrqniqAAB0
+New client connected: 0whlDEzSJpjZzYggAAB2
+New client connected: APwV-i7VUoE922-XAAB3
+Client disconnected: APwV-i7VUoE922-XAAB3
+Client disconnected: TL9pNjQIy0pQyUN4AABw
+Client disconnected: oyJ2zdJe_xDMqkTkAABx
+Client disconnected: eM4u5Sx8DCZrqniqAAB0
+Client disconnected: 0whlDEzSJpjZzYggAAB2
+New client connected: G7Yld7KnE0V7TLiNAAB5
+New client connected: aw66sCcXCSc2rkpQAAB8
+New client connected: bhbp-jm45uH1eUZSAAB9
+New client connected: fGidtj6qNN6pvlYEAACA
+New client connected: 2mw9y89RWXTO_GGTAACB
+Client disconnected: 2mw9y89RWXTO_GGTAACB
+Client disconnected: G7Yld7KnE0V7TLiNAAB5
+Client disconnected: aw66sCcXCSc2rkpQAAB8
+Client disconnected: bhbp-jm45uH1eUZSAAB9
+Client disconnected: fGidtj6qNN6pvlYEAACA
+New client connected: KLvvcrZNRKQvBEVzAACF
+New client connected: E2PAGmB0ZeW5GJBCAACG
+New client connected: fQQrsJJHvV3JCnkaAACJ
+New client connected: JmiYM1PbzAG-gDSyAACK
+New client connected: P4H5IYnvAN0rYgXyAACL
+Client disconnected: fQQrsJJHvV3JCnkaAACJ
+Client disconnected: JmiYM1PbzAG-gDSyAACK
+Client disconnected: P4H5IYnvAN0rYgXyAACL
+Client disconnected: KLvvcrZNRKQvBEVzAACF
+Client disconnected: E2PAGmB0ZeW5GJBCAACG
+New client connected: tqy0DtZguY-mb2_cAACN
+New client connected: 5QdxIfkrK2d2XVgkAACP
+New client connected: zY2wrvnhBc8xDWkuAACT
+New client connected: M8Yjud-XFQcxSNtnAACU
+New client connected: gg3nJzIXeOS4ZCQrAACV
+Client disconnected: tqy0DtZguY-mb2_cAACN
+Client disconnected: 5QdxIfkrK2d2XVgkAACP
+Client disconnected: zY2wrvnhBc8xDWkuAACT
+Client disconnected: M8Yjud-XFQcxSNtnAACU
+Client disconnected: gg3nJzIXeOS4ZCQrAACV
+New client connected: E5lSvvUNID_4FxyzAACY
+New client connected: a2BpPR_H3M4XmU1oAACZ
+New client connected: 79VnRZaqwQLPvKrRAACd
+New client connected: hRHZEViBlBCVmOmQAACe
+New client connected: AhvRa_Wo3GSFe1woAACf
+Client disconnected: 79VnRZaqwQLPvKrRAACd
+Client disconnected: hRHZEViBlBCVmOmQAACe
+Client disconnected: E5lSvvUNID_4FxyzAACY
+Client disconnected: a2BpPR_H3M4XmU1oAACZ
+Client disconnected: AhvRa_Wo3GSFe1woAACf
+New client connected: UiymGptAbdbiG-d0AACk
+New client connected: etytmCl2fYWIRgBOAACl
+New client connected: wUtszr_4evagJMe3AACm
+New client connected: r6bYLh9CTlcB7nHhAACn
+New client connected: sjO93b00ARzyvJrzAACp
 [?25h
+npm notice
+npm notice New minor version of npm available! 11.0.0 -> 11.4.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.4.1
+npm notice To update run: npm install -g npm@11.4.1
+npm notice

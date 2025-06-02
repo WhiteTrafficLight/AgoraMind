@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ChatUI from '@/components/chat/ChatUI';
 import CircularChatUI from '@/components/chat/CircularChatUI';
@@ -16,17 +16,191 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const [chatData, setChatData] = useState<ChatRoom | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
+  
+  // WebSocket 연결 관리
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // WebSocket 연결 함수
+  const connectWebSocket = (roomId: string) => {
+    const wsUrl = `ws://localhost:8000/api/chat/ws/${roomId}`;
+    console.log(`🔌 WebSocket 연결 시도: ${wsUrl}`);
+    
+    try {
+      const ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        console.log(`✅ WebSocket 연결 성공: ${roomId}`);
+        console.log(`🔌 WebSocket 상태: OPEN (readyState: ${ws.readyState})`);
+        wsRef.current = ws;
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log(`📥 WebSocket 메시지 수신:`, data);
+          console.log(`📥 [상세] event_type: ${data.event_type}, speaker: ${data.speaker}, stage: ${data.stage}`);
+          console.log(`📥 [메시지 내용] ${data.message ? data.message.substring(0, 100) + '...' : 'No message content'}`);
+          
+          if (data.event_type === 'new_message') {
+            console.log(`✅ 새 메시지 데이터 처리 시작 - 발신자: ${data.speaker}`);
+            
+            // 실시간 메시지를 채팅에 추가
+            const newMessage: ChatMessage = {
+              id: data.id || `ws-${Date.now()}`,
+              text: data.message || data.content || '',
+              sender: data.speaker,
+              isUser: false,
+              timestamp: new Date(data.timestamp || Date.now()),
+              isSystemMessage: data.speaker === 'moderator' || data.message_type === 'moderator',
+              role: data.speaker === 'moderator' ? 'moderator' : 'participant'
+            };
+            
+            console.log(`📝 생성된 메시지 객체:`, {
+              id: newMessage.id,
+              text: newMessage.text.substring(0, 50) + '...',
+              sender: newMessage.sender,
+              role: newMessage.role
+            });
+            
+            // 임시 대기 메시지 교체 및 새 메시지 추가
+            setChatData(prevData => {
+              if (!prevData) {
+                console.log('❌ prevData가 없음 - 메시지 추가 불가');
+                return prevData;
+              }
+              
+              const updatedData = { ...prevData };
+              
+              // 임시 대기 메시지 제거
+              if (data.speaker === 'moderator' || data.speaker === 'Moderator') {
+                const beforeCount = updatedData.messages?.length || 0;
+                updatedData.messages = updatedData.messages?.filter(msg => 
+                  !msg.id.startsWith('temp-waiting-')
+                ) || [];
+                const afterCount = updatedData.messages.length;
+                console.log(`🔄 임시 대기 메시지 제거: ${beforeCount} -> ${afterCount}`);
+              }
+              
+              // 중복 메시지 확인
+              const isDuplicate = updatedData.messages?.some(msg => 
+                msg.text === newMessage.text && msg.sender === newMessage.sender
+              );
+              
+              if (!isDuplicate) {
+                const beforeCount = updatedData.messages?.length || 0;
+                updatedData.messages = [...(updatedData.messages || []), newMessage];
+                console.log(`✅ 메시지 추가 완료: ${beforeCount + 1}개 메시지 (${data.speaker})`);
+                console.log(`📄 메시지 내용: "${newMessage.text.substring(0, 100)}..."`);
+                
+                // 💾 DB에 메시지 저장
+                const saveMessageToDB = async () => {
+                  try {
+                    console.log(`💾 DB 저장 시작: 방 ${roomId}, 메시지 ID ${newMessage.id}`);
+                    
+                    const response = await fetch(`/api/rooms?id=${roomId}`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        message: newMessage
+                      }),
+                    });
+
+                    if (response.ok) {
+                      const result = await response.json();
+                      console.log(`✅ DB 저장 성공: 방 ${roomId}, 메시지 "${newMessage.text.substring(0, 50)}..."`);
+                    } else {
+                      const errorData = await response.json();
+                      console.error(`❌ DB 저장 실패: ${response.status}`, errorData);
+                    }
+                  } catch (error) {
+                    console.error(`❌ DB 저장 중 오류: 방 ${roomId}`, error);
+                  }
+                };
+                
+                // 비동기로 DB 저장 (UI 블로킹 방지)
+                saveMessageToDB();
+              } else {
+                console.log(`⚠️ 중복 메시지 무시: ${data.speaker}`);
+              }
+              
+              return updatedData;
+            });
+          } else {
+            console.log(`📥 기타 이벤트 타입: ${data.event_type}`);
+          }
+        } catch (error) {
+          console.error('❌ WebSocket 메시지 파싱 오류:', error);
+          console.error('❌ 원본 데이터:', event.data);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error(`❌ WebSocket 오류:`, error);
+        console.error(`🔌 WebSocket 상태: ERROR (readyState: ${ws.readyState})`);
+      };
+      
+      ws.onclose = (event) => {
+        console.log(`🔌 WebSocket 연결 종료: 코드=${event.code}, 이유="${event.reason}"`);
+        console.log(`🔌 정상 종료 여부: ${event.wasClean ? 'YES' : 'NO'}`);
+        wsRef.current = null;
+        
+        // 비정상 종료시 재연결 시도
+        if (event.code !== 1000 && event.code !== 1001) {
+          console.log('🔄 5초 후 WebSocket 재연결 시도...');
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log(`🔄 재연결 시도 중: ${roomId}`);
+            connectWebSocket(roomId);
+          }, 5000);
+        }
+      };
+      
+    } catch (error) {
+      console.error('❌ WebSocket 연결 생성 실패:', error);
+    }
+  };
+
+  // WebSocket 연결 해제 함수
+  const disconnectWebSocket = () => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
+    if (wsRef.current) {
+      console.log('🔌 WebSocket 연결 해제');
+      wsRef.current.close(1000, 'Component unmounting');
+      wsRef.current = null;
+    }
+  };
 
   // 페이지 진입 시 body 스타일 변경
   useEffect(() => {
     // 헤더를 숨기기 위한 클래스 추가
     document.body.classList.add('chat-page-open');
     
-    // 페이지 나갈 때 스타일 복원
+    // 페이지 나갈 때 스타일 복원 및 WebSocket 연결 해제
     return () => {
       document.body.classList.remove('chat-page-open');
+      disconnectWebSocket();
     };
   }, []);
+
+  // 채팅 데이터 로드 후 WebSocket 연결
+  useEffect(() => {
+    if (chatData && chatData.dialogueType === 'debate') {
+      // debate_info에서 room_id를 찾거나 chatData.id를 사용
+      const roomId = chatData.id.toString();
+      console.log(`🎯 디베이트 모드 감지 - WebSocket 연결 시작: ${roomId}`);
+      connectWebSocket(roomId);
+    }
+    
+    return () => {
+      disconnectWebSocket();
+    };
+  }, [chatData]);
 
   useEffect(() => {
     // 마운트 시 상태 초기화

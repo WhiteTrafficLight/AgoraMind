@@ -89,6 +89,38 @@ export default function OpenChatPage() {
   // 상태 변수 선언 부분에 userDebateRole 추가
   const [userDebateRole, setUserDebateRole] = useState<'pro' | 'con' | 'neutral'>('neutral');
   
+  // 모더레이터 스타일 상태 추가
+  const [moderatorStyleId, setModeratorStyleId] = useState<string>('0');
+
+  // 모더레이터 스타일 옵션들
+  const moderatorStyles = [
+    {
+      id: '0',
+      name: 'Jamie the Host',
+      description: 'Casual and friendly young-style moderator'
+    },
+    {
+      id: '1', 
+      name: 'Dr. Lee',
+      description: 'Polite and academic university professor-style moderator'
+    },
+    {
+      id: '2',
+      name: 'Zuri Show', 
+      description: 'Energetic and entertaining YouTuber host-style moderator'
+    },
+    {
+      id: '3',
+      name: 'Elias of the End',
+      description: 'Serious and weighty tone moderator'
+    },
+    {
+      id: '4',
+      name: 'Miss Hana',
+      description: 'Bright and educational style moderator'
+    }
+  ];
+  
   // 채팅룸 목록 로드 함수
   const loadChatRooms = async () => {
     try {
@@ -396,13 +428,18 @@ export default function OpenChatPage() {
         return;
       }
       
-      // 찬반토론 모드일 때는 최소 양쪽에 한 명 이상 필요
+      // 찬반토론 모드일 때는 최소 양쪽에 한 명 이상 필요 (철학자 또는 유저)
       if (dialogueType === 'debate') {
         const hasProNpc = selectedNPCs.some(npc => npcPositions[npc] === 'pro');
         const hasConNpc = selectedNPCs.some(npc => npcPositions[npc] === 'con');
+        const hasProUser = userDebateRole === 'pro';
+        const hasConUser = userDebateRole === 'con';
         
-        if (!hasProNpc || !hasConNpc) {
-          toast.error('Pro-Con debate requires at least one philosopher on each side');
+        const hasProSide = hasProNpc || hasProUser;
+        const hasConSide = hasConNpc || hasConUser;
+        
+        if (!hasProSide || !hasConSide) {
+          toast.error('Pro-Con debate requires at least one participant (philosopher or user) on each side');
           setIsCreating(false);
           return;
         }
@@ -426,6 +463,12 @@ export default function OpenChatPage() {
       } else {
         console.log('사용자 이름이 없음, 기본값 사용됨');
       }
+      
+      // 모더레이터 스타일 정보 추가
+      chatParams.moderator = {
+        style_id: moderatorStyleId,
+        style: moderatorStyles.find(s => s.id === moderatorStyleId)?.name || 'Jamie the Host'
+      };
       
       // 찬반토론 모드일 때 npcPositions 정보 추가
       if (dialogueType === 'debate') {
@@ -486,6 +529,7 @@ export default function OpenChatPage() {
     setDialogueType('free');
     setNpcPositions({});
     setUserDebateRole('neutral');
+    setModeratorStyleId('0'); // 모더레이터 스타일 초기화
   };
 
   // Handle joining a chat
@@ -2207,22 +2251,6 @@ export default function OpenChatPage() {
                     <div style={{ marginBottom: '1.5rem' }}>
                       <label style={{ display: 'block', marginBottom: '1rem', fontWeight: '500', fontSize: '1.125rem', fontFamily: 'inherit' }}>Select Participants</label>
                       
-                      {/* 대화 유형에 따른 안내 */}
-                      <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
-                        {dialogueType === 'free' && (
-                          <p style={{ color: '#4b5563', fontFamily: 'inherit' }}>Choose philosophers for an open discussion.</p>
-                        )}
-                        {dialogueType === 'debate' && (
-                          <p style={{ color: '#4b5563', fontFamily: 'inherit' }}>Select at least one philosopher for each side of the debate.</p>
-                        )}
-                        {dialogueType === 'socratic' && (
-                          <p style={{ color: '#4b5563', fontFamily: 'inherit' }}>Select philosophers to engage in Socratic questioning.</p>
-                        )}
-                        {dialogueType === 'dialectical' && (
-                          <p style={{ color: '#4b5563', fontFamily: 'inherit' }}>Select philosophers for a thesis-antithesis-synthesis discussion.</p>
-                        )}
-                      </div>
-                      
                       {/* 찬반토론 모드일 때 사용자 역할 선택 섹션 추가 */}
                       {dialogueType === 'debate' && (
                         <div style={{ marginBottom: '1.5rem' }}>
@@ -2246,7 +2274,7 @@ export default function OpenChatPage() {
                                 marginBottom: '0.5rem'
                               }}>
                                 Pro (Affirmative)
-                                </div>
+                              </div>
                               <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                                 Support the proposition
                               </div>
@@ -2293,16 +2321,85 @@ export default function OpenChatPage() {
                                 color: userDebateRole === 'neutral' ? '#4b5563' : '#374151',
                                 marginBottom: '0.5rem'
                               }}>
-                                Neutral (Moderator)
+                                Observer
                               </div>
                               <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                                Moderate the debate
+                                Watch the debate as a neutral observer
                             </div>
                           </div>
                       </div>
                     </div>
                       )}
                     
+                      {/* 대화 유형에 따른 안내 */}
+                      <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
+                        {dialogueType === 'free' && (
+                          <p style={{ color: '#4b5563', fontFamily: 'inherit' }}>Choose philosophers for an open discussion.</p>
+                        )}
+                        {dialogueType === 'debate' && (
+                          <p style={{ color: '#4b5563', fontFamily: 'inherit' }}>Select at least one philosopher for each side of the debate.</p>
+                        )}
+                        {dialogueType === 'socratic' && (
+                          <p style={{ color: '#4b5563', fontFamily: 'inherit' }}>Select philosophers to engage in Socratic questioning.</p>
+                        )}
+                        {dialogueType === 'dialectical' && (
+                          <p style={{ color: '#4b5563', fontFamily: 'inherit' }}>Select philosophers for a thesis-antithesis-synthesis discussion.</p>
+                        )}
+                      </div>
+                      
+                      {/* 찬반토론일 때만 모더레이터 스타일 선택 섹션 */}
+                      {dialogueType === 'debate' && (
+                        <div style={{ marginBottom: '2rem' }}>
+                          <h3 style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '0.75rem', fontFamily: 'inherit' }}>Select Moderator Style</h3>
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '0.75rem',
+                            marginBottom: '1rem'
+                          }}>
+                            {moderatorStyles.map(style => (
+                              <div 
+                                key={style.id}
+                                onClick={() => setModeratorStyleId(style.id)}
+                                style={{ 
+                                  border: moderatorStyleId === style.id ? '2px solid black' : '1px solid #e5e7eb', 
+                                  padding: '1rem', 
+                                  borderRadius: '0.5rem', 
+                                  cursor: 'pointer',
+                                  backgroundColor: moderatorStyleId === style.id ? '#f9fafb' : 'white',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                  <img
+                                    src={`/portraits/Moderator${style.id}.png`}
+                                    alt={style.name}
+                                    style={{
+                                      width: '48px',
+                                      height: '48px',
+                                      borderRadius: '50%',
+                                      objectFit: 'cover',
+                                      objectPosition: 'center top',
+                                      border: '2px solid #e5e7eb',
+                                      backgroundColor: '#f9fafb',
+                                      flexShrink: 0
+                                    }}
+                                  />
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: '600', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                                      {style.name}
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: '#6b7280', lineHeight: '1.4' }}>
+                                      {style.description}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* 선택된 철학자 표시 영역 */}
                     {selectedNPCs.length > 0 && (
                         <div style={{ marginBottom: '1.5rem' }}>
@@ -2358,6 +2455,7 @@ export default function OpenChatPage() {
                                     {dialogueType === 'debate' && (
                                       <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', gap: '0.25rem' }}>
                                         <button
+                                          type="button"
                                           style={{
                                             padding: '0.25rem 0.5rem',
                                             fontSize: '0.75rem',
@@ -2375,6 +2473,7 @@ export default function OpenChatPage() {
                                           Pro
                               </button>
                                         <button
+                                          type="button"
                                           style={{
                                             padding: '0.25rem 0.5rem',
                                             fontSize: '0.75rem',
@@ -2411,6 +2510,7 @@ export default function OpenChatPage() {
                           </div>
                       </div>
                     )}
+                      
                       
                       {/* 커스텀 NPC 영역 */}
                     {customNpcs.length > 0 && (

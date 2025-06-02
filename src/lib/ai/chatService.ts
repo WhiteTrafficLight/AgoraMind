@@ -36,6 +36,12 @@ export interface ChatRoom {
   pro?: string[]; // 찬성측 참여자들 (NPC IDs와 사용자)
   con?: string[]; // 반대측 참여자들 (NPC IDs와 사용자)
   neutral?: string[]; // 중립 참여자들 (NPC IDs와 사용자)
+  debate_info?: {
+    current_stage?: string;
+    pro_participants?: string[];
+    con_participants?: string[];
+    total_turns?: number;
+  }; // 토론 진행 정보
 }
 
 // NPC 상세 정보 인터페이스 추가
@@ -68,6 +74,10 @@ export interface ChatRoomCreationParams {
   dialogueType?: string; // 대화 패턴 타입 추가
   npcPositions?: Record<string, 'pro' | 'con'>; // 찬반토론을 위한 NPC 입장 정보
   userDebateRole?: 'pro' | 'con' | 'neutral'; // 찬반토론에서 사용자의 역할
+  moderator?: {
+    style_id?: string;
+    style?: string;
+  }; // 모더레이터 스타일 정보
 }
 
 // 디버그 모드 설정 - 로깅 제어용
@@ -468,7 +478,7 @@ class ChatService {
             
             if (!isDuplicate) {
               room.messages.push(room.initial_message);
-          } else {
+            } else {
               log('⚠️ Duplicate initial message detected, not adding');
             }
           } else {
@@ -631,7 +641,25 @@ class ChatService {
       
       // 6. 메시지 배열이 없으면 초기화
       if (!newRoom.messages) {
-      newRoom.messages = [];
+        newRoom.messages = [];
+      }
+      
+      // 6.5. Debate 타입인 경우 임시 대기 메시지 추가
+      if (newRoom.dialogueType === 'debate') {
+        console.log('🎯 Debate 방 생성 - 임시 대기 메시지 추가');
+        
+        const tempMessage: ChatMessage = {
+          id: `temp-waiting-${Date.now()}`,
+          text: "Participants are joining. Please wait a moment...",
+          sender: "Moderator",
+          isUser: false,
+          timestamp: new Date(),
+          isSystemMessage: true,
+          role: 'moderator'
+        };
+        
+        newRoom.messages.push(tempMessage);
+        console.log('✅ Added temporary waiting message for debate room');
       }
       
       // 7. 초기 메시지 처리
@@ -644,7 +672,7 @@ class ChatService {
             newRoom.initial_message.isSystemMessage || 
             newRoom.initial_message.role === 'moderator') {
           
-          console.log('✅ Found moderator message for debate, adding to room');
+          console.log('✅ Found moderator message for debate, replacing temporary message');
           console.log('✅ Moderator message details:');
           console.log('sender:', newRoom.initial_message.sender);
           console.log('isSystemMessage:', newRoom.initial_message.isSystemMessage);
@@ -654,6 +682,13 @@ class ChatService {
           
           // 빈 메시지가 아닌지 확인
           if (newRoom.initial_message.text && newRoom.initial_message.text.trim() !== "") {
+            // Debate 타입의 경우 임시 메시지를 실제 모더레이터 메시지로 교체
+            if (newRoom.dialogueType === 'debate') {
+              // 임시 메시지 제거
+              newRoom.messages = newRoom.messages.filter(msg => !msg.id.startsWith('temp-waiting-'));
+              console.log('🔄 Removed temporary waiting message');
+            }
+            
             // 중복 메시지가 아닌지 확인
             const isDuplicate = newRoom.messages.some(msg => 
               msg.text === newRoom.initial_message?.text && 
@@ -669,217 +704,52 @@ class ChatService {
                 role: 'moderator'
               };
               newRoom.messages.push(moderatorMsg);
-              console.log('✅ Added moderator message with isSystemMessage and role fields to room');
+              console.log('✅ Added actual moderator message replacing temporary message');
               console.log('✅ Final moderator message:', moderatorMsg);
-              
-              // 찬반토론 모드인 경우 모더레이터 메시지 후 찬성측 NPC가 자동으로 입장 표명
-              if (newRoom.dialogueType === 'debate' && newRoom.pro && newRoom.pro.length > 0) {
-                console.log('📣 Debate mode: Automatically generating first pro NPC response');
-                
-                // NPC 상세 정보 로드
-                if (!newRoom.npcDetails) {
-                  console.log('🔄 Loading NPC details for debate message generation');
-                  newRoom.npcDetails = await this.loadNpcDetails(newRoom.participants.npcs);
-                }
-                
-                // 첫 번째 찬성측 NPC 선택
-                const firstProNpcId = newRoom.pro[0];
-                
-                if (newRoom.participants.npcs.includes(firstProNpcId)) {
-                  try {
-                    console.log(`📣 Generating automatic response from pro NPC: ${firstProNpcId}`);
-                    
-                    // 토론 주제에서 키워드 추출
-                    const topicKeywords = newRoom.title.split(' ').filter(word => word.length > 3);
-                    
-                    // 찬성 입장 표명 메시지 준비
-                    const stanceMessage = 
-                      newRoom.initial_message.text.includes('찬성 입장:') ? 
-                        newRoom.initial_message.text.split('찬성 입장:')[1]?.split('\n')[0]?.trim() :
-                        `${newRoom.title}에 찬성합니다`;
-                    
-                    // 입장 표명 메시지 템플릿
-                    let proResponse = '';
-                    
-                    // API 요청 준비
-                    const lastMessage = newRoom.messages[newRoom.messages.length - 1];
-                    
-                    // 기존 메시지 기록 구성 (모더레이터 메시지만 포함)
-                    const dialogueContext = `Moderator: ${lastMessage.text}`;
-                    
-                    // NPC 설명 가져오기
-                    const npcDetail = newRoom.npcDetails.find(npc => npc.id === firstProNpcId);
-                    const npcName = npcDetail?.name || firstProNpcId;
-                    
-                    // 채팅방 ID 정규화
-                    const normalizedId = this.normalizeId(newRoom.id);
-                    
-                    // AI 응답 생성 API 호출
-                    console.log(`🤖 Requesting AI response for opening statement from ${npcName}`);
-                    
-                    const response = await fetch('/api/chat/generate', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'x-llm-provider': 'openai', 
-                        'x-llm-model': 'gpt-4o'
-                      },
-                      body: JSON.stringify({
-                        npcs: [firstProNpcId],  // 한 명의 NPC만 응답
-                        room_id: String(normalizedId),
-                        topic: newRoom.title,
-                        context: newRoom.context || "",
-                        previous_dialogue: dialogueContext,
-                        user_message: "Please provide your opening statement supporting the pro side of this debate.",
-                        use_rag: true,  // RAG 활성화
-                      })
-                    });
-                    
-                    if (response.ok) {
-                      const data = await response.json();
-                      proResponse = data.response;
-                      
-                      console.log(`✅ Generated NPC response from ${npcName}:`, proResponse.substring(0, 100) + '...');
-                      
-                      // 응답 메시지 생성
-                      const npcMessage: ChatMessage = {
-                        id: this.generateUniqueId('npc-'),
-                        text: proResponse,
-                        sender: firstProNpcId,
-                        isUser: false,
-                        timestamp: new Date(),
-                        citations: data.citations
-                      };
-                      
-                      // 채팅방에 메시지 추가
-                      newRoom.messages.push(npcMessage);
-                      console.log(`✅ Added pro NPC ${npcName} message to room`);
-                      
-                      // DB에 메시지 저장
-                      await this.saveInitialMessage(newRoom.id, npcMessage);
-                      console.log(`✅ Saved pro NPC message to DB`);
-                    } else {
-                      console.error('❌ Failed to generate pro NPC response:', await response.text());
-                    }
-                  } catch (err) {
-                    console.error('❌ Error generating automatic pro NPC response:', err);
-                  }
-                } else {
-                  console.warn(`⚠️ First pro participant ${firstProNpcId} is not an NPC`);
-                }
-              }
             } else {
               console.log('⚠️ Duplicate moderator message detected, not adding');
             }
           } else {
-            console.log('⚠️ Empty moderator message detected, not adding');
-          }
-        }
-        // 빈 메시지가 아닌지 확인하고, 시스템 메시지가 아닌지 확인
-        else if (newRoom.initial_message.text && 
-            newRoom.initial_message.text.trim() !== "" && 
-            newRoom.initial_message.sender !== 'System' &&
-            !newRoom.initial_message.text.toLowerCase().startsWith("welcome to")) {
-          
-          console.log('✅ Adding valid initial message to room');
-          
-          // 중복 메시지가 아닌지 확인
-          const isDuplicate = newRoom.messages.some(msg => 
-            msg.text === newRoom.initial_message?.text && 
-            msg.sender === newRoom.initial_message?.sender
-          );
-          
-          if (!isDuplicate) {
-            // 초기 메시지를 messages 배열에 추가
-            newRoom.messages.push(newRoom.initial_message);
-            console.log('✅ Added initial message to room');
-          } else {
-            console.log('⚠️ Duplicate initial message detected, not adding');
+            console.log('⚠️ Empty moderator message from server');
           }
         } else {
-          log('⚠️ Invalid initial message detected (empty or system message), not adding');
-          
-          // 빈 메시지가 생성된 경우 우리가 직접 유의미한 메시지 생성
-          if (!newRoom.initial_message.text || newRoom.initial_message.text.trim() === "") {
-            console.log('🔄 Generating meaningful initial message as replacement');
-            
-            try {
-              // NPC 상세 정보가 없는 경우 로드
-              if (!newRoom.npcDetails) {
-                console.log('🔄 Loading NPC details for message generation');
-                newRoom.npcDetails = await this.loadNpcDetails(newRoom.participants.npcs);
-              }
+          // 일반 NPC 메시지인 경우 - debate 타입에서는 건너뛰기
+          if (newRoom.dialogueType === 'debate') {
+            console.log('⚠️ Debate 타입에서 일반 NPC fallback 메시지 감지, 건너뛰기');
+            console.log('⚠️ Fallback message sender:', newRoom.initial_message?.sender);
+            console.log('⚠️ Fallback message text:', newRoom.initial_message?.text?.substring(0, 100));
+          } else {
+            // System 메시지가 아닌지, Welcome 메시지가 아닌지 확인 (일반 NPC 메시지)
+            if (newRoom.initial_message && 
+                newRoom.initial_message.sender !== 'System' && 
+                !newRoom.initial_message.text.toLowerCase().startsWith("welcome to")) {
               
-              // 첫 번째 NPC 선택
-              const firstNpc = newRoom.participants.npcs[0];
-              const npcDetail = newRoom.npcDetails.find(npc => npc.id === firstNpc);
+              console.log('✅ Valid initial message found, adding to message list');
+              console.log('Message:', newRoom.initial_message);
               
-              if (npcDetail) {
-                // 유의미한 초기 메시지 생성
-                const messageText = this.getInitialPrompt(newRoom.title, newRoom.context);
-                
-                const newMessage: ChatMessage = {
-                  id: this.generateUniqueId('initial-'),
-                  text: messageText,
-                  sender: npcDetail.name,
-                  isUser: false,
-                  timestamp: new Date()
-                };
-                
-                console.log('✅ Created meaningful initial message:', newMessage);
-                newRoom.messages.push(newMessage);
-                
-                // 새 메시지 서버에 저장
-                await this.saveInitialMessage(newRoom.id, newMessage);
+              // 중복 메시지가 아닌지 확인 
+              const isDuplicate = newRoom.messages.some((msg: ChatMessage) => 
+                msg.text === newRoom.initial_message!.text && 
+                msg.sender === newRoom.initial_message!.sender && 
+                !msg.isUser
+              );
+              
+              if (!isDuplicate) {
+                newRoom.messages.push(newRoom.initial_message);
+              } else {
+                console.log('⚠️ Duplicate initial message detected, not adding');
               }
-            } catch (err) {
-              console.error('❌ Failed to generate meaningful initial message:', err);
+            } else {
+              console.log('⚠️ System or welcome initial message detected, not adding');
             }
           }
         }
         
-        // 사용 후 삭제
+        // 사용 후 삭제하여 중복 방지
         delete newRoom.initial_message;
       } else {
-        console.log('⚠️ No initial message from server, attempting to generate one');
-        
-        try {
-          // NPC 상세 정보가 없는 경우 로드
-          if (!newRoom.npcDetails) {
-            console.log('🔄 Loading NPC details for message generation');
-            newRoom.npcDetails = await this.loadNpcDetails(newRoom.participants.npcs);
-          }
-          
-          // 첫 번째 NPC 선택
-          const firstNpc = newRoom.participants.npcs[0];
-          const npcDetail = newRoom.npcDetails.find(npc => npc.id === firstNpc);
-          
-          if (npcDetail) {
-            // 유의미한 초기 메시지 생성
-            const messageText = this.getInitialPrompt(newRoom.title, newRoom.context);
-            
-            const newMessage: ChatMessage = {
-              id: this.generateUniqueId('initial-'),
-              text: messageText,
-              sender: npcDetail.name,
-              isUser: false,
-              timestamp: new Date()
-            };
-            
-            console.log('✅ Created fallback initial message:', newMessage);
-            newRoom.messages.push(newMessage);
-            
-            // 새 메시지 서버에 저장
-            const saved = await this.saveInitialMessage(newRoom.id, newMessage);
-            if (saved) {
-              console.log('✅ Saved fallback initial message to server');
-          } else {
-              console.error('❌ Failed to save fallback initial message');
-            }
-          }
-        } catch (err) {
-          console.error('❌ Failed to generate fallback initial message:', err);
-        }
+        console.log('⚠️ No initial message from server');
+        // Mock 메시지 생성 로직 제거 - 서버에서만 메시지 생성
       }
       
       // 8. NPC 상세 정보 로드
@@ -1033,6 +903,13 @@ class ChatService {
 
   // Helper to generate initial prompts based on topic
   private getInitialPrompt(topic: string, context?: string): string {
+    console.log('🔄 getInitialPrompt 호출됨 - 비활성화됨');
+    console.log('📍 Topic:', topic);
+    
+    // Mock 메시지 생성 완전 비활성화 - 서버에서만 메시지 생성
+    return "";
+    
+    /* 기존 코드 주석 처리
     console.log('🔄 Generating initial prompt for topic:', topic);
     
     // 의미 있는 초기 메시지 제공
@@ -1056,6 +933,7 @@ class ChatService {
     const selectedPrompt = prompts[randomIndex];
     console.log('✅ Generated random prompt:', selectedPrompt);
     return selectedPrompt;
+    */
   }
 
   // Send user message to a chat room

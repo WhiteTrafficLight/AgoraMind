@@ -137,50 +137,59 @@ class ChatRoomDB {
       const client = await clientPromise;
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
-      // 자동 증가 ID 구현 - 숫자 타입으로 변경
-      let roomId = 1;
+      // room.id가 이미 설정되어 있으면 그것을 사용, 없으면 자동 생성
+      let roomId: number;
       
-      try {
-        // 최대 ID + 1 로직을 기본 방식으로 사용
-          const maxIdRoom = await db.collection<DBChatRoom>('chatRooms')
-            .find({})
-            .sort({ roomId: -1 })
-            .limit(1)
-            .toArray();
-          
-          if (maxIdRoom.length > 0 && maxIdRoom[0].roomId) {
-          // roomId를 직접 숫자로 증가 (parseInt 필요 없음)
-            roomId = maxIdRoom[0].roomId + 1;
-          console.log(`최대 ID 기반으로 새 ID 생성: ${roomId}`);
-        } else {
-          console.log(`채팅방이 없어 첫 ID 생성: ${roomId}`);
-        }
-          
-        try {
-          // 카운터 컬렉션을 별도로 정의하여 타입 문제 해결
-          interface CounterDoc {
-            _id: string;
-            seq: number;
-          }
-          
-          // 타입을 명시적으로 지정하여 타입 오류 해결
-          const countersCollection = db.collection<CounterDoc>('counters');
-          await countersCollection.findOneAndUpdate(
-              { _id: 'roomId' },
-            { $set: { seq: roomId } },
-            { upsert: true }
-            );
-          console.log(`카운터를 안전하게 업데이트/생성: ${roomId}`);
-      } catch (counterError) {
-          // 카운터 오류는 무시 - ID 생성 로직은 이미 완료됨
-          console.warn('카운터 업데이트 중 오류 (무시됨):', counterError);
-        }
-      } catch (idGenerationError) {
-        console.error('ID 생성 오류:', idGenerationError);
+      if (room.id && !isNaN(Number(room.id))) {
+        // 파이썬 백엔드에서 제공된 room_id 사용
+        roomId = Number(room.id);
+        console.log(`제공된 room_id 사용: ${roomId}`);
+      } else {
+        // 자동 증가 ID 구현 - 숫자 타입으로 변경
+        roomId = 1;
         
-        // 극단적인 오류 상황에서는 타임스탬프 기반 ID 사용
-        roomId = Math.floor(Date.now() / 1000) % 100000;
-        console.log(`타임스탬프 기반 대체 ID 생성: ${roomId}`);
+        try {
+          // 최대 ID + 1 로직을 기본 방식으로 사용
+            const maxIdRoom = await db.collection<DBChatRoom>('chatRooms')
+              .find({})
+              .sort({ roomId: -1 })
+              .limit(1)
+              .toArray();
+            
+            if (maxIdRoom.length > 0 && maxIdRoom[0].roomId) {
+            // roomId를 직접 숫자로 증가 (parseInt 필요 없음)
+              roomId = maxIdRoom[0].roomId + 1;
+            console.log(`최대 ID 기반으로 새 ID 생성: ${roomId}`);
+          } else {
+            console.log(`채팅방이 없어 첫 ID 생성: ${roomId}`);
+          }
+            
+          try {
+            // 카운터 컬렉션을 별도로 정의하여 타입 문제 해결
+            interface CounterDoc {
+              _id: string;
+              seq: number;
+            }
+            
+            // 타입을 명시적으로 지정하여 타입 오류 해결
+            const countersCollection = db.collection<CounterDoc>('counters');
+            await countersCollection.findOneAndUpdate(
+                { _id: 'roomId' },
+              { $set: { seq: roomId } },
+              { upsert: true }
+              );
+            console.log(`카운터를 안전하게 업데이트/생성: ${roomId}`);
+        } catch (counterError) {
+            // 카운터 오류는 무시 - ID 생성 로직은 이미 완료됨
+            console.warn('카운터 업데이트 중 오류 (무시됨):', counterError);
+          }
+        } catch (idGenerationError) {
+          console.error('ID 생성 오류:', idGenerationError);
+          
+          // 극단적인 오류 상황에서는 타임스탬프 기반 ID 사용
+          roomId = Math.floor(Date.now() / 1000) % 100000;
+          console.log(`타임스탬프 기반 대체 ID 생성: ${roomId}`);
+        }
       }
       
       console.log(`새 채팅방에 할당된 ID: ${roomId}`);
@@ -199,100 +208,38 @@ class ChatRoomDB {
         updatedAt: new Date()
       };
       
-      console.log(`💾 DB 저장 전 채팅방 데이터:`, JSON.stringify({
-        roomId: dbRoom.roomId,
-        title: dbRoom.title,
-        dialogueType: dbRoom.dialogueType
-      }));
+      // 찬반토론 필드 추가 (있는 경우만)
+      if (room.pro) dbRoom.pro = room.pro;
+      if (room.con) dbRoom.con = room.con;
+      if (room.neutral) dbRoom.neutral = room.neutral;
       
-      // 찬반토론인 경우 pro, con, neutral 필드 설정
+      console.log(`💾 DB 저장 전 채팅방 데이터: ${JSON.stringify({ roomId, title: room.title, dialogueType: room.dialogueType })}`);
+      
       if (room.dialogueType === 'debate') {
         console.log(`💾 찬반토론 모드 감지: dialogueType=${room.dialogueType}`);
-        
-        // room 객체에서 pro, con, neutral 필드 직접 사용
-        if (room.pro || room.con || room.neutral) {
-          console.log(`💾 기존 pro, con, neutral 필드 사용`);
-          dbRoom.pro = room.pro || [];
-          dbRoom.con = room.con || [];
-          dbRoom.neutral = room.neutral || [];
-          
-          console.log(`💾 Pro: ${dbRoom.pro.join(', ')}`);
-          console.log(`💾 Con: ${dbRoom.con.join(', ')}`);
-          console.log(`💾 Neutral: ${dbRoom.neutral.join(', ')}`);
-        } 
-        // 이전 방식 유지 (npcPositions 사용)
-        else {
-          const npcPositions = (room as any).npcPositions || {};
-          const userDebateRole = (room as any).userDebateRole || 'neutral';
-          
-          console.log(`💾 npcPositions 사용:`, JSON.stringify(npcPositions));
-          console.log(`💾 userDebateRole: ${userDebateRole}`);
-          
-          // 초기화
-          dbRoom.pro = [];
-          dbRoom.con = [];
-          dbRoom.neutral = [];
-          
-          // NPC 위치 설정
-          for (const npcId of room.participants.npcs) {
-            const position = npcPositions[npcId];
-            if (position === 'pro') {
-              dbRoom.pro.push(npcId);
-              console.log(`💾 NPC를 PRO에 추가: ${npcId}`);
-            } else if (position === 'con') {
-              dbRoom.con.push(npcId);
-              console.log(`💾 NPC를 CON에 추가: ${npcId}`);
-            } else {
-              dbRoom.neutral.push(npcId);
-              console.log(`💾 NPC를 NEUTRAL에 추가: ${npcId}`);
-            }
-          }
-          
-          // 사용자 위치 설정 (현재는 하나의 사용자만 가정)
-          if (room.participants.users.length > 0) {
-            const userId = room.participants.users[0];
-            if (userDebateRole === 'pro') {
-              dbRoom.pro.push(userId);
-              console.log(`💾 사용자를 PRO에 추가: ${userId}`);
-            } else if (userDebateRole === 'con') {
-              dbRoom.con.push(userId);
-              console.log(`💾 사용자를 CON에 추가: ${userId}`);
-            } else { // neutral
-              dbRoom.neutral.push(userId);
-              console.log(`💾 사용자를 NEUTRAL에 추가: ${userId}`);
-            }
-          }
-          
-          console.log(`💾 최종 Pro 목록: ${dbRoom.pro.join(', ')}`);
-          console.log(`💾 최종 Con 목록: ${dbRoom.con.join(', ')}`);
-          console.log(`💾 최종 Neutral 목록: ${dbRoom.neutral.join(', ')}`);
-        }
+        console.log(`💾 기존 pro, con, neutral 필드 사용`);
+        if (room.pro) console.log(`💾 Pro: ${room.pro.join(', ')}`);
+        if (room.con) console.log(`💾 Con: ${room.con.join(', ')}`);
+        if (room.neutral) console.log(`💾 Neutral: ${room.neutral.join(', ')}`);
       }
-      
-      // 채팅룸 저장
-      await db.collection('chatRooms').insertOne(dbRoom);
-      console.log(`💾 채팅룸이 ID ${roomId}로 저장됨, dialogueType: ${dbRoom.dialogueType}`);
-      
-      // 초기 메시지가 있으면 저장
-      if (room.messages && room.messages.length > 0) {
-        const dbMessages = room.messages.map(msg => ({
-          messageId: msg.id,
-          roomId,
-          text: msg.text,
-          sender: msg.sender,
-          isUser: msg.isUser,
-          timestamp: new Date(msg.timestamp),
-          createdAt: new Date()
-        }));
-        
-        await db.collection('chatMessages').insertMany(dbMessages);
+
+      // 중복 체크를 위해 먼저 해당 roomId로 기존 방이 있는지 확인
+      const existingRoom = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId: roomId } as any);
+      if (existingRoom) {
+        console.warn(`경고: roomId ${roomId}가 이미 존재합니다. 기존 방을 반환합니다.`);
+        return this.transformRoomFromDB(existingRoom, []);
       }
-      
-      // ID가 포함된 완성된 채팅룸 반환
-      return {
-        ...room,
-        id: roomId
-      };
+
+      const result = await db.collection<DBChatRoom>('chatRooms').insertOne(dbRoom);
+      console.log(`💾 채팅룸이 ID ${roomId}로 저장됨, dialogueType: ${room.dialogueType}`);
+
+      // 방금 생성된 채팅룸 반환
+      const createdRoom = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId: roomId } as any);
+      if (!createdRoom) {
+        throw new Error('Failed to create chat room');
+      }
+
+      return this.transformRoomFromDB(createdRoom, []);
     } catch (error) {
       console.error('Database error in createChatRoom:', error);
       throw error;

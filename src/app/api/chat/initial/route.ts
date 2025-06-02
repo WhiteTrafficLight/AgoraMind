@@ -85,7 +85,13 @@ Just provide your philosophical response directly.`;
 }
 
 // 폴백 응답 생성 함수
-function generateFallbackResponse(topic: string): NextResponse {
+function generateFallbackResponse(topic: string, dialogueType?: string): NextResponse {
+  // Debate 타입에서는 fallback 메시지 생성하지 않음
+  if (dialogueType === 'debate') {
+    console.log('⚠️ Debate 타입에서 fallback 응답 생성 건너뛰기');
+    return NextResponse.json({ text: '' }); // 빈 응답 반환
+  }
+  
   const topicLanguage = detectLanguage(topic);
   
   const fallbackResponses: Record<string, string[]> = {

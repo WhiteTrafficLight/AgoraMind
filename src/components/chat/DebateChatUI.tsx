@@ -5,6 +5,7 @@ import { UserIcon, PaperAirplaneIcon, ArrowPathIcon, ArrowDownCircleIcon } from 
 import { ChatMessage, ChatRoom, NpcDetail } from '@/lib/ai/chatService';
 import { formatTimestamp } from '@/lib/utils/dateUtils';
 import { useRouter } from 'next/router';
+import TypingMessage from './TypingMessage';
 
 interface DebateChatUIProps {
   room: ChatRoom;
@@ -33,6 +34,15 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
   userRole,
   onRequestNextMessage
 }) => {
+  // 모더레이터 스타일 정보 매핑
+  const moderatorStyles = [
+    { id: '0', name: 'Jamie the Host' },
+    { id: '1', name: 'Dr. Lee' },
+    { id: '2', name: 'Zuri Show' },
+    { id: '3', name: 'Elias of the End' },
+    { id: '4', name: 'Miss Hana' }
+  ];
+  
   const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
@@ -45,6 +55,13 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
   const [inputDisabled, setInputDisabled] = useState<boolean>(true);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const userSide = userRole || 'neutral';
+  
+  // Next 메시지 생성 상태
+  const [isGeneratingNext, setIsGeneratingNext] = useState<boolean>(false);
+  
+  // 타이핑 애니메이션을 위한 상태
+  const [lastMessageCount, setLastMessageCount] = useState<number>(0);
+  const [typingMessageIds, setTypingMessageIds] = useState<Set<string>>(new Set());
   
   // Check if device is mobile
   useEffect(() => {
@@ -285,6 +302,41 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
     }
   };
   
+  // Next 메시지 요청 함수
+  const handleNextMessage = async () => {
+    if (isGeneratingNext) return;
+    
+    setIsGeneratingNext(true);
+    console.log(`🎯 Next 버튼 클릭 - 방 ${room.id}에 대한 다음 메시지 요청`);
+    
+    try {
+      const response = await fetch(`http://localhost:8000/api/chat/debate/${room.id}/next-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Next 메시지 요청 실패:', errorData);
+        throw new Error(errorData.detail || 'Next 메시지 요청 실패');
+      }
+      
+      const data = await response.json();
+      console.log('✅ Next 메시지 요청 성공:', data);
+      
+      if (data.status === 'completed') {
+        console.log('🏁 토론 완료');
+      }
+      
+    } catch (error) {
+      console.error('❌ Next 메시지 요청 중 오류:', error);
+    } finally {
+      setIsGeneratingNext(false);
+    }
+  };
+  
   // Check if this is a debate room
   const isDebateRoom = room.dialogueType === 'debate';
   
@@ -296,58 +348,69 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
     return messages.length > 0;
   };
   
-  // Helper to get name from ID
+  // Get name from ID with proper handling for moderator
   const getNameFromId = (id: string, isUser: boolean): string => {
+    // 모더레이터 처리
+    if (id === 'Moderator' || id === 'moderator') {
+      return moderatorInfo.name;
+    }
+    
     if (isUser) {
       return username;
     }
     
-    // Check if this is a custom NPC (has UUID-like format)
-    const isUuid = id.includes('-') && id.split('-').length === 5;
-    
+    // Check if it's a known NPC
     const npc = npcDetails[id];
     if (npc) {
       return npc.name;
-    } else if (isUuid) {
-      // If it appears to be a custom NPC ID but we don't have details yet
-      return "Custom Philosopher";
     }
     
-    return id;
+    // If no NPC found, try to format the ID
+    return id.charAt(0).toUpperCase() + id.slice(1);
   };
   
-  // Generate default avatar URL
   const getDefaultAvatar = (name: string) => {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=64`;
+    // For moderator, use the correct moderator image
+    if (name === moderatorInfo.name || name === 'Moderator') {
+      return moderatorInfo.profileImage;
+    }
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`;
   };
   
   // Get NPC profile image
   const getNpcProfileImage = (npcId: string): string => {
-    if (npcDetails[npcId] && npcDetails[npcId].portrait_url) {
-      return npcDetails[npcId].portrait_url;
+    // 모더레이터 처리
+    if (npcId === 'Moderator' || npcId === 'moderator') {
+      return moderatorInfo.profileImage;
     }
-    const displayName = getNameFromId(npcId, false);
-    return getDefaultAvatar(displayName);
+    
+    const npc = npcDetails[npcId];
+    if (npc && npc.portrait_url) {
+      return npc.portrait_url;
+    }
+    // Fallback to default portrait location
+    return `/portraits/${npcId}.png`;
   };
   
-  // Helper to get profile image for participants
+  // Get profile image for any participant
   const getProfileImage = (id: string, isUser: boolean): string => {
+    // 모더레이터 처리
+    if (id === 'Moderator' || id === 'moderator') {
+      return moderatorInfo.profileImage;
+    }
+    
     if (isUser) {
-      // Use userProfilePicture state if available
       if (userProfilePicture && userProfilePicture.length > 0) {
         return userProfilePicture;
       }
-      // Fallback to UI Avatars if no DB image available
       return getDefaultAvatar(username);
     }
-    
-    // Use getNpcProfileImage for NPCs
     return getNpcProfileImage(id);
   };
   
-  // Check if an ID is actually a user
+  // Check if ID is a user participant
   const isUserParticipant = (id: string): boolean => {
-    return id === username || room.participants.users.includes(id);
+    return room.participants.users.includes(id) || id === username;
   };
   
   // Check if an ID belongs to pro, con, or neutral based on room data
@@ -382,6 +445,11 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
   
   // Ensure all message senders appear in the UI even if not in pro/con/neutral lists
   uniqueSenders.forEach(sender => {
+    // 모더레이터는 참가자 리스트에 추가하지 않음
+    if (sender === 'Moderator' || sender === 'moderator') {
+      return;
+    }
+    
     const isInAnyList = 
       proParticipants.includes(sender) || 
       conParticipants.includes(sender) || 
@@ -391,6 +459,11 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
       // Find message to check if user
       const msg = messages.find(m => m.sender === sender);
       const isSenderUser = msg?.isUser || sender === username;
+      
+      // 메시지의 role이 moderator인 경우도 제외
+      if (msg?.role === 'moderator' || msg?.isSystemMessage) {
+        return;
+      }
       
       // Only add to a position list if not already in any list
       if (isSenderUser) {
@@ -403,8 +476,15 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
           neutralParticipants.push(sender);
         }
       } else {
+        // NPC가 이미 pro나 con에 있는지 다시 한번 확인
+        const isInProOrCon = 
+          (room.pro && room.pro.includes(sender)) || 
+          (room.con && room.con.includes(sender));
+        
+        if (!isInProOrCon) {
         // Add NPC to neutral as fallback (only if not already included)
         neutralParticipants.push(sender);
+        }
       }
     }
   });
@@ -625,227 +705,289 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
     console.log("Reply to message:", message);
   };
   
-  // Helper function to get sender name from ID using NPC details
-  const getSenderName = (senderId: string, npcDetails: Record<string, NpcDetail>): string => {
-    if (!npcDetails) return senderId;
+  // 모더레이터 정보 가져오기
+  const getModeratorInfo = () => {
+    console.log('🎭 [DebateChatUI] getModeratorInfo called');
+    console.log('🎭 [DebateChatUI] room object:', room);
+    console.log('🎭 [DebateChatUI] room.moderator:', (room as any).moderator);
     
-    // Check if this is a custom NPC (has UUID-like format)
-    const isUuid = senderId.includes('-') && senderId.split('-').length === 5;
-    
-    const npc = npcDetails[senderId];
-    if (npc) {
-      return npc.name;
-    } else if (isUuid) {
-      // If it appears to be a custom NPC ID but we don't have details yet
-      return "Custom Philosopher";
+    const moderatorConfig = (room as any).moderator;
+    if (moderatorConfig && moderatorConfig.style_id) {
+      console.log('🎭 [DebateChatUI] Found moderator config:', moderatorConfig);
+      const style = moderatorStyles.find(s => s.id === moderatorConfig.style_id);
+      console.log('🎭 [DebateChatUI] Found style:', style);
+      return {
+        name: style?.name || 'Jamie the Host',
+        profileImage: `/portraits/Moderator${moderatorConfig.style_id}.png`
+      };
     }
-    
-    return senderId;
+    console.log('🎭 [DebateChatUI] No moderator config found, using default');
+    return {
+      name: 'Jamie the Host',
+      profileImage: '/portraits/Moderator0.png'
+    };
   };
   
-  // 대화 분석 함수 추가 - 현재 메시지 분석하여 다음 발언자 파악
-  useEffect(() => {
-    if (!messages || messages.length === 0 || !room) return;
+  const moderatorInfo = getModeratorInfo();
+  
+  // 메시지 렌더링 함수
+  const renderMessage = (message: ChatMessage, index: number) => {
+    const isUser = isUserParticipant(message.sender);
+    const senderName = getNameFromId(message.sender, isUser);
+    const avatar = getProfileImage(message.sender, isUser);
+    const isCurrentUserTurn = isUserTurn && isUser;
     
-    // 디베이트 모드에서만 작동
-    if (room.dialogueType !== 'debate') return;
-
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage) return;
+    // 임시 대기 메시지인지 확인
+    const isTempWaitingMessage = message.id.startsWith('temp-waiting-');
     
-    console.log('Last message sender:', lastMessage.sender, 'Role:', lastMessage.role);
-    console.log('User info - username:', username, 'userRole:', userRole);
-    
-    // 모더레이터 메시지 검사
-    if (lastMessage.role === 'moderator' || lastMessage.sender === 'Moderator') {
-      console.log('Moderator message detected, checking for next speaker cues');
-      
-      // 메시지 텍스트에서 다음 발언자 추출 시도 (한글/영어 패턴 모두 지원)
-      const nextSpeakerPattern = /먼저\s+(.+?)\s+측에서|먼저\s+(.+?)\s+님께서|다음은\s+(.+?)\s+측에서|이제\s+(.+?)\s+님의\s+차례|next\s+speaker\s+is\s+(.+?)\s|it's\s+(.+?)'s\s+turn|pro\s+side|con\s+side|user/i;
-      const match = lastMessage.text.match(nextSpeakerPattern);
-      
-      if (match) {
-        // 가능한 모든 캡처 그룹에서 비어있지 않은 첫 번째 그룹 선택
-        const nextSpeaker = match[1] || match[2] || match[3] || match[4] || match[5] || match[6] || '';
-        console.log(`🎯 모더레이터가 다음 발언자로 지목: "${nextSpeaker}"`);
-        
-        // 다양한 방식으로 사용자 관련 언급 확인
-        const isUserMentioned = 
-          nextSpeaker.toLowerCase().includes('user') || 
-          nextSpeaker.toLowerCase().includes('you') || 
-                                (username && nextSpeaker.toLowerCase().includes(username.toLowerCase())) ||
-                                nextSpeaker.toLowerCase().includes('neutral') ||
-          nextSpeaker.toLowerCase().includes(userSide.toLowerCase()) ||
-          nextSpeaker.toLowerCase().includes('pro') && userRole === 'pro' ||
-          nextSpeaker.toLowerCase().includes('con') && userRole === 'con';
-        
-        console.log(`사용자 언급 확인: ${isUserMentioned}, 사용자 역할: ${userRole}`);
-        setIsUserTurn(isUserMentioned);
-        
-        if (isUserMentioned) {
-          console.log('🎤 현재 사용자의 발언 차례입니다!');
-          // 깜빡임 효과 활성화
-          setTurnIndicatorVisible(true);
+    return (
+      <div key={message.id} style={{ 
+        marginBottom: '20px',
+        opacity: isCurrentUserTurn ? 1 : 0.95,
+        transform: isCurrentUserTurn ? 'scale(1.02)' : 'scale(1)',
+        transition: 'all 0.3s ease'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '12px',
+          animation: `fadeIn 0.5s ease-in-out ${index * 0.1}s both`
+        }}>
+          {/* Profile Image */}
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            border: '2px solid #e5e7eb',
+            flexShrink: 0
+          }}>
+            <img
+              src={avatar}
+              alt={senderName}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover'
+              }}
+            />
+          </div>
           
-          // 입력창으로 포커스
-          if (inputRef.current) {
-            inputRef.current.focus();
-          }
-          
-          // 깜빡임 효과 (3번 깜빡임)
-          let blinkCount = 0;
-          const blinkInterval = setInterval(() => {
-            setTurnIndicatorVisible(prev => !prev);
-            blinkCount++;
+          {/* Message Content */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Sender Name */}
+            <div style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              color: message.role === 'moderator' ? '#7c3aed' : '#374151',
+              marginBottom: '4px'
+            }}>
+              {senderName}
+              {message.role === 'moderator' && (
+                <span style={{
+                  background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                  color: 'white',
+                  fontSize: '10px',
+                  padding: '2px 6px',
+                  borderRadius: '8px',
+                  marginLeft: '8px',
+                  fontWeight: '500'
+                }}>
+                  MODERATOR
+                </span>
+              )}
+            </div>
             
-            if (blinkCount >= 6) { // 3번 깜빡임 (켜짐/꺼짐 각각 1회로 계산)
-              clearInterval(blinkInterval);
-              setTurnIndicatorVisible(true); // 최종적으로 표시 유지
-            }
-          }, 500);
-          
-          return () => clearInterval(blinkInterval);
-        }
-      } else {
-        // 정규식 매치가 없는 경우도 프로/콘 언급 확인
-        const hasPro = lastMessage.text.toLowerCase().includes('pro') || lastMessage.text.toLowerCase().includes('찬성');
-        const hasCon = lastMessage.text.toLowerCase().includes('con') || lastMessage.text.toLowerCase().includes('반대');
-        
-        if (hasPro && userRole === 'pro') {
-          console.log('Pro side mentioned and user is Pro - setting user turn');
-          setIsUserTurn(true);
-          setTurnIndicatorVisible(true);
-          if (inputRef.current) inputRef.current.focus();
-        } else if (hasCon && userRole === 'con') {
-          console.log('Con side mentioned and user is Con - setting user turn');
-          setIsUserTurn(true);
-          setTurnIndicatorVisible(true);
-          if (inputRef.current) inputRef.current.focus();
-        }
-      }
-    }
-    
-    // 마지막 API 발언자가 "next_speaker"로 사용자를 지정한 경우
-    // 이 정보는 일반적으로 소켓이나 API 응답으로 받을 수 있음
-    const lastSpeakerData = window.localStorage.getItem('lastNextSpeakerData');
-    if (lastSpeakerData) {
-      try {
-        const speakerData = JSON.parse(lastSpeakerData);
-        if (speakerData.speaker_id === username || 
-            speakerData.speaker_id === 'You' || 
-            speakerData.speaker_id === 'User123') {
-          console.log('Next speaker data indicates it is user turn');
-          setIsUserTurn(true);
-          setTurnIndicatorVisible(true);
-        }
-      } catch (e) {
-        console.error('Error parsing last speaker data:', e);
-      }
-    }
-    
-    // 일반 메시지 분석 - 마지막 발언이 반대측이면 사용자가 찬성측인 경우 사용자 차례
-    if (room.pro && room.con) {
-      const lastSender = lastMessage.sender;
-      const isLastMessageFromCon = room.con.includes(lastSender);
-      const isLastMessageFromPro = room.pro.includes(lastSender);
-      const isUserPro = room.pro.includes(username || '');
-      const isUserCon = room.con.includes(username || '');
-      
-      console.log(`Last message analysis - Sender: ${lastSender}, FromCon: ${isLastMessageFromCon}, FromPro: ${isLastMessageFromPro}`);
-      console.log(`User position - Pro: ${isUserPro}, Con: ${isUserCon}`);
-      
-      // 사용자가 찬성측이고 마지막 메시지가 반대측인 경우
-      if (isUserPro && isLastMessageFromCon) {
-        console.log('User is Pro and last message is from Con - setting user turn');
-        setIsUserTurn(true);
-        setTurnIndicatorVisible(true);
-        if (inputRef.current) inputRef.current.focus();
-      } 
-      // 사용자가 반대측이고 마지막 메시지가 찬성측인 경우
-      else if (isUserCon && isLastMessageFromPro) {
-        console.log('User is Con and last message is from Pro - setting user turn');
-        setIsUserTurn(true);
-        setTurnIndicatorVisible(true);
-        if (inputRef.current) inputRef.current.focus();
-      } else {
-        console.log('Not user turn based on message analysis');
-        setIsUserTurn(false);
-        setTurnIndicatorVisible(false);
-      }
-    }
-  }, [messages, room, username, userRole, userSide]);
-  
-  // CSS 애니메이션을 위한 스타일 추가
-  useEffect(() => {
-    // 전역 스타일 추가
-    const styleEl = document.createElement('style');
-    styleEl.textContent = `
-      @keyframes userTurnInput {
-        0%, 100% { box-shadow: 0 0 8px rgba(59, 130, 246, 0.7); }
-        50% { box-shadow: 0 0 20px rgba(59, 130, 246, 1); }
-      }
-      
-      @keyframes userTurnProfile {
-        0% { transform: scale(1.1); box-shadow: 0 0 12px 4px rgba(59, 130, 246, 0.7); }
-        50% { transform: scale(1.2); box-shadow: 0 0 20px 10px rgba(59, 130, 246, 1); }
-        100% { transform: scale(1.1); box-shadow: 0 0 12px 4px rgba(59, 130, 246, 0.7); }
-      }
-      
-      @keyframes speakingIndicator {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-      }
-      
-      @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-8px); }
-      }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-      }
-      
-      .user-turn-input-focus {
-        border: 2px solid #3b82f6 !important;
-        box-shadow: 0 0 15px rgba(59, 130, 246, 0.7) !important;
-        animation: userTurnInput 2s infinite !important;
-        background-color: #f0f9ff !important;
-        font-weight: 500 !important;
-        transform: scale(1.03) !important;
-        transition: all 0.3s ease !important;
-      }
-      
-      .user-turn-profile {
-        animation: userTurnProfile 1.5s infinite !important;
-      }
-      
-      .user-turn-alert {
-        animation: speakingIndicator 2s infinite !important;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
-      }
-      
-      .mic-icon-bounce {
-        display: inline-block;
-        animation: bounce 1s infinite ease-in-out !important;
-      }
-    `;
-    document.head.appendChild(styleEl);
-    
-    // Clean up
-    return () => {
-      document.head.removeChild(styleEl);
+            {/* Message Text */}
+            <div style={{
+              background: message.role === 'moderator' ? 
+                'linear-gradient(135deg, #f3e8ff, #ede9fe)' : 
+                (isUser ? '#e0f2fe' : '#f8fafc'),
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: message.role === 'moderator' ? '1px solid #c4b5fd' : '1px solid #e5e7eb',
+              position: 'relative',
+              ...(isTempWaitingMessage && {
+                background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                border: '1px solid #f59e0b',
+                animation: 'pulse 2s infinite'
+              })
+            }}>
+              {isTempWaitingMessage ? (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#92400e',
+                  fontStyle: 'italic'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    gap: '4px'
+                  }}>
+                    <div style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: '#f59e0b',
+                      animation: 'bounce 1.4s infinite ease-in-out'
+                    }} />
+                    <div style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: '#f59e0b',
+                      animation: 'bounce 1.4s infinite ease-in-out 0.16s'
+                    }} />
+                    <div style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: '#f59e0b',
+                      animation: 'bounce 1.4s infinite ease-in-out 0.32s'
+                    }} />
+                  </div>
+                  {message.text}
+                </div>
+              ) : (
+                <div style={{
+                  color: '#374151',
+                  lineHeight: '1.6',
+                  fontSize: '15px',
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {typingMessageIds.has(message.id) ? (
+                    <TypingMessage
+                      text={message.text}
+                      speed={30}
+                      delay={200}
+                      enabled={true}
+                      showCursor={true}
+                      autoStart={true}
+                      onTypingComplete={() => handleTypingComplete(message.id)}
+                      style={{
+                        color: '#374151',
+                        lineHeight: '1.6',
+                        fontSize: '15px',
+                        whiteSpace: 'pre-wrap'
+                      }}
+                    />
+                  ) : (
+                    message.text
+                  )}
+                </div>
+              )}
+              
+              {/* 인용 정보 표시 */}
+              {message.citations && message.citations.length > 0 && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '8px',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  borderRadius: '6px',
+                  fontSize: '12px'
+                }}>
+                  <strong>출처:</strong>
+                  <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                    {message.citations.map((citation, idx) => (
+                      <li key={idx} style={{ marginBottom: '2px' }}>
+                        [{citation.id}] {citation.source}
+                        {citation.location && ` (${citation.location})`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
+            {/* Timestamp */}
+            <div style={{
+              fontSize: '12px',
+              color: '#9ca3af',
+              marginTop: '4px'
+            }}>
+              {new Date(message.timestamp).toLocaleTimeString('ko-KR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
-  }, []);
+  
+  // 새로운 메시지가 추가되었는지 감지
+  useEffect(() => {
+    if (messages.length > lastMessageCount) {
+      const newMessages = messages.slice(lastMessageCount);
+      const newTypingIds = new Set(typingMessageIds);
+      
+      // 새로운 메시지들 중 사용자가 아닌 메시지에 타이핑 애니메이션 적용
+      newMessages.forEach(message => {
+        // 사용자 메시지인지 확인 (username과 비교)
+        const isUser = room.participants.users.includes(message.sender) || message.sender === username;
+        if (!isUser && !message.id.startsWith('temp-waiting-')) {
+          newTypingIds.add(message.id);
+        }
+      });
+      
+      setTypingMessageIds(newTypingIds);
+      setLastMessageCount(messages.length);
+    }
+  }, [messages.length, lastMessageCount, typingMessageIds, room.participants.users, username]);
+  
+  // 타이핑 완료 핸들러
+  const handleTypingComplete = (messageId: string) => {
+    setTypingMessageIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(messageId);
+      return newSet;
+    });
+  };
   
   return (
     <div style={mainContainerStyle}>
+      {/* CSS 애니메이션 정의 */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes bounce {
+          0%, 80%, 100% {
+            transform: scale(0);
+          }
+          40% {
+            transform: scale(1);
+          }
+      }
+      
+      @keyframes pulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+          }
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      
       {/* Header */}
       <div style={headerStyle}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -919,24 +1061,19 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
                     ...getProfileStyle(id, 'pro'),
                     // 사용자의 차례이고 사용자가 이 참가자인 경우 하이라이트
                     ...(isUserTurn && isUser ? {
-                      boxShadow: '0 0 20px 8px rgba(59, 130, 246, 0.9)',
+                      boxShadow: '0 0 20px 8px rgba(34, 197, 94, 0.9)',
                       transform: 'scale(1.2)',
-                      border: '3px solid #3b82f6'
+                      border: '3px solid #22c55e'
                     } : {})
-                  }}
-                    className={isUserTurn && isUser ? 'user-turn-profile' : ''}
-                  >
+                  }}>
                     <img 
                       src={avatar} 
                       alt={name}
                       style={profileImageStyle}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getDefaultAvatar(name);
-                      }}
                     />
                   </div>
-                  <div style={{ ...nameStyle, color: getTextColor('pro') }}>{name}</div>
-                  <div style={{ ...roleStyle, color: '#3b82f6' }}>Pro</div>
+                  <div style={nameStyle}>{name}</div>
+                  <div style={roleStyle}>PRO</div>
                 </div>
               );
             })}
@@ -959,23 +1096,35 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
                       transform: 'scale(1.2)',
                       border: '3px solid #3b82f6'
                     } : {})
-                  }}
-                    className={isUserTurn && isUser ? 'user-turn-profile' : ''}
-                  >
+                  }}>
                     <img 
                       src={avatar} 
                       alt={name}
                       style={profileImageStyle}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getDefaultAvatar(name);
-                      }}
                     />
                   </div>
-                  <div style={{ ...nameStyle, color: getTextColor('neutral') }}>{name}</div>
-                  <div style={{ ...roleStyle, color: '#6b7280' }}>Neutral</div>
+                  <div style={nameStyle}>{name}</div>
+                  <div style={roleStyle}>NEUTRAL</div>
                 </div>
               );
             })}
+            
+            {/* 모든 중립 참가자 다음에 모더레이터 프로필 추가 */}
+            <div key="moderator" style={profileContainerStyle}>
+              <div style={{ 
+                ...getProfileStyle('moderator', 'neutral'),
+                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                border: '3px solid #8b5cf6'
+              }}>
+                <img
+                  src={moderatorInfo.profileImage}
+                  alt={moderatorInfo.name}
+                  style={profileImageStyle}
+                />
+              </div>
+              <div style={nameStyle}>{moderatorInfo.name}</div>
+              <div style={{ ...roleStyle, color: '#7c3aed', fontWeight: 'bold' }}>MODERATOR</div>
+            </div>
           </div>
           
           {/* Con Side (Right) */}
@@ -991,24 +1140,19 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
                     ...getProfileStyle(id, 'con'),
                     // 사용자의 차례이고 사용자가 이 참가자인 경우 하이라이트
                     ...(isUserTurn && isUser ? {
-                      boxShadow: '0 0 20px 8px rgba(59, 130, 246, 0.9)',
+                      boxShadow: '0 0 20px 8px rgba(239, 68, 68, 0.9)',
                       transform: 'scale(1.2)',
-                      border: '3px solid #3b82f6'
+                      border: '3px solid #ef4444'
                     } : {})
-                  }}
-                    className={isUserTurn && isUser ? 'user-turn-profile' : ''}
-                  >
+                  }}>
                     <img 
                       src={avatar} 
                       alt={name}
                       style={profileImageStyle}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getDefaultAvatar(name);
-                      }}
                     />
                   </div>
-                  <div style={{ ...nameStyle, color: getTextColor('con') }}>{name}</div>
-                  <div style={{ ...roleStyle, color: '#ef4444' }}>Con</div>
+                  <div style={nameStyle}>{name}</div>
+                  <div style={roleStyle}>CON</div>
                 </div>
               );
             })}
@@ -1017,253 +1161,26 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
         
         {/* Messages */}
         <div style={messagesContainerStyle}>
-          {messages.filter(msg => msg.text && msg.text.trim() !== '').map((message, index) => {
-            // Determine if message is from the user
-            const isUser = message.isUser || 
-                          message.sender === 'User' || 
-                          message.sender === 'User123' || 
-                          message.sender === username || 
-                          (room.participants.users && room.participants.users.includes(message.sender));
-            
-            const sender = message.sender;
-            const name = isUser ? username : getNameFromId(sender, isUser);
-            const avatar = getProfileImage(sender, isUser);
-            
-            // Important: For user messages, use the userRole prop to ensure correct placement
-            let side = getParticipantSide(sender, isUser);
-            if (isUser && userRole) {
-              side = userRole as 'pro' | 'con' | 'neutral' | 'moderator';
-            }
-            
-            // For messages with a role field, prioritize that over other detection methods
-            if (message.role && ['pro', 'con', 'neutral', 'moderator'].includes(message.role)) {
-              side = message.role as 'pro' | 'con' | 'neutral' | 'moderator';
-            }
-            
-            // 진행자 메시지 특별 스타일
-            const isModerator = side === 'moderator' || 
-                                sender === 'Moderator' || 
-                                message.isSystemMessage === true || 
-                                message.role === 'moderator';
-            
-            const messageContainerStyle = {
-              display: 'flex',
-              justifyContent: isModerator ? 'center' : (side === 'pro' ? 'flex-start' : side === 'con' ? 'flex-end' : 'center'),
-              alignItems: 'flex-start',
-              gap: '8px',
-              maxWidth: '100%',
-              marginBottom: '16px'
-            };
-            
-            // Use message ID as key if available, otherwise fall back to index but with a unique prefix based on sender
-            const messageKey = message.id ? `msg-${message.id}` : `msg-${sender}-${index}-${Date.now()}`;
-            
-            // 하드코딩된 메시지 체크 (테스트용)
-            const hasHardcodedText = message.text && message.text.includes('초기메시지에용');
-            
-            // 모더레이터는 다른 스타일 적용
-            const messageBubbleStyle = isModerator 
-              ? {
-                padding: '12px 16px',
-                borderRadius: '12px',
-                backgroundColor: '#fffbeb', // 옅은 주황색 배경
-                color: '#92400e', // 갈색 글자
-                border: '1px solid #fcd34d', // 주황색 테두리
-                borderLeft: '4px solid #f59e0b', // 진한 주황색 왼쪽 테두리
-                display: 'inline-block',
-                maxWidth: '80%',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                textAlign: 'left' as const
-              }
-              : {
-                padding: '12px',
-                borderRadius: '12px',
-                backgroundColor: side === 'pro' ? '#dbeafe' : side === 'con' ? '#fee2e2' : '#f3f4f6',
-                color: side === 'pro' ? '#1e40af' : side === 'con' ? '#991b1b' : '#1f2937',
-                display: 'inline-block'
-              };
-
-            // 진행자 메시지에 특별 스타일 추가 (테스트용)
-            if (isModerator && hasHardcodedText) {
-              messageBubbleStyle.backgroundColor = '#e0f2fe'; // 밝은 파란색 배경
-              messageBubbleStyle.color = '#0369a1'; // 파란색 글자
-              messageBubbleStyle.border = '1px solid #7dd3fc'; // 파란색 테두리
-              messageBubbleStyle.borderLeft = '4px solid #0ea5e9'; // 진한 파란색 왼쪽 테두리
-            }
-            
-            const avatarContainerStyle = {
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              flexShrink: 0,
-              marginTop: '4px'
-            };
-            
-            // 진행자는 항상 둥근 경계 유지
-            if (!isModerator) {
-              // Customize border radius based on side
-              if (side === 'pro') {
-                messageBubbleStyle.borderRadius = '0 12px 12px 12px';
-              } else if (side === 'con') {
-                messageBubbleStyle.borderRadius = '12px 0 12px 12px';
-              }
-            }
-            
-            return (
-              <div key={messageKey} style={messageContainerStyle}>
-                {(side !== 'con' || isModerator) && (
-                  <div style={{
-                    ...avatarContainerStyle,
-                    border: getBorderStyle(isModerator ? 'moderator' : side)
-                  }}>
-                    <img 
-                      src={avatar}
-                      alt={name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getDefaultAvatar(name);
-                      }}
-                    />
-                  </div>
-                )}
-                
+          <div ref={messageContainerRef} style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '20px',
+            background: '#ffffff'
+          }}>
+            {room.messages && room.messages.length > 0 ? (
+              room.messages.map((message, index) => renderMessage(message, index))
+            ) : (
                 <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  alignItems: isModerator ? 'center' : (side === 'con' ? 'flex-end' : 'flex-start'),
-                  maxWidth: isModerator ? '80%' : '70%'
-                }}>
-                  <div style={{ 
-                    fontSize: '0.75rem', 
-                    color: isModerator ? '#92400e' : '#6b7280', 
-                    marginBottom: '4px',
-                    fontWeight: isModerator ? 'bold' : 'normal'
-                  }}>
-                    {isModerator ? '📣 Moderator' : (isUser ? username : name)}
-                  </div>
-                  <div style={messageBubbleStyle}>
-                    <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{message.text}</p>
-                    
-                    {/* 하드코딩된 메시지 체크 표시 (테스트용) */}
-                    {isModerator && (
-                      <div style={{ fontSize: '0.75rem', marginTop: '8px', color: '#6b7280' }}>
-                        {hasHardcodedText ? '✅ 하드코딩된 메시지가 표시됨' : '❌ 하드코딩된 메시지 없음'}
+                textAlign: 'center',
+                color: '#9ca3af',
+                fontSize: '16px',
+                marginTop: '40px'
+              }}>
+                토론이 곧 시작됩니다...
                       </div>
                     )}
+            <div ref={messagesEndRef} />
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '4px' }}>
-                    {formatTimestamp(message.timestamp)}
-                  </div>
-                </div>
-                
-                {side === 'con' && !isModerator && (
-                  <div style={{
-                    ...avatarContainerStyle,
-                    border: getBorderStyle(side)
-                  }}>
-                    <img 
-                      src={avatar}
-                      alt={name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getDefaultAvatar(name);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          
-          {isGeneratingResponse && (
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
-              <div style={{ 
-                backgroundColor: '#f3f4f6',
-                padding: '8px 16px',
-                borderRadius: '16px',
-                color: '#6b7280',
-                animation: 'pulse 2s infinite'
-              }}>
-                Generating response...
-              </div>
-            </div>
-          )}
-          
-          {/* 사용자 차례 알림 표시 */}
-          {isUserTurn && turnIndicatorVisible && (
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              margin: '20px 0'
-            }}>
-              <div 
-                className="user-turn-alert"
-                style={{ 
-                  backgroundColor: '#e0f2fe',
-                  padding: '15px 25px',
-                  borderRadius: '16px',
-                  color: '#0369a1',
-                  border: '2px solid #7dd3fc',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                  fontSize: '1.125rem',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  maxWidth: '90%'
-                }}
-              >
-                <span className="mic-icon-bounce" style={{ fontSize: '1.75rem' }}>🎤</span>
-                <span>지금은 당신의 발언 차례입니다!</span>
-              </div>
-            </div>
-          )}
-          
-          {/* Next message button for debate mode */}
-          {shouldShowNextMessageButton() && (
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              marginTop: '16px', 
-              marginBottom: '16px' 
-            }}>
-              <button
-                onClick={onRequestNextMessage}
-                disabled={isGeneratingResponse}
-                style={{ 
-                  backgroundColor: isGeneratingResponse ? '#d1d5db' : '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '9999px',
-                  width: '48px',
-                  height: '48px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: isGeneratingResponse ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseOver={(e) => {
-                  if (!isGeneratingResponse) {
-                    e.currentTarget.style.transform = 'translateY(2px)';
-                    e.currentTarget.style.boxShadow = '0 2px 4px -1px rgba(0, 0, 0, 0.1)';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (!isGeneratingResponse) {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-                  }
-                }}
-              >
-                <ArrowDownCircleIcon width={24} height={24} />
-              </button>
-            </div>
-          )}
-          
-          <div ref={messagesEndRef} />
         </div>
       </div>
       
@@ -1302,6 +1219,49 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
             }}
           >
             <PaperAirplaneIcon style={{ height: '20px', width: '20px' }} />
+          </button>
+          
+          {/* Next 버튼 추가 */}
+          <button
+            type="button"
+            onClick={handleNextMessage}
+            disabled={isGeneratingNext}
+            style={{
+              backgroundColor: isGeneratingNext ? '#94a3b8' : '#10b981',
+              color: 'white',
+              borderRadius: '12px',
+              padding: '8px 16px',
+              border: 'none',
+              cursor: isGeneratingNext ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              opacity: isGeneratingNext ? 0.7 : 1,
+              transition: 'all 0.3s ease',
+              minWidth: '80px'
+            }}
+          >
+            {isGeneratingNext ? (
+              <>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid #ffffff',
+                  borderTop: '2px solid transparent',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }} />
+                생성중...
+              </>
+            ) : (
+              <>
+                <ArrowDownCircleIcon style={{ height: '18px', width: '18px' }} />
+                Next
+              </>
+            )}
           </button>
         </form>
         

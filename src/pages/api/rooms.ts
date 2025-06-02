@@ -370,37 +370,30 @@ export default async function handler(
             
             console.log(`📢 최종 NPC 이름 정보: ${JSON.stringify(npcNames)}`);
             
-            // API 요청 데이터 구성
+            // API 요청 데이터 구성 - 새로운 create-debate-room 엔드포인트용
             const requestData: {
+              room_id: string;
               title: string;
-              room_id: string | null;
               context?: string;
-              npcs: string[];
-              npcPositions: Record<string, string>;
-              proNpcIds: string[];
-              conNpcIds: string[];
-              npcNames: Record<string, string>;
-              userData?: Record<string, string>;
+              pro_npcs: string[];
+              con_npcs: string[];
+              user_ids?: string[];
+              moderator_style?: string;
             } = {
-              title: params.title,
               room_id: String(newRoom.id),
+              title: params.title,
               context: params.context || "",
-              npcs: params.npcs,
-              npcPositions: params.npcPositions || {},
-              proNpcIds,
-              conNpcIds,
-              npcNames
+              pro_npcs: proNpcIds.filter(id => id !== currentUser), // 사용자 제외한 NPC만
+              con_npcs: conNpcIds.filter(id => id !== currentUser), // 사용자 제외한 NPC만
+              user_ids: [currentUser],
+              moderator_style: params.moderator?.style || "Jamie the Host"
+              // stance_statements 제거 - 백엔드에서 자동 생성
             };
             
-            // userData가 비어있지 않은 경우에만 포함
-            if (Object.keys(userData).length > 0) {
-              requestData.userData = userData;
-            }
+            console.log(`📢 Python API 요청 데이터 (새 방식): ${JSON.stringify(requestData, null, 2)}`);
             
-            console.log(`📢 Python API 요청 데이터: ${JSON.stringify(requestData, null, 2)}`);
-            
-            // API 요청 전송
-            const apiResponse = await fetch(`${pythonApiUrl}/api/moderator/opening`, {
+            // 새로운 create-debate-room 엔드포인트 호출
+            const apiResponse = await fetch(`${pythonApiUrl}/api/chat/create-debate-room`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -411,68 +404,32 @@ export default async function handler(
             // 응답 처리
             if (apiResponse.ok) {
               const responseData = await apiResponse.json();
-              console.log(`📢 Python API 응답 성공: ${JSON.stringify(responseData)}`);
+              console.log(`📢 Python API 응답 성공 (새 방식): ${JSON.stringify(responseData)}`);
               
-              // 모더레이터 메시지 추출
-              if (responseData.initial_message) {
-                console.log(`📢 모더레이터 메시지 받음: ${JSON.stringify(responseData.initial_message)}`);
+              // 성공 응답 확인
+              if (responseData.status === 'success') {
+                console.log(`📢 DebateDialogue 인스턴스 생성 및 자동 진행 시작됨`);
+                console.log(`📢 현재 단계: ${responseData.debate_info?.current_stage}`);
+                console.log(`📢 Pro 참가자: ${responseData.debate_info?.pro_participants?.join(', ')}`);
+                console.log(`📢 Con 참가자: ${responseData.debate_info?.con_participants?.join(', ')}`);
                 
-                // 모더레이터 메시지 설정
-                const moderatorMessage = {
-                  id: `moderator-${Date.now()}`,
-                  ...responseData.initial_message,
-                  timestamp: new Date().toISOString()
-                };
+                // 파이썬 백엔드에서 확인된 실제 room_id 사용
+                newRoom.id = responseData.room_id;
+                console.log(`📢 파이썬 백엔드 확인된 room_id 사용: ${responseData.room_id}`);
                 
-                console.log(`📢 모더레이터 메시지 설정 완료`);
+                // 토론방 정보를 newRoom에 추가 (필요시 프론트엔드에서 참조 가능)
+                newRoom.debate_info = responseData.debate_info;
                 
-                // 채팅룸에 메시지 추가
-                newRoom.messages = [moderatorMessage];
-                console.log(`📢 채팅룸 메시지 배열에 모더레이터 메시지 추가`);
-                
-                // 초기 메시지 필드 설정 (필요시 다른 곳에서 참조 가능)
-                newRoom.initial_message = moderatorMessage;
-                
-                console.log(`📢 DB 저장 전 채팅룸 데이터 (메시지 포함): ${JSON.stringify({
-                  roomId: newRoom.id,
-                  title: newRoom.title,
-                  messagesCount: newRoom.messages.length
-                })}`);
-                
-                // MongoDB에 연결
-                await connectDB();
-                
-                try {
-                  // 이미 생성된 방이 있는지 확인
-                  const existingRoom = await db.collection('chatrooms').findOne({ roomId: newRoom.id });
-                  
-                  if (existingRoom) {
-                    // 기존 방이 있으면 메시지만 추가
-                    console.log(`📢 기존 방(${newRoom.id})에 모더레이터 메시지 추가`);
-                    await db.collection('chatrooms').updateOne(
-                      { roomId: newRoom.id },
-                      { $push: { messages: moderatorMessage } }
-                    );
-                  } else {
-                    // DB에서 방을 찾을 수 없으면 메시지 테이블에 직접 저장 시도
-                    try {
-                      console.log(`📢 메시지 테이블에 모더레이터 메시지 직접 저장 시도`);
-                      await db.collection('messages').insertOne({
-                        roomId: newRoom.id,
-                        ...moderatorMessage
-                      });
-                    } catch (msgErr) {
-                      console.warn(`⚠️ DB에서 방을 찾을 수 없어 메시지를 직접 저장할 수 없음`);
-                    }
-                  }
-                } catch (dbErr) {
-                  console.error(`❌ MongoDB 오류: ${dbErr}`);
-                }
+                console.log(`📢 토론방 생성 완료 - 백그라운드에서 자동 진행 중`);
+              } else {
+                console.error(`❌ Python API 응답 오류: ${responseData.message || 'Unknown error'}`);
+                throw new Error(`Python API 응답 오류: ${responseData.message || 'Unknown error'}`);
               }
             } else {
               const errorText = await apiResponse.text();
               console.error(`❌ Python API 요청 실패: ${apiResponse.status} ${apiResponse.statusText}`);
               console.error(`❌ Python API 오류 메시지: ${errorText}`);
+              throw new Error(`Python API 요청 실패: ${apiResponse.status} ${apiResponse.statusText}`);
             }
           } catch (error) {
             console.error(`❌ moderator opening 메시지 생성 중 오류: ${error}`);

@@ -110,6 +110,54 @@ export async function POST(req: NextRequest) {
       );
     }
     
+    // **NEW**: Debate 타입에서 fallback 메시지 거부
+    if (isInitial) {
+      // Fallback 메시지 패턴 체크
+      const fallbackPatterns = [
+        /I find this topic of .* quite fascinating/i,
+        /Let us explore .* together/i,
+        /The question of .* has intrigued philosophers/i,
+        /I've spent much time contemplating/i,
+        /To understand .*, we must first examine/i
+      ];
+      
+      const isFallbackMessage = fallbackPatterns.some(pattern => pattern.test(message.text));
+      
+      if (isFallbackMessage) {
+        console.log('🔍 Fallback 메시지 패턴 감지됨, 채팅방 타입 확인 중...');
+        
+        // 채팅방 정보를 먼저 확인해서 dialogueType이 debate인지 체크
+        await connectDB();
+        const ChatRoomModel = mongoose.models.chatRooms || 
+                           mongoose.model('chatRooms', chatRoomSchema, 'chatRooms');
+        
+        const possibleIds = [
+          roomId,
+          String(roomId),
+          !isNaN(Number(roomId)) ? Number(roomId) : null
+        ].filter(Boolean);
+        
+        let roomForTypeCheck = null;
+        for (const id of possibleIds) {
+          const foundRoom = await ChatRoomModel.findOne({ roomId: id }).lean();
+          if (foundRoom) {
+            roomForTypeCheck = foundRoom;
+            break;
+          }
+        }
+        
+        if (roomForTypeCheck && (roomForTypeCheck as any).dialogueType === 'debate') {
+          console.log('❌ Debate 타입에서 fallback 메시지 거부됨');
+          console.log(`❌ 거부된 메시지: ${message.text.substring(0, 100)}...`);
+          console.log(`❌ 발신자: ${message.sender}`);
+          return NextResponse.json(
+            { error: 'Fallback messages are not allowed in debate rooms' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+    
     console.log(`🔄 Saving message to room ${roomId}`);
     console.log(`Message: ${message.text.substring(0, 100)}${message.text.length > 100 ? '...' : ''}`);
     console.log(`Sender: ${message.sender}, isInitial: ${isInitial}`);
