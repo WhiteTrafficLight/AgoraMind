@@ -1,0 +1,70 @@
+/* Utility Styles - Helper classes and special states */
+
+/* Text Color Utilities */
+.text-philosopher-1 {
+  color: #003366;
+}
+
+.text-philosopher-2 {
+  color: #330066;
+}
+
+.text-user {
+  color: #660033;
+}
+
+/* Border Utilities */
+.border-user {
+  border-color: var(--user-accent);
+}
+
+.border-philosopher-1 {
+  border-color: var(--philosopher-1-accent);
+}
+
+.border-philosopher-2 {
+  border-color: var(--philosopher-2-accent);
+}
+
+/* Modal and Chat Page States */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+body.chat-page-open header {
+  display: none !important;
+}
+
+body.chat-page-open {
+  overflow: hidden;
+}
+
+/* Z-index Utilities */
+.z-9000 {
+  z-index: 9000;
+}
+
+.z-9001 {
+  z-index: 9001;
+}
+
+.z-9999 {
+  z-index: 9999;
+}
+
+/* Hidden Utility */
+.hidden {
+  display: none;
+}
+
+/* Visibility Utilities */
+.visible {
+  visibility: visible;
+}
+
+.invisible {
+  visibility: hidden;
+} 

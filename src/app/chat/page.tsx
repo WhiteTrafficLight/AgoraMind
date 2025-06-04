@@ -460,24 +460,25 @@ export default function ChatPage() {
       
       // Socket.io 클라이언트를 통한 요청
       const socketModule = await import('@/lib/socket/socketClient');
-      const socketClient = await socketModule.default.init();
+      await socketModule.default.init();
       
       // Socket 연결 확인
-      if (!socketClient.isConnected()) {
+      if (!socketModule.default.isConnected()) {
         console.warn('Socket not connected, attempting to initialize...');
-        await socketClient.init();
+        await socketModule.default.init();
         
-        if (!socketClient.isConnected()) {
+        if (!socketModule.default.isConnected()) {
           throw new Error('Failed to establish socket connection');
         }
       }
       
       // 1. 방 입장 확인
       const roomIdNum = typeof chatData.id === 'string' ? parseInt(chatData.id) : chatData.id;
-      socketClient.joinRoom(roomIdNum);
+      const storedUsername = sessionStorage.getItem('chat_username') || 'User';
+      socketModule.default.joinRoom(roomIdNum, storedUsername);
       
       // 이벤트 리스너 설정 - 다음 발언자 업데이트 수신
-      socketClient.on('next-speaker-update', (data: { roomId: string, nextSpeaker: any }) => {
+      socketModule.default.on('next-speaker-update', (data: { roomId: string, nextSpeaker: any }) => {
         console.log('Next speaker update from socket:', data);
         if (data.roomId === String(roomIdNum) && data.nextSpeaker) {
           // 전역 이벤트로 발행하여 DebateChatUI에서 감지하도록 함
@@ -495,7 +496,7 @@ export default function ChatPage() {
       });
       
       // 새로운 메시지를 위한 이벤트 리스너 추가
-      socketClient.on('new-message', (data: { roomId: string, message: ChatMessage }) => {
+      socketModule.default.on('new-message', (data: { roomId: string, message: ChatMessage }) => {
         console.log('New message received from socket:', data);
         if (data.roomId === String(roomIdNum) && data.message) {
           console.log('Adding new message to chatData state:', data.message);
@@ -550,7 +551,7 @@ export default function ChatPage() {
       }));
       
       // NPC 선택 이벤트 발송
-      socketClient.emit('npc-selected', {
+      socketModule.default.emit('npc-selected', {
         roomId: roomIdNum,
         npcId: speakerId
       });

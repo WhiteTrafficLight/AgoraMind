@@ -166,8 +166,27 @@ export default async function handler(
         return res.status(400).json({ error: 'At least one philosopher (NPC) is required' });
       }
 
-      // 현재 사용자 (요청에서 제공되거나 기본값 사용)
-      const currentUser = params.currentUser || 'User123';
+      // 현재 사용자 정보 가져오기
+      let currentUser: string = params.username || params.currentUser || '';
+      
+      if (!currentUser) {
+        try {
+          // /api/user/profile에서 실제 사용자 정보 가져오기
+          const userResponse = await fetch(`${req.headers.origin || 'http://localhost:3000'}/api/user/profile`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            currentUser = userData.username || userData.name || `User_${Math.floor(Math.random() * 10000)}`;
+            console.log('✅ 사용자 프로필에서 username 가져옴:', currentUser);
+          } else {
+            throw new Error('User profile not found');
+          }
+        } catch (error) {
+          console.warn('⚠️ 사용자 프로필 가져오기 실패, 랜덤 이름 생성:', error);
+          currentUser = `User_${Math.floor(Math.random() * 10000)}`;
+        }
+      }
+      
+      console.log('📢 최종 사용자명:', currentUser);
 
       // 새 채팅룸 객체 생성
       const newRoom: ChatRoom = {

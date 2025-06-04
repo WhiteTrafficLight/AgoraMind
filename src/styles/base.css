@@ -1,0 +1,40 @@
+/* Base Styles - CSS Variables and HTML Elements */
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 255, 255, 255;
+  --philosopher-1: #334155;
+  --philosopher-2: #334155;
+  --user: #1e293b;
+  --philosopher-1-accent: #94a3b8;
+  --philosopher-2-accent: #64748b;
+  --user-accent: #0f172a;
+}
+
+body {
+  color: #000;
+  background-color: #fff;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Global button cursor */
+button {
+  cursor: pointer;
+}
+
+/* Header styles */
+header {
+  background: #fff;
+  border-bottom: 2px solid #000;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+header a {
+  text-decoration: none !important;
+  color: #000 !important;
+  font-weight: bold !important;
+} 

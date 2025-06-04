@@ -492,6 +492,34 @@ class ChatService {
         delete room.initial_message;
       }
       
+      // 7. Debate 타입에서 임시 대기 메시지 제거 (Socket.IO 메시지 대응)
+      if (room.dialogueType === 'debate') {
+        // 모더레이터 메시지가 있는지 확인 (임시 대기 메시지가 아닌)
+        const hasModeratorMessage = room.messages.some((msg: ChatMessage) => 
+          msg.sender === 'Moderator' && 
+          (msg.isSystemMessage || msg.role === 'moderator') &&
+          !msg.id.startsWith('temp-waiting-') &&
+          msg.text.trim() !== "Participants are joining. Please wait a moment..."
+        );
+        
+        if (hasModeratorMessage) {
+          const beforeCount = room.messages.length;
+          room.messages = room.messages.filter((msg: ChatMessage) => !msg.id.startsWith('temp-waiting-'));
+          const afterCount = room.messages.length;
+          
+          if (beforeCount !== afterCount) {
+            log(`🔄 [DEBATE] Removed ${beforeCount - afterCount} temporary waiting messages (Socket.IO update)`);
+            log(`🔄 [DEBATE] Messages after cleanup: ${afterCount}`);
+          }
+        } else {
+          // 임시 대기 메시지가 있는지 확인
+          const hasTempMessage = room.messages.some((msg: ChatMessage) => msg.id.startsWith('temp-waiting-'));
+          if (hasTempMessage) {
+            log(`⏳ [DEBATE] Temporary waiting message still present - no moderator message found yet`);
+          }
+        }
+      }
+      
       // ID를 명시적으로 문자열로 설정
       room.id = normalizedId;
       
@@ -644,24 +672,6 @@ class ChatService {
         newRoom.messages = [];
       }
       
-      // 6.5. Debate 타입인 경우 임시 대기 메시지 추가
-      if (newRoom.dialogueType === 'debate') {
-        console.log('🎯 Debate 방 생성 - 임시 대기 메시지 추가');
-        
-        const tempMessage: ChatMessage = {
-          id: `temp-waiting-${Date.now()}`,
-          text: "Participants are joining. Please wait a moment...",
-          sender: "Moderator",
-          isUser: false,
-          timestamp: new Date(),
-          isSystemMessage: true,
-          role: 'moderator'
-        };
-        
-        newRoom.messages.push(tempMessage);
-        console.log('✅ Added temporary waiting message for debate room');
-      }
-      
       // 7. 초기 메시지 처리
       if (newRoom.initial_message) {
         console.log('📝 Processing initial message from server');
@@ -682,13 +692,6 @@ class ChatService {
           
           // 빈 메시지가 아닌지 확인
           if (newRoom.initial_message.text && newRoom.initial_message.text.trim() !== "") {
-            // Debate 타입의 경우 임시 메시지를 실제 모더레이터 메시지로 교체
-            if (newRoom.dialogueType === 'debate') {
-              // 임시 메시지 제거
-              newRoom.messages = newRoom.messages.filter(msg => !msg.id.startsWith('temp-waiting-'));
-              console.log('🔄 Removed temporary waiting message');
-            }
-            
             // 중복 메시지가 아닌지 확인
             const isDuplicate = newRoom.messages.some(msg => 
               msg.text === newRoom.initial_message?.text && 
@@ -704,7 +707,7 @@ class ChatService {
                 role: 'moderator'
               };
               newRoom.messages.push(moderatorMsg);
-              console.log('✅ Added actual moderator message replacing temporary message');
+              console.log('✅ Added actual moderator message');
               console.log('✅ Final moderator message:', moderatorMsg);
             } else {
               console.log('⚠️ Duplicate moderator message detected, not adding');

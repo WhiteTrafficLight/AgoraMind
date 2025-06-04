@@ -504,15 +504,15 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
         
         // Initialize with current username or default
         const storedUsername = sessionStorage.getItem('chat_username') || username;
-        const instance = await socketClient.init(storedUsername);
+        await socketClient.init(storedUsername);
         
         // Join the room - ensure roomId is a number
         const roomIdNum = typeof room.id === 'string' ? parseInt(room.id) : room.id;
         console.log(`DebateChatUI: Joining room ${roomIdNum} (${typeof roomIdNum})`);
-        instance.joinRoom(roomIdNum);
+        socketClient.joinRoom(roomIdNum, storedUsername);
         
         // Add event handler for npc-selected
-        instance.on('npc-selected', (data: { npc_id: string }) => {
+        socketClient.on('npc-selected', (data: { npc_id: string }) => {
           console.log('NPC selected for response:', data.npc_id);
           setSelectedNpcId(data.npc_id);
           
@@ -524,8 +524,8 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
         
         // Cleanup on unmount
         return () => {
-          instance.leaveRoom(roomIdNum);
-          instance.off('npc-selected', () => {});
+          socketClient.leaveRoom(roomIdNum, storedUsername);
+          socketClient.off('npc-selected', () => {});
         };
       } catch (error) {
         console.error('Error initializing socket for debate UI:', error);
