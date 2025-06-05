@@ -15,8 +15,8 @@ export interface ChatRoom {
   con?: string[];
   neutral?: string[];
   moderator?: {
-    style_id: string;
-    style: string;
+    style_id?: string;
+    style?: string;
   };
   npcPositions?: Record<string, 'pro' | 'con'>;
   userDebateRole?: 'pro' | 'con' | 'neutral';

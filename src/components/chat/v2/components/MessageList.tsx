@@ -35,6 +35,7 @@ const MessageList: React.FC<MessageListProps> = ({
     const avatar = getProfileImage(message.sender, isUser);
     const isCurrentUserTurn = isUserTurn && isUser;
     const isTempWaitingMessage = message.id.startsWith('temp-waiting-');
+    const isGeneratingMessage = message.isGenerating === true;
     
     return (
       <div 
@@ -58,7 +59,7 @@ const MessageList: React.FC<MessageListProps> = ({
             <div className={`debate-message-text ${
               message.role === 'moderator' ? 'moderator' :
               isUser ? 'user' : 'system'
-            } ${isTempWaitingMessage ? 'temp-waiting' : ''}`}>
+            } ${isTempWaitingMessage ? 'temp-waiting' : ''} ${isGeneratingMessage ? 'generating' : ''}`}>
               {isTempWaitingMessage ? (
                 <div className="debate-message-waiting-dots">
                   <div className="debate-waiting-dots">
@@ -67,6 +68,17 @@ const MessageList: React.FC<MessageListProps> = ({
                     <div className="debate-waiting-dot" />
                   </div>
                   {message.text}
+                </div>
+              ) : isGeneratingMessage ? (
+                <div className="debate-message-generating">
+                  <div className="debate-generating-dots">
+                    <div className="debate-generating-dot" />
+                    <div className="debate-generating-dot" />
+                    <div className="debate-generating-dot" />
+                    <div className="debate-generating-dot" />
+                    <div className="debate-generating-dot" />
+                  </div>
+                  <span className="debate-generating-text">thinking</span>
                 </div>
               ) : (
                 <div>

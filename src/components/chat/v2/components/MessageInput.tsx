@@ -9,6 +9,8 @@ interface MessageInputProps {
   isInputDisabled: boolean;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   isGeneratingResponse: boolean;
+  currentUserTurn?: {speaker_id: string, role: string} | null;
+  waitingForUserInput?: boolean;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -18,7 +20,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
   isUserTurn,
   isInputDisabled,
   inputRef,
-  isGeneratingResponse
+  isGeneratingResponse,
+  currentUserTurn,
+  waitingForUserInput
 }) => {
   
   // Enter 키 처리
@@ -29,6 +33,33 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
+  // 플레이스홀더 텍스트 생성
+  const getPlaceholderText = () => {
+    if (waitingForUserInput && currentUserTurn) {
+      const roleText = currentUserTurn.role === 'pro' ? 'Pro' : 
+                      currentUserTurn.role === 'con' ? 'Con' : 
+                      currentUserTurn.role;
+      return `It's your turn (${roleText} side). Please enter your opinion.`;
+    } else if (isUserTurn) {
+      return "It's your turn now. Please enter your message.";
+    } else {
+      return "Press the Next button to continue the conversation.";
+    }
+  };
+
+  // 턴 메시지 생성
+  const getTurnMessage = () => {
+    if (waitingForUserInput && currentUserTurn) {
+      const roleText = currentUserTurn.role === 'pro' ? 'Pro' : 
+                      currentUserTurn.role === 'con' ? 'Con' : 
+                      currentUserTurn.role;
+      return `It's your turn to speak as the ${roleText} side. Please enter your opinion.`;
+    } else if (!isUserTurn && !isGeneratingResponse) {
+      return "It's currently another participant's turn. You'll be notified when it's your turn.";
+    }
+    return null;
+  };
+
   return (
     <div className={`debate-input-container ${isUserTurn ? 'user-turn' : ''}`}>
       <form onSubmit={onSubmit} className="debate-input-form">
@@ -37,11 +68,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           value={messageText}
           onChange={(e) => setMessageText(e.target.value)}
           onKeyDown={handleKeyPress}
-          placeholder={
-            isUserTurn 
-              ? "지금은 당신의 차례입니다. 메시지를 입력하세요." 
-              : "다음 버튼을 눌러 대화를 계속하세요."
-          }
+          placeholder={getPlaceholderText()}
           className={`debate-input-field ${
             isUserTurn ? 'user-turn' : 'disabled'
           }`}
@@ -59,9 +86,9 @@ const MessageInput: React.FC<MessageInputProps> = ({
         </button>
       </form>
       
-      {!isUserTurn && !isGeneratingResponse && (
+      {getTurnMessage() && (
         <div className="debate-turn-message">
-          현재 다른 참가자의 발언 차례입니다. 당신의 차례가 되면 알려드립니다.
+          {getTurnMessage()}
         </div>
       )}
     </div>

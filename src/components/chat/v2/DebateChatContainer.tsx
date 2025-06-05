@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { useSocketConnection } from './hooks/useSocketConnection';
 import { useDebateState } from './hooks/useDebateState';
@@ -20,7 +20,12 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   username = 'You',
   onEndChat,
   userRole,
-  onRequestNextMessage
+  onRequestNextMessage,
+  typingMessageIds: externalTypingMessageIds,
+  onTypingComplete: externalOnTypingComplete,
+  waitingForUserInput = false,
+  currentUserTurn = null,
+  onProcessUserMessage
 }) => {
   // 모더레이터 스타일 정보 매핑
   const moderatorStyles = [
@@ -43,27 +48,43 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   const [lastMessageCount, setLastMessageCount] = useState<number>(0);
   const [typingMessageIds, setTypingMessageIds] = useState<Set<string>>(new Set());
   
+  // 타이핑 완료 핸들러
+  const handleTypingComplete = (messageId: string) => {
+    setTypingMessageIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(messageId);
+      return newSet;
+    });
+  };
+  
+  // 외부 props 우선 사용
+  const activeTypingMessageIds = externalTypingMessageIds || typingMessageIds;
+  const activeOnTypingComplete = externalOnTypingComplete || handleTypingComplete;
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // 모더레이터 정보 가져오기
-  const getModeratorInfo = () => {
+  const getModeratorInfo = useMemo(() => {
     const moderatorConfig = (room as any).moderator;
+    
     if (moderatorConfig && moderatorConfig.style_id) {
       const style = moderatorStyles.find(s => s.id === moderatorConfig.style_id);
+      
       return {
         name: style?.name || 'Jamie the Host',
         profileImage: `/portraits/Moderator${moderatorConfig.style_id}.png`
       };
     }
+    
     return {
       name: 'Jamie the Host',
       profileImage: '/portraits/Moderator0.png'
     };
-  };
+  }, [room]);
 
-  const moderatorInfo = getModeratorInfo();
+  const moderatorInfo = getModeratorInfo;
 
   // 사용자 프로필 가져오기
   const fetchUserProfile = async (username: string) => {
@@ -137,7 +158,8 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
       
       newMessages.forEach(message => {
         const isUser = room.participants.users.includes(message.sender) || message.sender === username;
-        if (!isUser && !message.id.startsWith('temp-waiting-')) {
+        // skipAnimation이 true인 경우 (새로고침으로 로드된 메시지) 타이핑 애니메이션 스킵
+        if (!isUser && !message.id.startsWith('temp-waiting-') && !message.skipAnimation) {
           newTypingIds.add(message.id);
         }
       });
@@ -147,31 +169,30 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     }
   }, [messages.length, lastMessageCount, typingMessageIds, room.participants.users, username]);
 
-  // 타이핑 완료 핸들러
-  const handleTypingComplete = (messageId: string) => {
-    setTypingMessageIds(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(messageId);
-      return newSet;
-    });
-  };
+  // 사용자 차례일 때 입력창에 포커스
+  useEffect(() => {
+    if (waitingForUserInput && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+        console.log('🎯 Auto-focused input for user turn');
+      }, 300); // 약간의 지연을 주어 렌더링 완료 후 포커스
+    }
+  }, [waitingForUserInput]);
 
   // 메시지 전송 핸들러
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (messageText.trim() && isUserTurn) {
-      console.log('User is submitting message:', messageText);
-      
-      onSendMessage(messageText);
+    if (messageText.trim() && !isInputDisabled) {
+      // 사용자 차례인 경우 onProcessUserMessage 사용
+      if (waitingForUserInput && currentUserTurn && onProcessUserMessage) {
+        console.log('🎯 Processing user message via onProcessUserMessage');
+        onProcessUserMessage(messageText.trim());
+      } else {
+        // 일반적인 경우 기존 로직 사용
+        console.log('📤 Sending message via onSendMessage');
+        onSendMessage(messageText.trim());
+      }
       setMessageText('');
-      setUserTurn(false, false);
-      
-      setTimeout(() => {
-        if (inputRef.current && isUserTurn) {
-          inputRef.current.focus();
-        }
-      }, 1000);
     }
   };
 
@@ -197,17 +218,20 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     setTurnIndicatorVisible(visible);
   };
 
-  const shouldShowNextMessageButton = (
+  // 입력 상태 계산 - 사용자 차례이거나 일반 채팅일 때 활성화
+  const isInputDisabled = isLoading || isGeneratingResponse || 
+    !(waitingForUserInput || (isUserTurn && !waitingForUserInput));
+
+  // 사용자 차례 표시 로직 개선
+  const displayUserTurn = waitingForUserInput || isUserTurn;
+  const shouldShowNextButton = (
     isDebateRoom: boolean,
     onRequestNextMessage: any,
     messagesLength: number
   ) => {
-    if (!isDebateRoom || !onRequestNextMessage || isGeneratingResponse) return false;
-    // 토론방에서는 항상 Next 버튼 표시 (메시지 개수 무관)
-    return true;
+    // Next 버튼을 항상 표시 (토론방이고 함수가 있으면)
+    return isDebateRoom && onRequestNextMessage;
   };
-
-  const isInputDisabled = !isUserTurn || isGeneratingResponse;
 
   const getNameFromId = (id: string, isUser: boolean): string => {
     if (id === 'Moderator' || id === 'moderator') {
@@ -322,12 +346,12 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
           messages={messages}
           messagesEndRef={messagesEndRef}
           isUserTurn={isUserTurn}
-          typingMessageIds={typingMessageIds}
+          typingMessageIds={activeTypingMessageIds}
           getNameFromId={getNameFromId}
           getProfileImage={getProfileImage}
           isUserParticipant={isUserParticipant}
-          handleTypingComplete={handleTypingComplete}
-          showNextButton={shouldShowNextMessageButton(isDebateRoom, onRequestNextMessage, messages.length)}
+          handleTypingComplete={activeOnTypingComplete}
+          showNextButton={shouldShowNextButton(isDebateRoom, onRequestNextMessage, messages.length)}
           onRequestNext={handleNextMessage}
           isGeneratingNext={isGeneratingNext}
         />
@@ -338,10 +362,12 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
         messageText={messageText}
         setMessageText={setMessageText}
         onSubmit={handleSubmit}
-        isUserTurn={isUserTurn}
+        isUserTurn={displayUserTurn}
         isInputDisabled={isInputDisabled}
         inputRef={inputRef}
         isGeneratingResponse={isGeneratingResponse}
+        currentUserTurn={currentUserTurn}
+        waitingForUserInput={waitingForUserInput}
       />
     </div>
   );

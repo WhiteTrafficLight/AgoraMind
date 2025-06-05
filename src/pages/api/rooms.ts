@@ -201,7 +201,8 @@ export default async function handler(
         lastActivity: 'Just now',
         messages: [],
         isPublic: params.isPublic !== false,
-        dialogueType: params.dialogueType || 'free' // 명시적으로 dialogueType 설정
+        dialogueType: params.dialogueType || 'free', // 명시적으로 dialogueType 설정
+        moderator: params.moderator // 모더레이터 정보 추가
       };
       
       // 찬반토론 모드인 경우 pro, con, neutral 필드 설정
@@ -397,7 +398,9 @@ export default async function handler(
               pro_npcs: string[];
               con_npcs: string[];
               user_ids?: string[];
+              user_side?: string;
               moderator_style?: string;
+              moderator_style_id?: string;
             } = {
               room_id: String(newRoom.id),
               title: params.title,
@@ -405,7 +408,9 @@ export default async function handler(
               pro_npcs: proNpcIds.filter(id => id !== currentUser), // 사용자 제외한 NPC만
               con_npcs: conNpcIds.filter(id => id !== currentUser), // 사용자 제외한 NPC만
               user_ids: [currentUser],
-              moderator_style: params.moderator?.style || "Jamie the Host"
+              user_side: params.userDebateRole || "neutral", // 사용자가 속한 편 전달
+              moderator_style: params.moderator?.style || "Jamie the Host",
+              moderator_style_id: params.moderator?.style_id || "0"
               // stance_statements 제거 - 백엔드에서 자동 생성
             };
             

@@ -60,6 +60,8 @@ export interface ChatMessage {
   isSystemMessage?: boolean;
   role?: string;
   citations?: Citation[];
+  skipAnimation?: boolean;
+  isGenerating?: boolean;
 }
 
 export interface Citation {
@@ -130,6 +132,11 @@ export interface DebateChatContainerProps {
   onEndChat?: () => void;
   userRole?: string;
   onRequestNextMessage?: () => void;
+  typingMessageIds?: Set<string>;
+  onTypingComplete?: (messageId: string) => void;
+  waitingForUserInput?: boolean;
+  currentUserTurn?: {speaker_id: string, role: string} | null;
+  onProcessUserMessage?: (message: string) => void;
 }
 
 export interface ParticipantGridProps {

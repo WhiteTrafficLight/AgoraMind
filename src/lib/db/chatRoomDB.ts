@@ -20,6 +20,10 @@ export interface DBChatRoom {
   pro?: string[]; // 찬성측 참여자들 (NPC IDs와 사용자)
   con?: string[]; // 반대측 참여자들 (NPC IDs와 사용자)
   neutral?: string[]; // 중립 참여자들 (NPC IDs와 사용자)
+  moderator?: {
+    style_id?: string;
+    style?: string;
+  }; // 모더레이터 스타일 정보
   createdAt: Date;
   updatedAt: Date;
 }
@@ -213,6 +217,9 @@ class ChatRoomDB {
       if (room.con) dbRoom.con = room.con;
       if (room.neutral) dbRoom.neutral = room.neutral;
       
+      // 모더레이터 정보 추가 (있는 경우만)
+      if (room.moderator) dbRoom.moderator = room.moderator;
+      
       console.log(`💾 DB 저장 전 채팅방 데이터: ${JSON.stringify({ roomId, title: room.title, dialogueType: room.dialogueType })}`);
       
       if (room.dialogueType === 'debate') {
@@ -310,8 +317,8 @@ class ChatRoomDB {
       const client = await clientPromise;
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
-      // ID를 항상 문자열로 변환
-      const normalizedRoomId = String(roomId);
+      // ID를 항상 숫자로 변환
+      const normalizedRoomId = Number(roomId);
       
       // 업데이트할 필드 구성
       const updateFields: Partial<DBChatRoom> = {};
@@ -350,6 +357,7 @@ class ChatRoomDB {
       pro: room.pro, // 찬성측 참여자
       con: room.con, // 반대측 참여자
       neutral: room.neutral, // 중립 참여자
+      moderator: room.moderator, // 모더레이터 정보 추가
       messages: [] // 모든 룸의 메시지를 로드하지 않음 (필요할 때만 로드)
     }));
   }
@@ -368,6 +376,7 @@ class ChatRoomDB {
       pro: dbRoom.pro, // 찬성측 참여자
       con: dbRoom.con, // 반대측 참여자
       neutral: dbRoom.neutral, // 중립 참여자
+      moderator: dbRoom.moderator, // 모더레이터 정보 추가
       messages: dbMessages.map(msg => ({
         id: msg.messageId,
         text: msg.text,

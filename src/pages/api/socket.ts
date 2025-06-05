@@ -92,7 +92,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponseWithSoc
           message: `${username}님이 퇴장했습니다.`
         });
         
-      } catch (error) {
+              } catch (error) {
         console.error('❌ Error leaving room:', error);
       }
     });
@@ -103,18 +103,18 @@ export default function handler(req: NextApiRequest, res: NextApiResponseWithSoc
       
       if (!roomId) {
         console.error('❌ Missing roomId for register-handlers');
-        return;
-      }
-      
+              return;
+            }
+            
       try {
         console.log(`🔍 Looking up room type for room ${roomId}`);
         const room = await chatRoomDB.getChatRoomById(roomId);
         
         if (!room || !room.dialogueType) {
           console.error(`❌ Room ${roomId} not found or missing dialogue type`);
-          return;
-        }
-        
+                  return;
+                }
+                
         console.log(`🔧 Registering ${room.dialogueType} handlers for room ${roomId}`);
         
         // 방 타입에 따라 핸들러 등록
@@ -126,7 +126,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponseWithSoc
         
         console.log(`✅ ${room.dialogueType.toUpperCase()} handlers registered for room ${roomId}`);
         
-      } catch (error) {
+            } catch (error) {
         console.error(`❌ Error registering handlers for room ${roomId}:`, error);
       }
     });

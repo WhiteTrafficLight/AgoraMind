@@ -15,6 +15,9 @@ export interface ChatMessage {
   citations?: Citation[]; // 인용 정보 배열 추가
   isSystemMessage?: boolean; // 시스템 메시지 여부
   role?: string; // 메시지 역할 (moderator 등)
+  skipAnimation?: boolean; // 새로고침으로 로드된 메시지는 애니메이션 스킵
+  isGenerating?: boolean; // 메시지 생성 중임을 표시하는 플래그
+  metadata?: { [key: string]: any }; // 메타데이터 정보
 }
 
 export interface ChatRoom {
@@ -36,6 +39,10 @@ export interface ChatRoom {
   pro?: string[]; // 찬성측 참여자들 (NPC IDs와 사용자)
   con?: string[]; // 반대측 참여자들 (NPC IDs와 사용자)
   neutral?: string[]; // 중립 참여자들 (NPC IDs와 사용자)
+  moderator?: {
+    style_id?: string;
+    style?: string;
+  }; // 모더레이터 스타일 정보
   debate_info?: {
     current_stage?: string;
     pro_participants?: string[];
@@ -162,7 +169,6 @@ class ChatService {
       return 0; // 변환 불가능한 경우 0 반환
     }
     
-    console.log(`ID 정규화: ${id} (${typeof id}) -> ${numId} (숫자)`);
     return numId;
   }
   
@@ -412,6 +418,49 @@ class ChatService {
         if (initialMessageCount !== room.messages.length) {
           log(`🧹 Removed ${initialMessageCount - room.messages.length} system or welcome messages`);
         }
+      }
+      
+      // 📨 chatMessages 컬렉션에서 해당 방의 메시지들 조회
+      log('🔄 Loading messages from chatMessages collection');
+      try {
+        const messagesResponse = await fetch(`/api/messages?roomId=${normalizedId}&action=getMessages`);
+        if (messagesResponse.ok) {
+          const messagesData = await messagesResponse.json();
+          if (messagesData.success && messagesData.messages && Array.isArray(messagesData.messages)) {
+            log(`✅ Loaded ${messagesData.messages.length} messages from chatMessages collection`);
+            
+            // chatMessages 컬렉션의 메시지들을 ChatMessage 형태로 변환
+            const loadedMessages: ChatMessage[] = messagesData.messages.map((msg: any) => ({
+              id: msg.messageId,           // messageId -> id 변환
+              text: msg.text,
+              sender: msg.sender,
+              isUser: msg.isUser,
+              timestamp: new Date(msg.timestamp),
+              role: msg.role,
+              citations: msg.citations || [],
+              skipAnimation: true          // 새로고침으로 로드된 메시지는 애니메이션 스킵
+            }));
+            
+            // 기존 messages와 새로 로드한 메시지들을 합침
+            // 중복 제거: id가 같은 메시지는 제외
+            const existingIds = new Set(room.messages.map((msg: ChatMessage) => msg.id));
+            const uniqueLoadedMessages = loadedMessages.filter(msg => !existingIds.has(msg.id));
+            
+            // 시간순으로 정렬하여 합침
+            room.messages = [...room.messages, ...uniqueLoadedMessages].sort((a, b) => 
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+            );
+            
+            log(`✅ Total messages after merge: ${room.messages.length}`);
+          } else {
+            log('⚠️ No messages found in chatMessages collection or invalid response format');
+          }
+        } else {
+          log(`⚠️ Failed to load messages from chatMessages collection: ${messagesResponse.status}`);
+        }
+      } catch (error) {
+        log('⚠️ Error loading messages from chatMessages collection:', error);
+        // 메시지 로딩 실패해도 방 정보는 반환 (기존 messages 유지)
       }
       
       // 5. NPC 정보 로드
@@ -911,32 +960,6 @@ class ChatService {
     
     // Mock 메시지 생성 완전 비활성화 - 서버에서만 메시지 생성
     return "";
-    
-    /* 기존 코드 주석 처리
-    console.log('🔄 Generating initial prompt for topic:', topic);
-    
-    // 의미 있는 초기 메시지 제공
-    const prompts = [
-      `I find this topic of "${topic}" quite fascinating. What aspects of it interest you the most?`,
-      `Let us explore "${topic}" together. What questions come to mind when you consider this subject?`,
-      `The question of "${topic}" has intrigued philosophers for centuries. Where shall we begin our inquiry?`,
-      `I've spent much time contemplating "${topic}". What is your perspective on this matter?`,
-      `To understand "${topic}", we must first examine our assumptions. What do you believe to be true about this subject?`
-    ];
-    
-    // If there's context, incorporate it into a custom prompt
-    if (context && context.trim()) {
-      const contextPrompt = `Given the context that ${context}, I'm curious about your thoughts on "${topic}"?`;
-      console.log('✅ Generated context-specific prompt:', contextPrompt);
-      return contextPrompt;
-    }
-    
-    // Otherwise select a random prompt
-    const randomIndex = Math.floor(Math.random() * prompts.length);
-    const selectedPrompt = prompts[randomIndex];
-    console.log('✅ Generated random prompt:', selectedPrompt);
-    return selectedPrompt;
-    */
   }
 
   // Send user message to a chat room
@@ -956,9 +979,10 @@ class ChatService {
         id: messageData?.id || this.generateUniqueId('user-'),
         text: message.trim(),  // 앞뒤 공백 제거
         sender: messageData?.sender || 'User',
-      isUser: true,
-        timestamp: messageData?.timestamp || new Date().toISOString(),
-        role: messageData?.role // 역할 정보 보존 (debate에서 중요)
+        isUser: true,
+        timestamp: messageData?.timestamp || new Date(),
+        role: messageData?.role, // 역할 정보 보존 (debate에서 중요)
+        skipAnimation: false     // 새로 생성된 메시지는 애니메이션 적용
       };
 
       // 인용 정보 있을 경우 포함
@@ -971,7 +995,7 @@ class ChatService {
       
       const apiUrl = '/api/messages';
       const response = await fetch(apiUrl, {
-            method: 'POST',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -982,11 +1006,11 @@ class ChatService {
         }),
       });
 
-          if (!response.ok) {
+      if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ ChatService: Failed to save message: ${response.status}`, errorText);
         throw new Error(`Failed to save message: ${response.status} ${errorText}`);
-          }
+      }
 
       const result = await response.json();
       console.log(`✅ ChatService: Message saved successfully:`, result);
@@ -1061,22 +1085,22 @@ class ChatService {
       // 7. API 요청
       console.log(`🔄 Requesting AI response from API`);
       const response = await fetch('/api/chat/generate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
           'x-llm-provider': 'openai',
           'x-llm-model': 'gpt-4o'
-          },
-          body: JSON.stringify({
+        },
+        body: JSON.stringify({
           npcs: room.participants.npcs,
           npc_descriptions: npcDescriptions,
           topic: topic,
           context: context,
           previous_dialogue: dialogueText,
-            use_rag: true, // RAG 기능 활성화
-            // 필수 필드 추가 - room_id를 문자열로 변환하여 전송
-            room_id: String(normalizedId),
-            user_message: lastUserMessage.text
+          use_rag: true, // RAG 기능 활성화
+          // 필수 필드 추가 - room_id를 문자열로 변환하여 전송
+          room_id: String(normalizedId),
+          user_message: lastUserMessage.text
         })
       });
 
@@ -1117,7 +1141,8 @@ class ChatService {
         sender: respondingNpc?.name || data.philosopher,
         isUser: false,
         timestamp: new Date(),
-        citations: citations // 인용 정보 직접 포함
+        citations: citations, // 인용 정보 직접 포함
+        skipAnimation: false  // 새로 생성된 AI 메시지는 애니메이션 적용
       };
       
       console.log("📝 생성된 메시지 객체(citations 포함):", JSON.stringify(messageObj));
@@ -1193,34 +1218,29 @@ class ChatService {
         try {
           // In the frontend, we use 'id', but in the DB schema, it's 'roomId'
           // API request uses the parameter name 'roomId' as expected by the API
-          console.log(`🔄 Sending POST to /api/messages with roomId=${normalizedId}`);
+          console.log(`🔄 API 요청 시도 (${retryCount + 1}/${MAX_RETRIES}): /api/messages`);
+          
           apiResponse = await fetch('/api/messages', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({
+              roomId: normalizedId,
+              message: {
+                ...message,
+                timestamp: message.timestamp instanceof Date 
+                  ? message.timestamp.toISOString() 
+                  : message.timestamp
+              },
+              isInitial: true
+            })
           });
           
-          if (!apiResponse) {
-            throw new Error('No response received from API');
-          }
-          
-          console.log(`API Response Status: ${apiResponse.status}`);
-          console.log('Response Headers:', [...apiResponse.headers.entries()].map(([k, v]) => `${k}: ${v}`).join(', '));
-          
           if (!apiResponse.ok) {
-            // Check if we're getting HTML instead of JSON
-            const contentType = apiResponse.headers.get('content-type') || '';
-            console.log('Content-Type:', contentType);
-            
-            if (contentType.includes('text/html')) {
-              const htmlResponse = await apiResponse.text();
-              console.error('Response contains HTML error page:', htmlResponse.substring(0, 200));
-              throw new Error(`API returned HTML error page: Status ${apiResponse.status}`);
-            }
-            
-            throw new Error(`Failed to save message: ${apiResponse.status}`);
+            const errorText = await apiResponse.text();
+            console.error(`❌ API error: ${apiResponse.status}, Response text: ${errorText.substring(0, 200)}`);
+            throw new Error(`Failed to save initial message: ${apiResponse.status} ${errorText}`);
           }
           
           break; // 성공하면 루프 종료
@@ -1237,66 +1257,13 @@ class ChatService {
         }
       }
       
-      // Check if response is defined
       if (!apiResponse) {
         throw new Error('No response received from API after maximum retries');
       }
       
-      // Log the API response status
-      console.log(`API response status: ${apiResponse.status}`);
+      const result = await apiResponse.json();
+      console.log(`✅ API 응답 성공:`, result);
       
-      let errorText = '';
-      if (!apiResponse.ok) {
-        try {
-          errorText = await apiResponse.text();
-          console.error(`❌ API error response: ${errorText.substring(0, 500)}`);
-        } catch (e) {
-          console.error('❌ Failed to read error response:', e);
-        }
-        
-        // If room not found, try to dump the room structure for debugging
-        if (apiResponse.status === 404 && cachedRoom) {
-          console.log('⚠️ Dumping cached room structure for debugging:');
-          console.log(JSON.stringify({
-            id: cachedRoom.id,
-            title: cachedRoom.title,
-            participants: cachedRoom.participants,
-            messagesCount: cachedRoom.messages?.length || 0
-          }, null, 2));
-        }
-        
-        throw new Error(`Failed to save initial message: ${apiResponse.status}`);
-      }
-      
-      let responseData;
-      try {
-        // We know response is defined and ok here
-        responseData = await safeParseJson(apiResponse);
-      console.log('API response data:', responseData);
-      } catch (error) {
-        console.error('❌ Failed to parse API response:', error);
-        return false;
-      }
-      
-      // 로컬 캐시 업데이트 - 일관된 ID 형식 사용
-      const roomIndex = this.chatRooms.findIndex(room => this.normalizeId(room.id) === normalizedId);
-      if (roomIndex >= 0) {
-        // Make sure messages array exists
-        if (!this.chatRooms[roomIndex].messages) {
-          this.chatRooms[roomIndex].messages = [];
-        }
-        
-        // Check if the message already exists
-        const messageExists = this.chatRooms[roomIndex].messages!.some(msg => msg.id === message.id);
-        if (!messageExists) {
-          this.chatRooms[roomIndex].messages!.push(message);
-          console.log(`✅ Added initial message to local cache for room ${normalizedId}`);
-        }
-      } else {
-        console.log(`⚠️ Room ${normalizedId} not found in local cache to update`);
-      }
-      
-      console.log('✅ Initial message saved successfully');
       return true;
     } catch (error) {
       console.error('❌ Error saving initial message:', error);
@@ -1308,4 +1275,4 @@ class ChatService {
 // Export a singleton instance of the service
 export const chatService = new ChatService(true); // true to use API, false to use mock responses
 
-export default chatService; 
+export default chatService;
