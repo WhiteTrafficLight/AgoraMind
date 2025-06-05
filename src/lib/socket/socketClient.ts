@@ -22,17 +22,17 @@ class SocketClient {
   }
 
   // 방 입장
-  joinRoom(roomId: string | number, username: string): void {
+  joinRoom(roomId: string, username: string): void {
     this.core.joinRoom(roomId, username);
   }
 
   // 방 떠나기  
-  leaveRoom(roomId: string | number, username: string): void {
+  leaveRoom(roomId: string, username: string): void {
     this.core.leaveRoom(roomId, username);
   }
 
   // 메시지 전송
-  sendMessage(roomId: string | number, message: string, sender: string): void {
+  sendMessage(roomId: string, message: string, sender: string): void {
     this.core.sendMessage(roomId, message, sender);
   }
 

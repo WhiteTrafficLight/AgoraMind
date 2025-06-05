@@ -146,16 +146,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponseW
 
       // 채팅방 찾기
       console.log(`🔄 [API] 채팅방 ID ${roomId} 조회 중...`);
-      // Convert roomId to support both string and number formats
-      const numericRoomId = !isNaN(Number(roomId)) ? Number(roomId) : roomId;
-      const stringRoomId = String(roomId);
+      // roomId를 문자열로 정규화 (Number 변환 제거)
+      const normalizedRoomId = String(roomId).trim();
       
-      // Try to find the room with either format
+      // Try to find the room with string format only
       const chatRoom = await ChatRoomModel.findOne({
-        $or: [
-          { roomId: numericRoomId },
-          { roomId: stringRoomId }
-        ]
+        roomId: normalizedRoomId
       });
       
       if (!chatRoom) {

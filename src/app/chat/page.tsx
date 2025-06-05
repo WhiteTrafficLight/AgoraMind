@@ -216,12 +216,12 @@ export default function ChatPage() {
 
     console.log('Chat page received ID:', chatIdParam, typeof chatIdParam);
 
-    // ID를 숫자로 변환 - 명시적으로 숫자 타입으로 변환
-    const chatId = Number(chatIdParam);
-    console.log('Using chat ID as number:', chatId, `(${typeof chatId})`);
+    // Use string chatId instead of converting to number
+    const chatId = chatIdParam;
+    console.log('Using chat ID as string:', chatId, `(${typeof chatId})`);
     
-    // ID 추가 검증 
-    if (isNaN(chatId) || chatId <= 0) {
+    // Remove numeric validation since we now support string IDs
+    if (!chatId || chatId.trim() === '') {
       console.error(`Invalid chat ID format: ${chatIdParam}`);
       setError('Invalid chat room ID format');
       setLoading(false);
@@ -246,17 +246,18 @@ export default function ChatPage() {
         // ID 타입 및 일치 여부 확인
         console.log(`🔍 CHAT PAGE: Room returned with ID: ${room.id} (${typeof room.id})`);
         
-        // 🔧 ID 타입이 숫자인지 확인하여 일관성 유지
-        const roomIdNum = typeof room.id === 'string' ? parseInt(room.id) : room.id;
+        // 🔧 ID를 문자열로 정규화 (parseInt 제거)
+        const roomId = String(room.id);
+        const requestedChatId = String(chatId);
         
-        if (roomIdNum !== chatId) {
-          console.error(`ID mismatch: requested=${chatId}, received=${roomIdNum}`);
+        if (roomId !== requestedChatId) {
+          console.error(`ID mismatch: requested=${requestedChatId}, received=${roomId}`);
           setError('Incorrect chat room loaded');
           return;
         }
         
-        // 🔧 ID를 명시적으로 숫자로 설정
-        room.id = chatId;
+        // 🔧 ID를 명시적으로 문자열로 설정
+        room.id = String(chatId);
         
         // 채팅방 메시지 상태 확인
         const messageCount = room.messages?.length || 0;
@@ -473,14 +474,14 @@ export default function ChatPage() {
       }
       
       // 1. 방 입장 확인
-      const roomIdNum = typeof chatData.id === 'string' ? parseInt(chatData.id) : chatData.id;
+      const roomId = String(chatData.id);
       const storedUsername = sessionStorage.getItem('chat_username') || 'User';
-      socketModule.default.joinRoom(roomIdNum, storedUsername);
+      socketModule.default.joinRoom(roomId, storedUsername);
       
       // 이벤트 리스너 설정 - 다음 발언자 업데이트 수신
       socketModule.default.on('next-speaker-update', (data: { roomId: string, nextSpeaker: any }) => {
         console.log('Next speaker update from socket:', data);
-        if (data.roomId === String(roomIdNum) && data.nextSpeaker) {
+        if (data.roomId === roomId && data.nextSpeaker) {
           // 전역 이벤트로 발행하여 DebateChatUI에서 감지하도록 함
           window.dispatchEvent(new CustomEvent('next-speaker-updated', { 
             detail: data.nextSpeaker 
@@ -498,7 +499,7 @@ export default function ChatPage() {
       // 새로운 메시지를 위한 이벤트 리스너 추가
       socketModule.default.on('new-message', (data: { roomId: string, message: ChatMessage }) => {
         console.log('New message received from socket:', data);
-        if (data.roomId === String(roomIdNum) && data.message) {
+        if (data.roomId === roomId && data.message) {
           console.log('Adding new message to chatData state:', data.message);
           if (chatData) {
             // 기존 메시지 배열에 새 메시지 추가
@@ -519,7 +520,7 @@ export default function ChatPage() {
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       
       // 2. 디베이트 다음 메시지 요청 (백엔드 API 직접 호출)
-      const response = await fetch(`${apiBaseUrl}/api/dialogue/${roomIdNum}/next-speaker`, {
+      const response = await fetch(`${apiBaseUrl}/api/dialogue/${roomId}/next-speaker`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -552,7 +553,7 @@ export default function ChatPage() {
       
       // NPC 선택 이벤트 발송
       socketModule.default.emit('npc-selected', {
-        roomId: roomIdNum,
+        roomId: roomId,
         npcId: speakerId
       });
       
@@ -568,7 +569,7 @@ export default function ChatPage() {
       }
       
       // 3. 다음 발언자 메시지 생성 요청 (사용자가 아닌 경우에만)
-      const generateResponse = await fetch(`${apiBaseUrl}/api/dialogue/${roomIdNum}/generate`, {
+      const generateResponse = await fetch(`${apiBaseUrl}/api/dialogue/${roomId}/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -607,7 +608,7 @@ export default function ChatPage() {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            roomId: roomIdNum,
+            roomId: roomId,
             message: messageToSave
           })
         });
@@ -676,7 +677,7 @@ export default function ChatPage() {
       ) : chatData ? (
         chatData.dialogueType === 'free' || !chatData.dialogueType ? (
           <CircularChatUI
-            chatId={Number(chatData.id)}
+            chatId={String(chatData.id)}
             chatTitle={chatData.title}
             participants={chatData.participants}
             initialMessages={chatData.messages || []}
@@ -686,7 +687,7 @@ export default function ChatPage() {
           <DebateChatUI
             room={{
               ...chatData,
-              id: Number(chatData.id) // Ensure ID is a number
+              id: String(chatData.id)
             }}
             messages={chatData.messages || []}
             npcDetails={chatData.npcDetails || []}
@@ -706,7 +707,7 @@ export default function ChatPage() {
           />
         ) : (
         <ChatUI 
-          chatId={Number(chatData.id)}
+          chatId={String(chatData.id)}
           chatTitle={chatData.title}
           participants={chatData.participants}
           initialMessages={chatData.messages || []}

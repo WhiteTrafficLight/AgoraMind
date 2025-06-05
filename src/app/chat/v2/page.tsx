@@ -67,9 +67,9 @@ export default function ChatPageV2() {
       return;
     }
 
-    const chatId = Number(chatIdParam);
+    const chatId = chatIdParam;
     
-    if (isNaN(chatId) || chatId <= 0) {
+    if (!chatId || chatId.trim() === '') {
       console.error(`Invalid chat ID format: ${chatIdParam}`);
       setError('Invalid chat room ID format');
       setLoading(false);
@@ -123,8 +123,8 @@ export default function ChatPageV2() {
         await socketInstance.init(username);
         
         // 방에 참가 (username 전달)
-        const roomIdNum = typeof chatData.id === 'string' ? parseInt(chatData.id) : chatData.id;
-        socketInstance.joinRoom(roomIdNum, username);
+        const roomId = String(chatData.id);
+        socketInstance.joinRoom(roomId, username);
         
         // new-message 이벤트 리스너 설정
         socketInstance.on('new-message', async (data: { roomId: string, message: ChatMessage }) => {
@@ -267,8 +267,8 @@ export default function ChatPageV2() {
     return () => {
       if (socketInstance) {
         if (chatData?.id && username) {
-          const roomIdNum = typeof chatData.id === 'string' ? parseInt(chatData.id) : chatData.id;
-          socketInstance.leaveRoom(roomIdNum, username);
+          const roomId = String(chatData.id);
+          socketInstance.leaveRoom(roomId, username);
         }
         socketInstance.disconnect();
       }
@@ -336,9 +336,9 @@ export default function ChatPageV2() {
       console.log('🔄 V2: Requesting next debate message for room:', chatData.id);
       
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const roomIdNum = typeof chatData.id === 'string' ? parseInt(chatData.id) : chatData.id;
+      const roomId = String(chatData.id);
       
-      const response = await fetch(`${apiBaseUrl}/api/chat/debate/${roomIdNum}/next-message`, {
+      const response = await fetch(`${apiBaseUrl}/api/chat/debate/${roomId}/next-message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -449,7 +449,7 @@ export default function ChatPageV2() {
       console.log('🎯 Username:', username);
       
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const roomIdNum = typeof chatData.id === 'string' ? parseInt(chatData.id) : chatData.id;
+      const roomId = String(chatData.id);
       
       // 테스트 파일과 동일한 방식으로 사용자 메시지 처리
       const requestBody = {
@@ -459,7 +459,7 @@ export default function ChatPageV2() {
       
       console.log('📤 Sending user message request:', requestBody);
       
-      const response = await fetch(`${apiBaseUrl}/api/chat/debate/${roomIdNum}/process-user-message`, {
+      const response = await fetch(`${apiBaseUrl}/api/chat/debate/${roomId}/process-user-message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -602,7 +602,7 @@ export default function ChatPageV2() {
         <DebateChatContainer
           room={{
             ...chatData,
-            id: typeof chatData.id === 'string' ? parseInt(chatData.id) : chatData.id,
+            id: String(chatData.id),
             dialogueType: chatData.dialogueType || 'debate'
           }}
           messages={chatData.messages || []}

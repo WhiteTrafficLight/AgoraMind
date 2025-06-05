@@ -12,7 +12,7 @@ export interface BaseMessage {
 
 // 방 정보 타입
 export interface BaseRoom {
-  id: string | number;
+  id: string;
   title: string;
   context?: string;
   participants: {
@@ -49,16 +49,75 @@ export interface ConnectedUser {
 
 // 이벤트 데이터 타입들
 export interface JoinRoomData {
-  roomId: string | number;
+  roomId: string;
   username: string;
 }
 
 export interface SendMessageData {
-  roomId: string | number;
+  roomId: string;
   message: string;
   sender: string;
 }
 
 export interface GetActiveUsersData {
-  roomId: string | number;
+  roomId: string;
+}
+
+// 인용 정보 인터페이스
+export interface Citation {
+  id: string;       // 각주 ID (예: "1", "2")
+  text: string;     // 원문 텍스트
+  source: string;   // 출처 (책 이름)
+  location?: string; // 위치 정보 (선택사항)
+}
+
+export interface ChatMessage {
+  id: string;
+  text: string;
+  sender: string;
+  isUser: boolean;
+  timestamp: Date;
+  citations?: Citation[];
+  isSystemMessage?: boolean;
+  role?: string;
+  skipAnimation?: boolean;
+  isGenerating?: boolean;
+  metadata?: { [key: string]: any };
+}
+
+export interface ClientToServerEvents {
+  // ... existing code ...
+  'user-joined': (data: { roomId: string; username: string; userCount: number }) => void;
+  'user-left': (data: { roomId: string; username: string; userCount: number }) => void;
+  'new-message': (message: ChatMessage) => void;
+  'typing': (data: { username: string; isTyping: boolean }) => void;
+  'room-updated': (room: any) => void;
+  'error': (error: { message: string; code?: string }) => void;
+  'notification': (data: { type: string; message: string }) => void;
+  'debate-turn-changed': (data: { 
+    currentSpeaker: string; 
+    stage: string; 
+    roomId: string; 
+  }) => void;
+  'user-message-complete': (data: { message: ChatMessage; roomId: string }) => void;
+  
+  // 토론 관련 이벤트
+  'debate-phase-change': (data: { 
+    roomId: string;
+    newPhase: string; 
+    message?: string 
+  }) => void;
+  
+  'debate-turn-notification': (data: { 
+    roomId: string;
+    currentSpeaker: string; 
+    turnType: 'user' | 'npc';
+    timeRemaining?: number;
+  }) => void;
+  
+  'debate-message-complete': (data: { 
+    roomId: string;
+    message: ChatMessage;
+    nextSpeaker?: string;
+  }) => void;
 } 

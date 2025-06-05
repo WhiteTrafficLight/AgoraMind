@@ -28,7 +28,7 @@ export enum ParticipantSide {
 }
 
 export interface DebateRoom {
-  id: string | number;
+  id: string;
   title: string;
   dialogueType: 'debate' | 'free' | 'circular';
   participants: {
@@ -48,6 +48,12 @@ export interface DebateRoom {
     style?: string;
     style_id?: string;
     personality?: string;
+  };
+  debate_info?: {
+    current_stage?: string;
+    pro_participants?: string[];
+    con_participants?: string[];
+    total_turns?: number;
   };
 }
 

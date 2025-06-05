@@ -164,37 +164,35 @@ export class SocketClientCore {
   }
 
   // 방 입장
-  joinRoom(roomId: string | number, username: string): void {
+  joinRoom(roomId: string, username: string): void {
     if (!this.socket || !this.isConnected) {
       console.warn('❌ Cannot join room: Socket not connected');
       return;
     }
 
-    const roomIdStr = String(roomId);
-    this.roomId = roomIdStr;
+    this.roomId = roomId;
     this.username = username;
 
-    console.log(`👤 Joining room ${roomIdStr} as ${username}`);
+    console.log(`👤 Joining room ${roomId} as ${username}`);
     
     this.socket.emit('join-room', {
-      roomId: roomIdStr,
-      username: username
+      roomId,
+      username
     });
 
     // 방 타입별 핸들러 등록 요청
-    this.socket.emit('register-handlers', { roomId: roomIdStr });
+    this.socket.emit('register-handlers', { roomId });
   }
 
   // 방 떠나기
-  leaveRoom(roomId: string | number, username: string): void {
+  leaveRoom(roomId: string, username: string): void {
     if (!this.socket) return;
 
-    const roomIdStr = String(roomId);
-    console.log(`👋 Leaving room ${roomIdStr}`);
+    console.log(`👋 Leaving room ${roomId}`);
     
     this.socket.emit('leave-room', {
-      roomId: roomIdStr,
-      username: username
+      roomId,
+      username
     });
 
     this.roomId = null;
@@ -202,16 +200,17 @@ export class SocketClientCore {
   }
 
   // 메시지 전송
-  sendMessage(roomId: string | number, message: string, sender: string): void {
+  sendMessage(roomId: string, message: string, sender: string): void {
     if (!this.socket || !this.isConnected) {
       console.warn('❌ Cannot send message: Socket not connected');
       return;
     }
 
+    console.log(`📨 메시지 전송: ${roomId}, 발신자: ${sender}`);
     this.socket.emit('send-message', {
-      roomId: String(roomId),
-      message: message,
-      sender: sender
+      roomId,
+      message,
+      sender
     });
   }
 

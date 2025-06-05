@@ -2,11 +2,13 @@ import { useEffect, useCallback, useRef } from 'react';
 import { SocketEvents, TurnInfo } from '../types/debate.types';
 
 interface UseSocketConnectionProps {
-  roomId: string | number;
+  roomId: string;
   username: string;
   onTurnUpdate?: (turnInfo: TurnInfo) => void;
   onNpcSelected?: (npcId: string) => void;
-  onNewMessage?: (data: { message: any; roomId: string }) => void;
+  onNewMessage?: (message: any) => void;
+  onUserJoined?: (data: any) => void;
+  onUserLeft?: (data: any) => void;
 }
 
 export function useSocketConnection({
@@ -15,6 +17,8 @@ export function useSocketConnection({
   onTurnUpdate,
   onNpcSelected,
   onNewMessage,
+  onUserJoined,
+  onUserLeft,
 }: UseSocketConnectionProps) {
   const socketRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
@@ -34,9 +38,8 @@ export function useSocketConnection({
       isInitializedRef.current = true;
 
       // 방 참가
-      const roomIdNum = typeof roomId === 'string' ? parseInt(roomId) : roomId;
-      console.log(`Socket: Joining room ${roomIdNum}`);
-      socketClient.joinRoom(roomIdNum, storedUsername);
+      console.log(`Socket: Joining room ${roomId}`);
+      socketClient.joinRoom(roomId, storedUsername);
 
       return socketClient;
     } catch (error) {
@@ -69,7 +72,7 @@ export function useSocketConnection({
     // 새 메시지 이벤트
     const handleNewMessage = (data: { message: any; roomId: string }) => {
       console.log('New message received from socket:', data);
-      onNewMessage?.(data);
+      onNewMessage?.(data.message);
     };
 
     // 소켓 이벤트 리스너 등록
@@ -90,10 +93,9 @@ export function useSocketConnection({
   // 소켓 정리
   const cleanupSocket = useCallback(() => {
     if (socketRef.current && roomId) {
-      const roomIdNum = typeof roomId === 'string' ? parseInt(roomId) : roomId;
       const storedUsername = sessionStorage.getItem('chat_username') || username;
-      console.log(`Socket: Leaving room ${roomIdNum}`);
-      socketRef.current.leaveRoom(roomIdNum, storedUsername);
+      console.log(`Socket: Leaving room ${roomId}`);
+      socketRef.current.leaveRoom(roomId, storedUsername);
     }
     isInitializedRef.current = false;
   }, [roomId, username]);

@@ -506,10 +506,10 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
         const storedUsername = sessionStorage.getItem('chat_username') || username;
         await socketClient.init(storedUsername);
         
-        // Join the room - ensure roomId is a number
-        const roomIdNum = typeof room.id === 'string' ? parseInt(room.id) : room.id;
-        console.log(`DebateChatUI: Joining room ${roomIdNum} (${typeof roomIdNum})`);
-        socketClient.joinRoom(roomIdNum, storedUsername);
+        // Join the room - use roomId directly as string (String conversion removed)
+        const roomId = String(room.id); // 문자열로 정규화
+        console.log(`DebateChatUI: Joining room ${roomId} (${typeof roomId})`);
+        socketClient.joinRoom(roomId, storedUsername);
         
         // Add event handler for npc-selected
         socketClient.on('npc-selected', (data: { npc_id: string }) => {
@@ -524,7 +524,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
         
         // Cleanup on unmount
         return () => {
-          socketClient.leaveRoom(roomIdNum, storedUsername);
+          socketClient.leaveRoom(roomId, storedUsername); // 동일한 roomId 사용
           socketClient.off('npc-selected', () => {});
         };
       } catch (error) {

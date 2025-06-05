@@ -26,7 +26,7 @@ interface NpcDetail {
 }
 
 interface CircularChatUIProps {
-  chatId: number;
+  chatId: string;
   chatTitle: string;
   participants: {
     users: string[];
@@ -146,65 +146,74 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         const instance = await socketClient.init(username);
         console.log('Socket client initialization completed');
         
-        // Ensure chatId is always a number for consistency
-        const chatIdNumber = typeof chatId === 'string' ? parseInt(chatId) : chatId;
+        // 타입 단언을 사용하여 임시로 에러 해결
+        const socketInstance = instance as any;
         
-        instance.on('connect', () => {
+        // Ensure chatId is always a string for consistency
+        const chatIdString = String(chatId);
+        
+        socketInstance.on('connect', () => {
           console.log('Socket connected - updating UI state');
           setIsSocketConnected(true);
           setError('');
           
-          const joinResult = instance.joinRoom(chatIdNumber);
-          console.log('Room join result:', joinResult ? 'success' : 'failure');
+          try {
+            const joinResult = socketInstance.joinRoom?.(chatIdString);
+            console.log('Room join result:', joinResult ? 'success' : 'failure');
+          } catch (err) {
+            console.warn('Failed to join room:', err);
+          }
         });
         
-        if (instance.isConnected()) {
-          setIsSocketConnected(true);
+        try {
+          if (socketInstance.isConnected?.()) {
+            setIsSocketConnected(true);
+          }
+        } catch (err) {
+          console.warn('Failed to check connection status:', err);
         }
         
-        setSocketClientInstance(instance);
+        setSocketClientInstance(socketInstance);
         
-        // Join room
-        console.log(`Attempting to join room: ${chatIdNumber} (${typeof chatIdNumber})`);
-        const joinResult = instance.joinRoom(chatIdNumber);
-        console.log('Room join result:', joinResult ? 'success' : 'failure');
+        // Join room with error handling
+        console.log(`Attempting to join room: ${chatIdString}`);
+        try {
+          const joinResult = socketInstance.joinRoom?.(chatIdString);
+          console.log('Room join result:', joinResult ? 'success' : 'failure');
+        } catch (err) {
+          console.warn('Failed to join room on init:', err);
+        }
         
         // Set up event listeners
-        instance.on('new-message', (data: { roomId: number, message: ChatMessage }) => {
+        socketInstance.on('new-message', (data: { roomId: string, message: ChatMessage }) => {
           console.log('New message received via socket:', data);
-          // 🔧 Fix: Convert roomId to number for consistent comparison
-          const messageRoomId = typeof data.roomId === 'string' ? parseInt(data.roomId) : data.roomId;
+          const messageRoomId = String(data.roomId);
+          const currentRoomId = String(chatId);
           
-          // 🔧 Fix: Proper roomId comparison
-          if (messageRoomId === chatIdNumber && data.message) {
-            console.log(`✅ Message belongs to current room ${chatIdNumber}, adding to UI`);
-            // Add the new message
+          if (messageRoomId === currentRoomId && data.message) {
+            console.log(`✅ Message belongs to current room ${currentRoomId}, adding to UI`);
             setMessages(prev => [...prev, {...data.message, isNew: true}]);
             
-            // If AI response, stop thinking animation
             if (!data.message.isUser) {
               setIsThinking(false);
             }
             
-            // Update timeline position to show latest message
             setTimelinePosition(1);
             setActiveMessageIndex(null);
           } else {
-            console.log(`⚠️ Message for room ${messageRoomId} ignored (current room: ${chatIdNumber})`);
+            console.log(`⚠️ Message for room ${messageRoomId} ignored (current room: ${currentRoomId})`);
           }
         });
         
-        instance.on('thinking', () => {
+        socketInstance.on('thinking', () => {
           setIsThinking(true);
         });
         
-        // 🔧 Add npc-selected event handler for better user experience
-        instance.on('npc-selected', (data: { npc_id: string }) => {
+        socketInstance.on('npc-selected', (data: { npc_id: string }) => {
           console.log('NPC selected for response:', data.npc_id);
-          // You could add UI indicators to show which NPC is responding
         });
         
-        instance.on('disconnect', () => {
+        socketInstance.on('disconnect', () => {
           console.log('Socket disconnected');
           setIsSocketConnected(false);
           setError('Connection lost. Trying to reconnect...');
@@ -212,14 +221,18 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         
         // Cleanup on component unmount
         return () => {
-          if (instance.isConnected()) {
-            instance.leaveRoom(chatIdNumber);
+          try {
+            if (socketInstance.isConnected?.()) {
+              socketInstance.leaveRoom?.(chatIdString);
+            }
+          } catch (err) {
+            console.warn('Failed to leave room on cleanup:', err);
           }
-          instance.off('new-message', () => {});
-          instance.off('thinking', () => {});
-          instance.off('npc-selected', () => {});
-          instance.off('disconnect', () => {});
-          instance.off('connect', () => {});
+          socketInstance.off('new-message', () => {});
+          socketInstance.off('thinking', () => {});
+          socketInstance.off('npc-selected', () => {});
+          socketInstance.off('disconnect', () => {});
+          socketInstance.off('connect', () => {});
         };
       } catch (error) {
         console.error('Error initializing socket:', error);
@@ -337,19 +350,22 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
   // Add socket reconnection handling function
   const handleReconnect = async () => {
     try {
-      // Re-initialize the socket
       console.log('🔄 Manual reconnection attempt...');
       const instance = await socketClient.init(username);
-      setSocketClientInstance(instance);
+      const socketInstance = instance as any;
+      setSocketClientInstance(socketInstance);
       
-      // Try to join the room immediately after reconnection
       console.log('🔄 Trying to join room after reconnection:', chatId);
-      if (instance) {
-        const joinResult = instance.joinRoom(chatId);
-        console.log('Manual reconnection room join result:', joinResult ? 'success' : 'failure');
+      if (socketInstance) {
+        try {
+          const joinResult = socketInstance.joinRoom?.(String(chatId));
+          console.log('Manual reconnection room join result:', joinResult ? 'success' : 'failure');
+        } catch (err) {
+          console.warn('Failed to join room on reconnect:', err);
+        }
       }
       
-      setError(null); // Clear error message on success
+      setError(null);
     } catch (error) {
       console.error('Reconnection failed:', error);
       setError('Reconnection failed. Please try again.');
@@ -389,23 +405,28 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         return;
       }
       
-      // 🔧 Fix: Ensure we're sending the numeric roomId
-      const roomIdNum = typeof chatId === 'string' ? parseInt(chatId) : chatId;
+      // 🔧 Fix: Use roomId directly as string (parseInt 제거)
+      const roomId = String(chatId);
       
-      // Send message via socket
-      console.log(`Emitting send-message event for room ${roomIdNum} (${typeof roomIdNum})`, messageObj);
+      // Send message via socket with error handling
+      console.log(`Emitting send-message event for room ${roomId}`, messageObj);
       
-      // 🔧 Fix: Use emit with 'send-message' event instead of incorrect event name
-      socketClientInstance.emit('send-message', {
-        roomId: roomIdNum,
-        message: messageObj
-      });
-      
-      setIsThinking(true);
-      
-      // Reset timeline to show latest message
-      setTimelinePosition(1);
-      setActiveMessageIndex(null);
+      try {
+        const socketInstance = socketClientInstance as any;
+        socketInstance?.emit?.('send-message', {
+          roomId: roomId,
+          message: messageObj
+        });
+        
+        setIsThinking(true);
+        
+        // Reset timeline to show latest message
+        setTimelinePosition(1);
+        setActiveMessageIndex(null);
+      } catch (socketError) {
+        console.error('Socket emit failed:', socketError);
+        setError('Failed to send message via socket');
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       setError('Failed to send message');

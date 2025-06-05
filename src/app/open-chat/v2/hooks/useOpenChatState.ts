@@ -216,7 +216,7 @@ export function useOpenChatState() {
   };
 
   // Join chat
-  const handleJoinChat = (chatId: string | number) => {
+  const handleJoinChat = (chatId: string) => {
     console.log('Joining chat with ID:', chatId);
     router.push(`/chat/v2?id=${chatId}`);
   };

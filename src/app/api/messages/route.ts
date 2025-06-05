@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 // Define interfaces for our DB objects
 interface DBMessage {
   messageId: string;     // 메시지 고유 ID
-  roomId: number;        // 방 ID (숫자)
+  roomId: string;        // 방 ID (문자열)
   text: string;
   sender: string;
   isUser: boolean;
@@ -32,7 +32,7 @@ const chatMessageSchema = new mongoose.Schema({
     unique: true
   },
   roomId: {
-    type: Number,
+    type: String,  // Number → String으로 변경
     required: true,
     index: true  // 방별 조회를 위한 인덱스
   },
@@ -89,15 +89,16 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    const numericRoomId = Number(roomId);
-    if (isNaN(numericRoomId)) {
+    // roomId를 문자열로 정규화
+    const normalizedRoomId = String(roomId).trim();
+    if (!normalizedRoomId) {
       return NextResponse.json(
         { error: 'Invalid roomId format' },
         { status: 400 }
       );
     }
     
-    console.log(`🔍 [GET] Loading messages for room ${numericRoomId}`);
+    console.log(`🔍 [GET] Loading messages for room "${normalizedRoomId}"`);
     
     // MongoDB 연결
     await connectDB();
@@ -107,11 +108,11 @@ export async function GET(req: NextRequest) {
                            mongoose.model('chatMessages', chatMessageSchema, 'chatMessages');
     
     // 해당 방의 메시지들을 시간순으로 조회
-    const messages = await ChatMessageModel.find({ roomId: numericRoomId })
+    const messages = await ChatMessageModel.find({ roomId: normalizedRoomId })
       .sort({ timestamp: 1 })  // 시간순 정렬
       .lean();  // 성능 최적화
     
-    console.log(`✅ [GET] Found ${messages.length} messages for room ${numericRoomId}`);
+    console.log(`✅ [GET] Found ${messages.length} messages for room "${normalizedRoomId}"`);
     
     return NextResponse.json({
       success: true,
@@ -184,9 +185,9 @@ export async function POST(req: NextRequest) {
       console.log('🔍 [DEBUG] 사용 가능한 컬렉션들:', collectionNames.join(', '));
     }
 
-    // roomId를 숫자로 변환
-    const numericRoomId = Number(roomId);
-    if (isNaN(numericRoomId)) {
+    // roomId를 문자열로 정규화
+    const normalizedRoomId = String(roomId).trim();
+    if (!normalizedRoomId) {
       console.error('❌ Invalid roomId format:', roomId);
       return NextResponse.json(
         { error: 'Invalid roomId format' },
@@ -212,7 +213,7 @@ export async function POST(req: NextRequest) {
     // 새로운 메시지 객체 구성
     const newMessage: DBMessage = {
       messageId: message.id,
-      roomId: numericRoomId,
+      roomId: normalizedRoomId,
       text: message.text,
       sender: message.sender,
       isUser: message.isUser,
@@ -258,15 +259,15 @@ export async function POST(req: NextRequest) {
       }
       
       // 해당 방의 총 메시지 수 확인
-      const totalMessages = await ChatMessageModel.countDocuments({ roomId: numericRoomId });
-      console.log(`📊 방 ${numericRoomId}의 총 메시지 수: ${totalMessages}개`);
+      const totalMessages = await ChatMessageModel.countDocuments({ roomId: normalizedRoomId });
+      console.log(`📊 방 "${normalizedRoomId}"의 총 메시지 수: ${totalMessages}개`);
       
     } catch (dbError) {
       console.error('❌ chatMessages 저장 오류:', dbError);
       throw dbError;
     }
     
-    console.log(`✅ Message saved to chatMessages collection for room ${numericRoomId}`);
+    console.log(`✅ Message saved to chatMessages collection for room "${normalizedRoomId}"`);
 
     return NextResponse.json({ 
       success: true, 

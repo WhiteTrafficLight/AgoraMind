@@ -84,16 +84,16 @@ export default async function handler(
         // 배열인 경우 첫 번째 값만 사용
         const roomId = Array.isArray(id) ? id[0] : id;
         
-        // 문자열인 경우 숫자로 변환 시도
-        const numericRoomId = !isNaN(Number(roomId)) ? Number(roomId) : roomId;
+        // roomId를 문자열로 정규화 (Number 변환 제거)
+        const normalizedRoomId = String(roomId).trim();
         
         // 데이터베이스에서 채팅룸 조회
-        const room = await chatRoomDB.getChatRoomById(numericRoomId);
+        const room = await chatRoomDB.getChatRoomById(normalizedRoomId);
         console.log('검색 결과:', room ? '찾음' : '없음');
         
         // 아이디 일치 여부 확인
-        if (room && String(room.id) !== String(numericRoomId)) {
-          console.error(`❌ 잘못된 방 ID: 요청=${numericRoomId}, 반환=${room.id}`);
+        if (room && String(room.id) !== String(normalizedRoomId)) {
+          console.error(`❌ 잘못된 방 ID: 요청=${normalizedRoomId}, 반환=${room.id}`);
           return res.status(200).json(null);
         }
         
@@ -190,7 +190,7 @@ export default async function handler(
 
       // 새 채팅룸 객체 생성
       const newRoom: ChatRoom = {
-        id: Date.now(),
+        id: `ROOM_${Date.now()}`,
         title: params.title,
         context: params.context || '',
         participants: {

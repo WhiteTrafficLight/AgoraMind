@@ -1,5 +1,5 @@
 export interface ChatRoom {
-  id: string | number;
+  id: string;
   title: string;
   context?: string;
   participants: {
@@ -64,7 +64,7 @@ export interface ChatRoomListProps {
   chatRooms: ChatRoom[];
   isLoading: boolean;
   onRefresh: () => void;
-  onJoinChat: (chatId: string | number) => void;
+  onJoinChat: (chatId: string) => void;
 }
 
 export interface SocketStatus {

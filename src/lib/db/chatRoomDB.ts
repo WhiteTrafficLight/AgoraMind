@@ -5,7 +5,7 @@ import { ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 // DB에 저장되는 채팅룸 타입 (MongoDB 호환)
 export interface DBChatRoom {
   _id?: ObjectId;
-  roomId: number;
+  roomId: string;
   title: string;
   context?: string;
   participants: {
@@ -40,7 +40,7 @@ export interface Citation {
 export interface DBChatMessage {
   _id?: ObjectId;
   messageId: string;
-  roomId: number;
+  roomId: string;
   text: string;
   sender: string;
   isUser: boolean;
@@ -83,7 +83,7 @@ class ChatRoomDB {
   }
 
   // ID로 채팅룸 가져오기
-  async getChatRoomById(id: string | number): Promise<ChatRoom | null> {
+  async getChatRoomById(id: string): Promise<ChatRoom | null> {
     try {
       if (!id) {
         console.error('getChatRoomById: Null or undefined ID provided');
@@ -93,28 +93,26 @@ class ChatRoomDB {
       const client = await clientPromise;
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
-      // ID를 항상 숫자로 변환 (공백 제거)
-      const strId = typeof id === 'string' ? id.trim() : String(id);
-      const roomId = Number(strId);
-      console.log(`DB 조회: ID ${id} (${typeof id})를 숫자 ${roomId} (${typeof roomId})로 변환하여 쿼리`);
+      // ID를 문자열로 변환 (공백 제거)
+      const roomId = String(id).trim();
+      console.log(`DB 조회: ID ${id} (${typeof id})를 문자열 "${roomId}"로 변환하여 쿼리`);
       
-      // 유효한 ID 검증
-      if (isNaN(roomId) || roomId <= 0) {
-        console.error(`DB 조회: 유효하지 않은 ID 형식 "${strId}", 숫자로 변환 불가`);
+      // 빈 문자열 검증
+      if (!roomId) {
+        console.error(`DB 조회: 빈 ID 문자열 "${roomId}"`);
         return null;
       }
       
       // DB에서 쿼리 수행
-      console.log(`DB 쿼리: { roomId: ${roomId} }`);
-      // 타입 명시적 캐스팅
-      const room = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId } as any);
+      console.log(`DB 쿼리: { roomId: "${roomId}" }`);
+      const room = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId });
       
       if (!room) {
-        console.log(`검색 결과: 없음 (ID ${roomId})`);
+        console.log(`검색 결과: 없음 (ID "${roomId}")`);
         return null;
       }
       
-      console.log(`DB에서 룸 찾음: ID ${room.roomId} (타입: 숫자)`);
+      console.log(`DB에서 룸 찾음: ID "${room.roomId}" (타입: 문자열)`);
       
       // 이 채팅룸의 메시지들 가져오기
       const messages = await db.collection<DBChatMessage>('chatMessages')
@@ -124,9 +122,9 @@ class ChatRoomDB {
       
       const transformedRoom = this.transformRoomFromDB(room, messages);
       
-      // ID가 숫자임을 보장
-      transformedRoom.id = Number(transformedRoom.id);
-      console.log(`DB 조회 결과: 룸 변환 완료, ID ${transformedRoom.id} (${typeof transformedRoom.id})`);
+      // ID가 문자열임을 보장
+      transformedRoom.id = String(transformedRoom.id);
+      console.log(`DB 조회 결과: 룸 변환 완료, ID "${transformedRoom.id}" (${typeof transformedRoom.id})`);
       
       return transformedRoom;
     } catch (error) {
@@ -142,31 +140,37 @@ class ChatRoomDB {
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
       // room.id가 이미 설정되어 있으면 그것을 사용, 없으면 자동 생성
-      let roomId: number;
+      let roomId: string;
       
-      if (room.id && !isNaN(Number(room.id))) {
+      if (room.id) {
         // 파이썬 백엔드에서 제공된 room_id 사용
-        roomId = Number(room.id);
-        console.log(`제공된 room_id 사용: ${roomId}`);
+        roomId = String(room.id).trim();
+        console.log(`제공된 room_id 사용: "${roomId}"`);
       } else {
-        // 자동 증가 ID 구현 - 숫자 타입으로 변경
-        roomId = 1;
+        // 자동 증가 ID 구현 - 문자열 타입으로 변경
+        let nextNumber = 1;
         
         try {
-          // 최대 ID + 1 로직을 기본 방식으로 사용
-            const maxIdRoom = await db.collection<DBChatRoom>('chatRooms')
-              .find({})
-              .sort({ roomId: -1 })
-              .limit(1)
-              .toArray();
-            
-            if (maxIdRoom.length > 0 && maxIdRoom[0].roomId) {
-            // roomId를 직접 숫자로 증가 (parseInt 필요 없음)
-              roomId = maxIdRoom[0].roomId + 1;
-            console.log(`최대 ID 기반으로 새 ID 생성: ${roomId}`);
+          // 기존 숫자 패턴의 최대 ID 찾기 (기존 데이터 호환성을 위해)
+          const existingRooms = await db.collection<DBChatRoom>('chatRooms')
+            .find({})
+            .toArray();
+          
+          // 숫자 형태의 ID들 중 최대값 찾기
+          const numericIds = existingRooms
+            .map(r => r.roomId)
+            .filter(id => /^\d+$/.test(id)) // 순수 숫자만
+            .map(id => parseInt(id))
+            .filter(num => !isNaN(num));
+          
+          if (numericIds.length > 0) {
+            nextNumber = Math.max(...numericIds) + 1;
+            console.log(`최대 숫자 ID 기반으로 새 ID 생성: ${nextNumber}`);
           } else {
-            console.log(`채팅방이 없어 첫 ID 생성: ${roomId}`);
+            console.log(`숫자 ID가 없어 첫 ID 생성: ${nextNumber}`);
           }
+          
+          roomId = String(nextNumber);
             
           try {
             // 카운터 컬렉션을 별도로 정의하여 타입 문제 해결
@@ -179,10 +183,10 @@ class ChatRoomDB {
             const countersCollection = db.collection<CounterDoc>('counters');
             await countersCollection.findOneAndUpdate(
                 { _id: 'roomId' },
-              { $set: { seq: roomId } },
+              { $set: { seq: nextNumber } },
               { upsert: true }
               );
-            console.log(`카운터를 안전하게 업데이트/생성: ${roomId}`);
+            console.log(`카운터를 안전하게 업데이트/생성: ${nextNumber}`);
         } catch (counterError) {
             // 카운터 오류는 무시 - ID 생성 로직은 이미 완료됨
             console.warn('카운터 업데이트 중 오류 (무시됨):', counterError);
@@ -191,12 +195,12 @@ class ChatRoomDB {
           console.error('ID 생성 오류:', idGenerationError);
           
           // 극단적인 오류 상황에서는 타임스탬프 기반 ID 사용
-          roomId = Math.floor(Date.now() / 1000) % 100000;
-          console.log(`타임스탬프 기반 대체 ID 생성: ${roomId}`);
+          roomId = `ROOM_${Date.now()}`;
+          console.log(`타임스탬프 기반 대체 ID 생성: "${roomId}"`);
         }
       }
       
-      console.log(`새 채팅방에 할당된 ID: ${roomId}`);
+      console.log(`새 채팅방에 할당된 ID: "${roomId}"`);
       
       // DB에 저장할 채팅룸 객체 변환
       const dbRoom: DBChatRoom = {
@@ -231,17 +235,17 @@ class ChatRoomDB {
       }
 
       // 중복 체크를 위해 먼저 해당 roomId로 기존 방이 있는지 확인
-      const existingRoom = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId: roomId } as any);
+      const existingRoom = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId });
       if (existingRoom) {
-        console.warn(`경고: roomId ${roomId}가 이미 존재합니다. 기존 방을 반환합니다.`);
+        console.warn(`경고: roomId "${roomId}"가 이미 존재합니다. 기존 방을 반환합니다.`);
         return this.transformRoomFromDB(existingRoom, []);
       }
 
       const result = await db.collection<DBChatRoom>('chatRooms').insertOne(dbRoom);
-      console.log(`💾 채팅룸이 ID ${roomId}로 저장됨, dialogueType: ${room.dialogueType}`);
+      console.log(`💾 채팅룸이 ID "${roomId}"로 저장됨, dialogueType: ${room.dialogueType}`);
 
       // 방금 생성된 채팅룸 반환
-      const createdRoom = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId: roomId } as any);
+      const createdRoom = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId });
       if (!createdRoom) {
         throw new Error('Failed to create chat room');
       }
@@ -254,27 +258,26 @@ class ChatRoomDB {
   }
 
   // 메시지 추가
-  async addMessage(roomId: string | number, message: ChatMessage): Promise<boolean> {
+  async addMessage(roomId: string, message: ChatMessage): Promise<boolean> {
     try {
       const client = await clientPromise;
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
-      // ID를 항상 숫자로 변환
-      const strId = typeof roomId === 'string' ? roomId.trim() : String(roomId);
-      const normalizedRoomId = Number(strId);
-      console.log(`메시지 저장: ID ${roomId}를 숫자 ${normalizedRoomId}로 변환`);
+      // ID를 문자열로 변환
+      const normalizedRoomId = String(roomId).trim();
+      console.log(`메시지 저장: ID ${roomId}를 문자열 "${normalizedRoomId}"로 변환`);
       
-      // 유효한 ID 검증
-      if (isNaN(normalizedRoomId) || normalizedRoomId <= 0) {
+      // 빈 문자열 검증
+      if (!normalizedRoomId) {
         console.error(`메시지 저장: 유효하지 않은 채팅방 ID: ${roomId}`);
         return false;
       }
       
       // 채팅룸 존재 확인
-      const room = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId: normalizedRoomId } as any);
+      const room = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId: normalizedRoomId });
       
       if (!room) {
-        console.error(`채팅룸 ${normalizedRoomId} 메시지 추가 실패: 룸 없음`);
+        console.error(`채팅룸 "${normalizedRoomId}" 메시지 추가 실패: 룸 없음`);
         return false;
       }
       
@@ -295,7 +298,7 @@ class ChatRoomDB {
       
       // 채팅룸 마지막 활동 시간 업데이트
       await db.collection<DBChatRoom>('chatRooms').updateOne(
-        { roomId: normalizedRoomId } as any,
+        { roomId: normalizedRoomId },
         { 
           $set: { 
             lastActivity: 'Just now',
@@ -312,13 +315,13 @@ class ChatRoomDB {
   }
 
   // 채팅룸 정보 업데이트
-  async updateChatRoom(roomId: string | number, updates: Partial<ChatRoom>): Promise<boolean> {
+  async updateChatRoom(roomId: string, updates: Partial<ChatRoom>): Promise<boolean> {
     try {
       const client = await clientPromise;
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
-      // ID를 항상 숫자로 변환
-      const normalizedRoomId = Number(roomId);
+      // ID를 문자열로 변환
+      const normalizedRoomId = String(roomId).trim();
       
       // 업데이트할 필드 구성
       const updateFields: Partial<DBChatRoom> = {};
@@ -346,7 +349,7 @@ class ChatRoomDB {
   // DB 형식에서 앱 형식으로 변환
   private transformRoomsFromDB(dbRooms: DBChatRoom[]): ChatRoom[] {
     return dbRooms.map(room => ({
-      id: room.roomId, // 명시적으로 숫자로 변환하지 않음 (이미 숫자)
+      id: room.roomId, // roomId를 그대로 문자열로 사용
       title: room.title,
       context: room.context,
       participants: room.participants,
@@ -365,7 +368,7 @@ class ChatRoomDB {
   // DB 형식에서 앱 형식으로 변환 (메시지 포함)
   private transformRoomFromDB(dbRoom: DBChatRoom, dbMessages: DBChatMessage[]): ChatRoom {
     return {
-      id: dbRoom.roomId, // 명시적으로 숫자로 변환하지 않음 (이미 숫자)
+      id: dbRoom.roomId, // roomId를 그대로 문자열로 사용
       title: dbRoom.title,
       context: dbRoom.context,
       participants: dbRoom.participants,
