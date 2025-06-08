@@ -37,10 +37,10 @@ export class SocketCore {
           credentials: false
         },
         transports: ['websocket', 'polling'],
-        pingTimeout: 60000,
+        pingTimeout: 120000,
         pingInterval: 25000,
         allowEIO3: true,
-        upgradeTimeout: 10000,
+        upgradeTimeout: 30000,
         maxHttpBufferSize: 1e6
       });
 

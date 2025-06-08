@@ -8,6 +8,15 @@ export interface BaseMessage {
   timestamp: Date | string;
   metadata?: Record<string, any>;
   citations?: any[];
+  // RAG 관련 정보 추가
+  rag_used?: boolean;
+  rag_source_count?: number;
+  rag_sources?: Array<{
+    source: string;
+    content: string;
+    relevance_score?: number;
+    type?: 'web' | 'context' | 'dialogue' | 'philosopher';
+  }>;
 }
 
 // 방 정보 타입
@@ -83,6 +92,15 @@ export interface ChatMessage {
   skipAnimation?: boolean;
   isGenerating?: boolean;
   metadata?: { [key: string]: any };
+  // RAG 관련 정보 추가
+  rag_used?: boolean;
+  rag_source_count?: number;
+  rag_sources?: Array<{
+    source: string;
+    content: string;
+    relevance_score?: number;
+    type?: 'web' | 'context' | 'dialogue' | 'philosopher';
+  }>;
 }
 
 export interface ClientToServerEvents {

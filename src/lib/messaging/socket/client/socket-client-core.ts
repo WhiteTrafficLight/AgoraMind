@@ -38,7 +38,7 @@ export class SocketClientCore {
         reconnectionAttempts: this.maxReconnectAttempts,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        timeout: 20000,
+        timeout: 60000,     // 20초 → 60초 (연결 타임아웃)
         forceNew: true, // 항상 새 연결
         upgrade: true, // WebSocket으로 업그레이드 활성화
         withCredentials: false
@@ -100,7 +100,7 @@ export class SocketClientCore {
           this.socket?.off('connect_error', errorHandler);
           reject(new Error('Connection timeout'));
         }
-      }, 10000);
+      }, 30000); // 10초 → 30초 (연결 대기 타임아웃)
     });
   }
 

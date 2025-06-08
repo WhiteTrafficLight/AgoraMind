@@ -190,10 +190,19 @@ export default function ChatPageV2() {
                     // 임시 메시지를 완성된 메시지로 교체
                     const completeMessage = {
                       ...data.message,
-                      skipAnimation: false  // 완성된 메시지는 타이핑 애니메이션 적용
+                      skipAnimation: false,  // 완성된 메시지는 타이핑 애니메이션 적용
+                      // metadata에서 RAG 정보 추출
+                      rag_used: data.message.metadata?.rag_used || false,
+                      rag_source_count: data.message.metadata?.rag_source_count || 0,
+                      rag_sources: data.message.metadata?.rag_sources || []
                     };
                     messagesCopy[tempMessageIndex] = completeMessage;
                     console.log('✅ [V2] 임시 메시지 교체 완료');
+                    console.log('🔍 [V2] RAG 정보:', {
+                      rag_used: completeMessage.rag_used,
+                      rag_source_count: completeMessage.rag_source_count,
+                      rag_sources_length: completeMessage.rag_sources?.length || 0
+                    });
                     
                     // 타이핑 애니메이션 시작을 위해 typingMessageIds에 추가
                     setTimeout(() => {
@@ -204,8 +213,19 @@ export default function ChatPageV2() {
                     console.log('⚠️ [V2] 임시 메시지를 찾을 수 없어 새로 추가');
                     const newMessage = {
                       ...data.message,
-                      skipAnimation: false
+                      skipAnimation: false,
+                      // metadata에서 RAG 정보 추출
+                      rag_used: data.message.metadata?.rag_used || false,
+                      rag_source_count: data.message.metadata?.rag_source_count || 0,
+                      rag_sources: data.message.metadata?.rag_sources || []
                     };
+                    
+                    console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
+                      rag_used: newMessage.rag_used,
+                      rag_source_count: newMessage.rag_source_count,
+                      rag_sources_length: newMessage.rag_sources?.length || 0
+                    });
+                    
                     messagesCopy.push(newMessage);
                   }
                   
@@ -218,8 +238,18 @@ export default function ChatPageV2() {
                   console.log('🔄 [V2] 일반 메시지 추가');
                   const newMessage = {
                     ...data.message,
-                    skipAnimation: false
+                    skipAnimation: false,
+                    // metadata에서 RAG 정보 추출
+                    rag_used: data.message.metadata?.rag_used || false,
+                    rag_source_count: data.message.metadata?.rag_source_count || 0,
+                    rag_sources: data.message.metadata?.rag_sources || []
                   };
+                  
+                  console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
+                    rag_used: newMessage.rag_used,
+                    rag_source_count: newMessage.rag_source_count,
+                    rag_sources_length: newMessage.rag_sources?.length || 0
+                  });
                   
                   return {
                     ...prev,

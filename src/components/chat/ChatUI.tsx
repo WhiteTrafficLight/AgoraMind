@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PaperAirplaneIcon, ArrowLeftIcon, UsersIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
-import socketClient, { SocketClient } from '@/lib/socket/socketClient';
+import socketClient from '@/lib/socket/socketClient';
 import Image from 'next/image';
 
 // Extend the ChatMessage interface to include additional NPC information
@@ -17,6 +17,15 @@ interface ChatMessage extends ChatMessageBase {
   citations?: Citation[]; // 인용 정보 추가
   isSystemMessage?: boolean; // 시스템 메시지 여부
   role?: string; // 메시지 역할 (moderator 등)
+  // RAG 관련 정보 추가
+  rag_used?: boolean;
+  rag_source_count?: number;
+  rag_sources?: Array<{
+    source: string;
+    content: string;
+    relevance_score?: number;
+    type?: 'web' | 'context' | 'dialogue' | 'philosopher';
+  }>;
 }
 
 // Citation 인터페이스 추가
@@ -177,7 +186,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [socketClientInstance, setSocketClientInstance] = useState<SocketClient | null>(null);
+  const [socketClientInstance, setSocketClientInstance] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [sentMessageIds, setSentMessageIds] = useState<string[]>([]);
   
@@ -333,13 +342,13 @@ const ChatUI: React.FC<ChatUIProps> = ({
           setError('');
           
           // Join room and get active users after connection
-          const joinResult = instance.joinRoom(chatId);
+          const joinResult = (instance as any).joinRoom?.(chatId);
           console.log('재연결 후 방 참가 요청 결과:', joinResult ? '성공' : '실패');
-          instance.getActiveUsers(chatId);
+          (instance as any).getActiveUsers?.(chatId);
         });
         
         // Check if socket is already connected and update state accordingly
-        if (instance.isConnected()) {
+        if ((instance as any).isConnected?.()) {
           console.log('⚡️ Socket is already connected - setting state immediately');
           setIsSocketConnected(true);
         } else {
@@ -352,10 +361,10 @@ const ChatUI: React.FC<ChatUIProps> = ({
         // ⚡️ 항상 방에 참가 - 연결 성공 여부와 상관없이 시도
         // 소켓이 아직 연결 중이면 소켓 라이브러리 내부에서 큐에 저장됨
         console.log('✅ 소켓 초기화 후 즉시 방 참가 시도:', chatId);
-        const joinResult = instance.joinRoom(chatId);
+        const joinResult = (instance as any).joinRoom?.(chatId);
         console.log('방 참가 요청 결과:', joinResult ? '성공' : '실패 (큐에 저장됨)');
         
-        instance.getActiveUsers(chatId);
+        (instance as any).getActiveUsers?.(chatId);
         
         // Set up the event listeners and get the cleanup function
         cleanupFn = setupEventListeners(instance);
@@ -371,7 +380,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     };
 
     // Set up all event listeners
-    const setupEventListeners = (instance: SocketClient) => {
+    const setupEventListeners = (instance: any) => {
       // 소켓 연결 상태 업데이트
       const onConnect = () => {
         console.log('✅ Socket.IO connected!');
@@ -680,8 +689,8 @@ const ChatUI: React.FC<ChatUIProps> = ({
           instance.off('disconnect', onDisconnect);
           
           // Leave the room when component unmounts
-          if (instance.isConnected()) {
-            instance.leaveRoom(chatId);
+          if ((instance as any).isConnected?.()) {
+            (instance as any).leaveRoom?.(chatId);
           }
         };
       } catch (error) {
@@ -707,8 +716,8 @@ const ChatUI: React.FC<ChatUIProps> = ({
   // Handle back button click
   const handleBackButtonClick = () => {
     // Leave the room before navigating away
-    if (socketClientInstance?.isConnected()) {
-      socketClientInstance.leaveRoom(chatId);
+    if (socketClientInstance && (socketClientInstance as any).isConnected?.()) {
+      (socketClientInstance as any).leaveRoom?.(chatId);
     }
     
     if (onBack) {
@@ -864,9 +873,9 @@ const ChatUI: React.FC<ChatUIProps> = ({
       // 재연결 후 즉시 방에 참가 시도
       console.log('🔄 재연결 후 방 참가 시도:', chatId);
       if (instance) {
-        const joinResult = instance.joinRoom(chatId);
+        const joinResult = (instance as any).joinRoom?.(chatId);
         console.log('수동 재연결 후 방 참가 결과:', joinResult ? '성공' : '실패');
-        instance.getActiveUsers(chatId);
+        (instance as any).getActiveUsers?.(chatId);
       }
       
       setError(null);  // 성공하면 에러 메시지 제거
