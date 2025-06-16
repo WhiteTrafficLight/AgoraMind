@@ -59,7 +59,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   ];
 
   // Handle form field changes
-  const handleChange = (field: keyof ChatRoomCreationParams, value: any) => {
+  const handleChange = (field: keyof ChatRoomCreationParams, value: string | string[] | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -417,41 +417,41 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                   <div className={`recommended-topics-content ${showRecommendedTopics ? '' : 'hidden'}`}>
                     {formData.dialogueType === 'free' && (
                       <ul className="recommended-topics-list">
-                        <li>"The meaning of happiness in different philosophical traditions"</li>
-                        <li>"How does technology shape human experience in the modern world?"</li>
-                        <li>"The relationship between art and moral values"</li>
-                        <li>"Free will and determinism: Are our choices truly free?"</li>
-                        <li>"The nature of consciousness and self-awareness"</li>
+                        <li>&quot;The meaning of happiness in different philosophical traditions&quot;</li>
+                        <li>&quot;How does technology shape human experience in the modern world?&quot;</li>
+                        <li>&quot;The relationship between art and moral values&quot;</li>
+                        <li>&quot;Free will and determinism: Are our choices truly free?&quot;</li>
+                        <li>&quot;The nature of consciousness and self-awareness&quot;</li>
                       </ul>
                     )}
                     
                     {formData.dialogueType === 'debate' && (
                       <ul className="recommended-topics-list">
-                        <li>"Is artificial intelligence beneficial or harmful to humanity?"</li>
-                        <li>"Should we prioritize individual liberty over collective welfare?"</li>
-                        <li>"Is objective morality possible without religion?"</li>
-                        <li>"Should societies focus on equality of opportunity or equality of outcome?"</li>
-                        <li>"Is human nature fundamentally good or self-interested?"</li>
+                        <li>&quot;Is artificial intelligence beneficial or harmful to humanity?&quot;</li>
+                        <li>&quot;Should we prioritize individual liberty over collective welfare?&quot;</li>
+                        <li>&quot;Is objective morality possible without religion?&quot;</li>
+                        <li>&quot;Should societies focus on equality of opportunity or equality of outcome?&quot;</li>
+                        <li>&quot;Is human nature fundamentally good or self-interested?&quot;</li>
                       </ul>
                     )}
                     
                     {formData.dialogueType === 'socratic' && (
                       <ul className="recommended-topics-list">
-                        <li>"What is justice? How can we recognize a just society?"</li>
-                        <li>"What constitutes knowledge versus mere opinion?"</li>
-                        <li>"What is the nature of virtue? Can it be taught?"</li>
-                        <li>"What makes a life worth living? How should we define success?"</li>
-                        <li>"How should we understand the relationship between mind and body?"</li>
+                        <li>&quot;What is justice? How can we recognize a just society?&quot;</li>
+                        <li>&quot;What constitutes knowledge versus mere opinion?&quot;</li>
+                        <li>&quot;What is the nature of virtue? Can it be taught?&quot;</li>
+                        <li>&quot;What makes a life worth living? How should we define success?&quot;</li>
+                        <li>&quot;How should we understand the relationship between mind and body?&quot;</li>
                       </ul>
                     )}
                     
                     {formData.dialogueType === 'dialectical' && (
                       <ul className="recommended-topics-list">
-                        <li>"Thesis: Reason is the primary source of knowledge | Antithesis: Experience is the primary source of knowledge"</li>
-                        <li>"Thesis: Morality is objective | Antithesis: Morality is culturally relative"</li>
-                        <li>"Thesis: Human technology enhances our humanity | Antithesis: Technology alienates us from our true nature"</li>
-                        <li>"Thesis: Free markets maximize human flourishing | Antithesis: Markets require regulation to prevent exploitation"</li>
-                        <li>"Thesis: Mind is separate from matter | Antithesis: Mind emerges from physical processes"</li>
+                        <li>&quot;Thesis: Reason is the primary source of knowledge | Antithesis: Experience is the primary source of knowledge&quot;</li>
+                        <li>&quot;Thesis: Morality is objective | Antithesis: Morality is culturally relative&quot;</li>
+                        <li>&quot;Thesis: Human technology enhances our humanity | Antithesis: Technology alienates us from our true nature&quot;</li>
+                        <li>&quot;Thesis: Free markets maximize human flourishing | Antithesis: Markets require regulation to prevent exploitation&quot;</li>
+                        <li>&quot;Thesis: Mind is separate from matter | Antithesis: Mind emerges from physical processes&quot;</li>
                       </ul>
                     )}
                   </div>

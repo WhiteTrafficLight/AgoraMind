@@ -53,11 +53,10 @@ export default function RegisterPage() {
       
       // 성공하면 로그인 페이지로 리다이렉트
       router.push('/login?registered=true');
-    } catch (err: any) {
-      console.error('Registration failed:', err);
-      setError(err.message || '회원가입에 실패했습니다. 다시 시도해주세요.');
-    } finally {
+    } catch (error: Error | unknown) {
       setIsLoading(false);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(errorMessage);
     }
   };
 
@@ -68,12 +67,12 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col justify-center py-12">
-      <div className="mx-auto" style={{ maxWidth: '25%', minWidth: '280px' }}>
+      <div className="auth-container">
         <h1 className="text-4xl font-black text-center mb-2">AgoraMind</h1>
         <h2 className="text-2xl font-bold text-center mb-8">Sign Up</h2>
       </div>
 
-      <div className="mx-auto" style={{ maxWidth: '25%', minWidth: '280px' }}>
+      <div className="auth-container">
         <div className="bg-white py-6 px-4 shadow-md rounded-3xl">
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-2xl text-sm text-center">
@@ -158,7 +157,7 @@ export default function RegisterPage() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="spinner-small spinner-white"></div>
                 ) : (
                   'Sign Up'
                 )}
@@ -166,17 +165,21 @@ export default function RegisterPage() {
             </div>
           </form>
 
-          <div className="mt-4">
+          {/* Divider */}
+          <div className="mt-8 mb-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
               </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-2 text-gray-500">Or continue with</span>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-4 text-gray-500">Or continue with</span>
               </div>
             </div>
+          </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-8 w-full">
+          {/* Social Login Section */}
+          <div className="mb-6">
+            <div className="grid grid-cols-3 gap-8 w-full">
               <div className="flex justify-center">
                 <button 
                   onClick={handleGoogleLogin}
@@ -218,10 +221,11 @@ export default function RegisterPage() {
             </div>
           </div>
           
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-600">
+          {/* Login Section */}
+          <div className="border-t border-gray-200 pt-4">
+            <p className="text-sm text-gray-600 text-center">
               Already have an account?{' '}
-              <Link href="/login" className="text-blue-600 hover:text-blue-500">
+              <Link href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
                 Login
               </Link>
             </p>

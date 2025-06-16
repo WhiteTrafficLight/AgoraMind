@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
-import chatRoomDB from '@/lib/db/chatRoomDB';
+import connectDB from '@/lib/mongodb';
+import User from '@/models/User';
 
 // .env.local 파일에서 직접 API 키를 로드하는 함수
 function loadEnvLocal() {
@@ -55,6 +55,7 @@ interface PhilosopherProfile {
 }
 
 // Philosopher descriptions with more detail
+// Note: This may be used for future enhancements
 const philosopherProfiles: Record<string, PhilosopherProfile> = {
   'Socrates': {
     description: 'An Ancient Greek philosopher known for the Socratic method of questioning, seeking wisdom through dialogue, and the phrase "I know that I know nothing". Focused on ethical inquiry and self-knowledge.',
@@ -109,6 +110,7 @@ const philosopherProfiles: Record<string, PhilosopherProfile> = {
 };
 
 // Define NPC detail type
+// Note: Keeping this type definition for future use
 interface NpcDetail {
   id: string;
   name: string;
@@ -251,26 +253,12 @@ export async function POST(req: NextRequest) {
       
       return NextResponse.json(messageObject);
       
-    } catch (error: any) {
-      console.error('❌ Error in backend chat API:', error);
-      
-      // 자세한 오류 응답
-      return NextResponse.json(
-        { 
-          error: error.message || 'Unknown error during API call',
-          details: error.toString(),
-          status: error.status || 500
-        },
-        { status: 500 }
-      );
+    } catch (error: Error | unknown) {
+      console.error('❌ Failed to send message:', error);
+      return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
     }
-  } catch (error: any) {
-    console.error('❌ Unexpected error in chat API:', error);
-    
-    // 일반 오류 응답
-    return NextResponse.json(
-      { error: 'An unexpected error occurred', details: error.toString() },
-      { status: 500 }
-    );
+  } catch (error: Error | unknown) {
+    console.error('❌ Error in POST /api/chat:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

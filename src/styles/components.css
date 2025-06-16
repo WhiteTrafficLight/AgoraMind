@@ -35,6 +35,64 @@
     transform: translateY(-2px);
   }
 
+  /* Hero Debate Button - Large elegant button for homepage */
+  .btn-debate-hero {
+    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+    color: white;
+    padding: 1.5rem 3rem;
+    border-radius: 50px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 
+                0 4px 8px rgba(0, 0, 0, 0.2);
+    transform: translateY(0);
+  }
+
+  .btn-debate-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+  }
+
+  .btn-debate-hero:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 
+                0 8px 16px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
+  }
+
+  .btn-debate-hero:hover::before {
+    left: 100%;
+  }
+
+  .btn-debate-hero:active {
+    transform: translateY(-2px);
+    transition: all 0.1s ease;
+  }
+
+  .btn-debate-hero:disabled {
+    background: #666666;
+    cursor: not-allowed;
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-debate-hero:disabled:hover {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
   /* Create Chat Button - Elegant Black Style */
   .btn-create-chat {
     width: 48px;
@@ -1031,6 +1089,44 @@
     display: inline-block;
   }
 
+  /* Enhanced Loading Spinners */
+  .spinner-small {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-left: 2px solid #000000;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .spinner-medium {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-left: 3px solid #000000;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .spinner-large {
+    width: 3rem;
+    height: 3rem;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #000000;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .spinner-white {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-left: 2px solid #ffffff;
+  }
+
+  .spinner-blue {
+    border: 2px solid rgba(59, 130, 246, 0.2);
+    border-left: 2px solid #3b82f6;
+  }
+
   @keyframes spin {
     0% {
       transform: rotate(0deg);
@@ -1925,5 +2021,12 @@
     font-size: 12px;
     color: #9ca3af;
     margin-top: 4px;
+  }
+
+  /* Auth Page Container */
+  .auth-container {
+    max-width: 25%;
+    min-width: 280px;
+    margin: 0 auto;
   }
 } 

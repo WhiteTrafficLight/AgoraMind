@@ -85,9 +85,7 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
   if (isLoading && chatRooms.length === 0) {
     return (
       <div className="py-20">
-        <div className="flex justify-center">
-          <div className="animate-spin h-10 w-10 border-4 border-black border-t-transparent rounded-full"></div>
-        </div>
+        <div className="spinner-large mx-auto"></div>
         <p className="text-center mt-4 text-gray-500">Loading chats...</p>
       </div>
     );

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import CustomNpcCreator from '@/components/CustomNpcCreator';
 import Modal from '@/components/ui/Modal';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import Header from '@/components/ui/Header';
 
 // NPC 타입 정의
 interface CustomNpc {
@@ -113,9 +114,25 @@ export default function CustomNpcPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">Custom Philosophers</h1>
-          <p className="text-gray-600 mb-8">
-            Create custom philosophical personas to explore unique perspectives and 
-            engage in dialogues with your own philosophical constructs.
+          <p className="text-gray-600 text-sm mb-3">
+            Create your own AI philosopher with unique perspectives and approaches. 
+            You can customize their personality, philosophical stance, and debate style.
+          </p>
+          <p className="text-gray-600 text-sm">
+            Your custom philosophers will be available in all your conversations and can 
+            interact with the built-in historical philosophers. Whether you want to create 
+            a modern thinker, blend different philosophical traditions, or explore entirely 
+            new perspectives, the choice is yours.
+          </p>
+          <p className="text-gray-600 text-sm mt-3">
+            <strong>Note:</strong> Custom NPCs are currently in beta. You can create and 
+            edit them, but some advanced features like detailed philosophical analysis 
+            and cross-referencing with historical texts are still being developed.
+          </p>
+          <p className="text-gray-600 text-sm mt-2">
+            <strong>Tip:</strong> For best results, provide detailed descriptions of your 
+            philosopher&apos;s views, their approach to ethical questions, and how they might 
+            respond to contemporary issues.
           </p>
           
           {/* Create New Philosopher Button */}

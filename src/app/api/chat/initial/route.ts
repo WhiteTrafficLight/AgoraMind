@@ -198,19 +198,8 @@ export async function POST(req: NextRequest) {
     generatedText = removeNamePrefix(generatedText);
     
     return NextResponse.json({ text: generatedText });
-  } catch (error) {
-    console.error('❌ Error in initial chat handler:', error);
-    
-    // 요청 데이터 가져오기 
-    let topic = '';
-    try {
-      const requestData = await req.json();
-      topic = requestData.topic || 'philosophy';
-    } catch (parseError) {
-      topic = 'philosophy';
-    }
-    
-    // 폴백 응답
-    return generateFallbackResponse(topic);
+  } catch (error: unknown) {
+    console.error('Error in POST /api/chat/initial:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

@@ -2,14 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [titleVisible, setTitleVisible] = useState(false);
   const [textVisible, setTextVisible] = useState(false);
-  const [chatStep, setChatStep] = useState(0);
-  const [thinking, setThinking] = useState(false);
-  const [thinkingText, setThinkingText] = useState('');
-  const [nextSender, setNextSender] = useState('');
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  // const [chatStep, setChatStep] = useState(0);
+  // const [thinking, setThinking] = useState(false);
+  // const [thinkingText, setThinkingText] = useState('');
+  // const [nextSender, setNextSender] = useState('');
   
   useEffect(() => {
     // Staggered animation sequence with slower timing
@@ -22,62 +26,71 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    // Dialog animation with thinking effect
-    if (chatStep < dialogMessages.length) {
-      // Show thinking animation before displaying the message
-      setThinking(true);
-      
-      // Set who is thinking next
-      if (chatStep < dialogMessages.length) {
-        setNextSender(dialogMessages[chatStep].sender);
-      }
-      
-      // Thinking dots animation
-      let dotCount = 0;
-      const thinkingInterval = setInterval(() => {
-        dotCount = (dotCount % 3) + 1;
-        const dots = '.'.repeat(dotCount);
-        setThinkingText(`${dots}`);
-      }, 500);
-      
-      // Display the message after 5 seconds
-      const timer = setTimeout(() => {
-        setThinking(false);
-        setChatStep(prev => prev + 1);
-        clearInterval(thinkingInterval);
-      }, 5000);
-      
-      return () => {
-        clearTimeout(timer);
-        clearInterval(thinkingInterval);
-      };
+  // Handle button click - redirect based on login status
+  const handleDebateClick = () => {
+    if (session) {
+      router.push('/open-chat');
+    } else {
+      router.push('/login');
     }
-  }, [chatStep]);
+  };
 
-  const dialogMessages = [
-    {
-      sender: 'Camus',
-      time: '23:11:08',
-      text: 'When betrayed by a close friend, we first confront the absurdity of the situation—the clash between expected loyalty and the reality of betrayal. My advice is to accept this absurdity not with resignation, but with a determination to find personal authenticity and meaning in your response. This might be forgiveness or a redefinition of the relationship, depending on your values and sense of self.'
-    },
-    {
-      sender: 'Sartre',
-      time: '23:11:11',
-      text: 'Camus, confronting the absurdity of betrayal that you mentioned is crucial. From an existentialist perspective, we have the freedom to choose how to respond, and we must take full responsibility for that choice. Whether it\'s severing the friendship or attempting reconciliation, each action becomes a choice that redefines our existence.'
-    },
-    {
-      sender: 'You',
-      time: '23:13:07',
-      text: 'I just want to follow my emotions. I want to beat them to death.',
-      isUser: true
-    },
-    {
-      sender: 'Camus',
-      time: '23:13:11',
-      text: 'It\'s natural to feel such strong emotions, but responding with violence only amplifies the tragedy of the situation. It\'s important to express these feelings in a more constructive way, one that preserves your own values and the dignity of others. Violence closes the door to understanding and reconciliation, trapping you in a cycle of retaliation.'
-    }
-  ];
+  // useEffect(() => {
+  //   // Dialog animation with thinking effect
+  //   if (chatStep < dialogMessages.length) {
+  //     // Show thinking animation before displaying the message
+  //     setThinking(true);
+      
+  //     // Set who is thinking next
+  //     if (chatStep < dialogMessages.length) {
+  //       setNextSender(dialogMessages[chatStep].sender);
+  //     }
+      
+  //     // Thinking dots animation
+  //     let dotCount = 0;
+  //     const thinkingInterval = setInterval(() => {
+  //       dotCount = (dotCount % 3) + 1;
+  //       const dots = '.'.repeat(dotCount);
+  //       setThinkingText(`${dots}`);
+  //     }, 500);
+      
+  //     // Display the message after 5 seconds
+  //     const timer = setTimeout(() => {
+  //       setThinking(false);
+  //       setChatStep(prev => prev + 1);
+  //       clearInterval(thinkingInterval);
+  //     }, 5000);
+      
+  //     return () => {
+  //       clearTimeout(timer);
+  //       clearInterval(thinkingInterval);
+  //     };
+  //   }
+  // }, [chatStep]);
+
+  // const dialogMessages = [
+  //   {
+  //     sender: 'Camus',
+  //     time: '23:11:08',
+  //     text: 'When betrayed by a close friend, we first confront the absurdity of the situation—the clash between expected loyalty and the reality of betrayal. My advice is to accept this absurdity not with resignation, but with a determination to find personal authenticity and meaning in your response. This might be forgiveness or a redefinition of the relationship, depending on your values and sense of self.'
+  //   },
+  //   {
+  //     sender: 'Sartre',
+  //     time: '23:11:11',
+  //     text: 'Camus, confronting the absurdity of betrayal that you mentioned is crucial. From an existentialist perspective, we have the freedom to choose how to respond, and we must take full responsibility for that choice. Whether it\'s severing the friendship or attempting reconciliation, each action becomes a choice that redefines our existence.'
+  //   },
+  //   {
+  //     sender: 'You',
+  //     time: '23:13:07',
+  //     text: 'I just want to follow my emotions. I want to beat them to death.',
+  //     isUser: true
+  //   },
+  //   {
+  //     sender: 'Camus',
+  //     time: '23:13:11',
+  //     text: 'It\'s natural to feel such strong emotions, but responding with violence only amplifies the tragedy of the situation. It\'s important to express these feelings in a more constructive way, one that preserves your own values and the dignity of others. Violence closes the door to understanding and reconciliation, trapping you in a cycle of retaliation.'
+  //   }
+  // ];
 
   return (
     <>
@@ -110,13 +123,24 @@ export default function Home() {
                 <p className="text-[2.5rem] md:text-[3rem] text-black font-light leading-snug pl-6">
                   A new public square where AI and humans create knowledge together.
                 </p>
+                
+                {/* Debate Button */}
+                <div className="flex justify-center mt-16">
+                  <button
+                    onClick={handleDebateClick}
+                    className="btn-debate-hero"
+                    disabled={status === 'loading'}
+                  >
+                    {status === 'loading' ? 'Loading...' : 'Debate with Philosophers'}
+                  </button>
+                </div>
               </div>
             </div>
           </main>
         </section>
         
         {/* Second Section - Example Dialogue */}
-        <section className="min-h-screen w-full flex items-center snap-start">
+        {/* <section className="min-h-screen w-full flex items-center snap-start">
           <div className="container px-6 py-12 mx-auto">
             <h2 className="text-4xl md:text-5xl font-bold mb-8 text-black">
               <span>How to Deal with Betrayal by a Close Friend?</span>
@@ -151,7 +175,7 @@ export default function Home() {
                 ))}
                 
                 {/* Thinking animation */}
-                {thinking && (
+                {/* {thinking && (
                   <div className="chat-message philosopher-message animate-fade-in">
                     <div className="message-header flex items-center mb-2">
                       <span className="font-bold text-lg text-philosopher-1">
@@ -180,7 +204,7 @@ export default function Home() {
               </button>
             </div>
           </div>
-        </section>
+        </section> */}
         
         {/* Footer */}
         <div className="border-t-2 border-black py-4 mt-auto">

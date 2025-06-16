@@ -55,12 +55,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col justify-center py-12">
-      <div className="mx-auto" style={{ maxWidth: '25%', minWidth: '280px' }}>
+      <div className="auth-container">
         <h1 className="text-4xl font-black text-center mb-2">AgoraMind</h1>
         <h2 className="text-2xl font-bold text-center mb-8">Login</h2>
       </div>
 
-      <div className="mx-auto" style={{ maxWidth: '25%', minWidth: '280px' }}>
+      <div className="auth-container">
         <div className="bg-white py-6 px-4 shadow-md rounded-3xl">
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-2xl text-sm text-center">
@@ -116,31 +116,36 @@ export default function LoginPage() {
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="spinner-small spinner-white"></div>
                 ) : (
                   'Login'
                 )}
               </button>
             </div>
-
-            <div className="flex items-center justify-center w-full text-xs mt-3">
-              <Link href="/forgot-password" className="text-blue-600 hover:text-blue-500">
-                Forgot password?
-              </Link>
-            </div>
           </form>
 
-          <div className="mt-4">
+          {/* Forgot Password Section */}
+          <div className="mt-6 text-center">
+            <Link href="/forgot-password" className="text-blue-600 hover:text-blue-500 text-sm">
+              Forgot password?
+            </Link>
+          </div>
+
+          {/* Divider */}
+          <div className="mt-8 mb-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
               </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-2 text-gray-500">Or continue with</span>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-4 text-gray-500">Or continue with</span>
               </div>
             </div>
+          </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-8 w-full">
+          {/* Social Login Section */}
+          <div className="mb-6">
+            <div className="grid grid-cols-3 gap-8 w-full">
               <div className="flex justify-center">
                 <button 
                   onClick={handleGoogleLogin}
@@ -182,10 +187,11 @@ export default function LoginPage() {
             </div>
           </div>
           
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-600">
-              Don't have an account?{' '}
-              <Link href="/register" className="text-blue-600 hover:text-blue-500">
+          {/* Sign Up Section */}
+          <div className="border-t border-gray-200 pt-4">
+            <p className="text-sm text-gray-600 text-center">
+              Don&apos;t have an account?{' '}
+              <Link href="/register" className="text-blue-600 hover:text-blue-500 font-medium">
                 Sign up
               </Link>
             </p>

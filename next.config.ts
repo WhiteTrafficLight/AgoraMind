@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   ],
   // Configure image domains
   images: {
-    domains: ['ui-avatars.com', 'localhost'],
+    domains: ['ui-avatars.com'],
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/portraits/:path*',
-        destination: 'http://localhost:8000/portraits/:path*',
+        destination: `${process.env.PORTRAITS_API_URL || 'http://localhost:8000'}/portraits/:path*`,
       },
     ];
   },
@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
         source: '/api/socket/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Origin', value: process.env.NEXTAUTH_URL || 'http://localhost:3000' },
           { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'X-Requested-With,Content-Type,Accept,Authorization' },
         ],
@@ -46,7 +46,7 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Origin', value: process.env.NEXTAUTH_URL || 'http://localhost:3000' },
           { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'X-Requested-With,Content-Type,Accept,Authorization' },
         ],

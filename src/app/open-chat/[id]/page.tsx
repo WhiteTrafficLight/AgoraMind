@@ -6,6 +6,12 @@ import ChatUI from '@/components/chat/ChatUI';
 import chatService from '@/lib/ai/chatService';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
+interface ChatPageProps {
+  params: {
+    id: string;
+  };
+}
+
 export default function ChatRoom() {
   const params = useParams();
   const router = useRouter();
