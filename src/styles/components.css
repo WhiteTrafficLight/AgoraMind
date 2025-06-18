@@ -170,6 +170,189 @@
     border-bottom: 6px solid rgba(0, 0, 0, 0.8);
   }
 
+  /* ========================================
+   * DRAWER COMPONENTS
+   * ======================================== */
+  
+  /* Drawer Backdrop */
+  .drawer-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 50;
+    transition: opacity 0.3s ease;
+  }
+
+  .drawer-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .drawer-backdrop.closed {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Profile Drawer */
+  .profile-drawer {
+    position: fixed;
+    right: 50px;
+    top: 64px;
+    width: 220px;
+    background-color: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: -10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2);
+    z-index: 101;
+    transition: all 0.3s ease-in-out;
+    overflow: hidden;
+  }
+
+  .profile-drawer.open {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  .profile-drawer.closed {
+    transform: translateY(-8px) scale(0.95);
+    opacity: 0;
+  }
+
+  .profile-drawer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .profile-drawer-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+  }
+
+  .profile-drawer-link:hover {
+    background-color: #f3f4f6;
+  }
+
+  .profile-drawer-divider {
+    border-top: 1px solid #e5e7eb;
+    margin: 8px 0;
+  }
+
+  .profile-drawer-logout {
+    display: flex;
+    align-items: center;
+    padding: 12px 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+  }
+
+  .profile-drawer-logout:hover {
+    background-color: #f3f4f6;
+  }
+
+  .profile-drawer-logout-icon {
+    color: #374151;
+    margin-right: 10px;
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Navigation Drawer */
+  .navigation-drawer {
+    position: fixed;
+    left: 0;
+    top: 64px;
+    width: 320px;
+    height: calc(100vh - 64px);
+    background-color: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2);
+    border-right: 1px solid rgba(0,0,0,0.1);
+    z-index: 51;
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .navigation-drawer.open {
+    transform: translateX(0);
+  }
+
+  .navigation-drawer.closed {
+    transform: translateX(-100%);
+  }
+
+  .navigation-drawer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+  }
+
+  .navigation-drawer-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    color: #4b5563;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  .navigation-drawer-link:hover {
+    background-color: #f3f4f6;
+  }
+
+  .navigation-drawer-icon {
+    height: 20px;
+    width: 20px;
+    margin-right: 12px;
+  }
+
+  /* Header Navigation Button */
+  .header-nav-button {
+    border: none;
+    background-color: transparent;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+  }
+
+  .header-nav-button:hover {
+    background-color: #f3f4f6;
+  }
+
+  .header-nav-icon {
+    color: #374151;
+    width: 32px;
+    height: 32px;
+  }
+
   /* Create Chat Modal Styles */
   .create-chat-modal-overlay {
     position: fixed;
@@ -2028,5 +2211,308 @@
     max-width: 25%;
     min-width: 280px;
     margin: 0 auto;
+  }
+
+  /* ========================================
+   * CUSTOM PHILOSOPHERS PAGE
+   * ======================================== */
+  
+  /* Main container */
+  .custom-npc-container {
+    min-height: 100vh;
+    background-color: white;
+  }
+
+  .custom-npc-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 16px;
+  }
+
+  .custom-npc-content {
+    max-width: 896px;
+    margin: 0 auto;
+  }
+
+  /* Header section */
+  .custom-npc-title {
+    font-size: 1.875rem;
+    font-weight: bold;
+    margin-bottom: 24px;
+    color: #111827;
+  }
+
+  .custom-npc-description {
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .custom-npc-description.first {
+    margin-bottom: 12px;
+  }
+
+  .custom-npc-description.note {
+    margin-top: 12px;
+  }
+
+  .custom-npc-description.tip {
+    margin-top: 8px;
+  }
+
+  /* Create button section */
+  .custom-npc-create-section {
+    margin-bottom: 32px;
+    margin-top: 24px;
+  }
+
+  .custom-npc-create-button {
+    padding: 8px 16px;
+    background-color: black;
+    color: white;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+  }
+
+  .custom-npc-create-button:hover {
+    background-color: #374151;
+  }
+
+  /* List header */
+  .custom-npc-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .custom-npc-list-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .custom-npc-count {
+    font-size: 14px;
+    color: #6b7280;
+  }
+
+  /* Loading spinner */
+  .custom-npc-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 160px;
+  }
+
+  .custom-npc-spinner {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #f3f4f6;
+    border-top: 2px solid #111827;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  /* NPC grid */
+  .custom-npc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 32px;
+  }
+
+  /* NPC card */
+  .custom-npc-card {
+    background-color: white;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    min-height: 240px;
+    display: flex;
+    align-items: center;
+  }
+
+  .custom-npc-card-content {
+    display: flex;
+    align-items: center;
+    padding: 0 1.25rem;
+  }
+
+  /* Portrait section */
+  .custom-npc-portrait-section {
+    margin-right: 1.5rem;
+    align-self: center;
+  }
+
+  .custom-npc-portrait-container {
+    position: relative;
+    width: 170px;
+    height: 170px;
+  }
+
+  .custom-npc-portrait-wrapper {
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+    width: 170px;
+    height: 170px;
+  }
+
+  .custom-npc-portrait-image {
+    width: 170px;
+    height: 170px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .custom-npc-portrait-placeholder {
+    width: 170px;
+    height: 170px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .custom-npc-portrait-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+  }
+
+  .custom-npc-portrait-loading-spinner {
+    width: 64px;
+    height: 64px;
+    border: 2px solid #f3f4f6;
+    border-top: 2px solid #111827;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .custom-npc-portrait-error {
+    color: #ef4444;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  /* Info section */
+  .custom-npc-info-section {
+    flex: 1;
+  }
+
+  .custom-npc-name {
+    font-weight: bold;
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+    color: #111827;
+  }
+
+  .custom-npc-description-text {
+    color: #4b5563;
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+
+  .custom-npc-concepts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .custom-npc-concept-tag {
+    padding: 0.375rem 0.75rem;
+    background-color: #f3f4f6;
+    color: #1f2937;
+    font-size: 0.875rem;
+    border-radius: 9999px;
+    font-weight: 500;
+  }
+
+  /* Action buttons */
+  .custom-npc-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: flex-end;
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    z-index: 20;
+  }
+
+  .custom-npc-action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .custom-npc-action-button:hover {
+    background-color: #f3f4f6;
+  }
+
+  .custom-npc-edit-icon {
+    width: 24px;
+    height: 24px;
+    color: #4b5563;
+  }
+
+  .custom-npc-delete-icon {
+    width: 24px;
+    height: 24px;
+    color: #ef4444;
+  }
+
+  /* Empty state */
+  .custom-npc-empty-state {
+    text-align: center;
+    padding: 40px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+  }
+
+  .custom-npc-empty-text {
+    color: #6b7280;
+    margin-bottom: 16px;
+    font-size: 16px;
+  }
+
+  .custom-npc-empty-button {
+    padding: 8px 16px;
+    background-color: black;
+    color: white;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+  }
+
+  .custom-npc-empty-button:hover {
+    background-color: #374151;
   }
 } 

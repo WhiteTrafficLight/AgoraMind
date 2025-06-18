@@ -2,12 +2,12 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
-import { useSocketConnection } from './hooks/useSocketConnection';
-import { useDebateState } from './hooks/useDebateState';
-import MessageInput from './components/MessageInput';
-import ParticipantGrid from './components/ParticipantGrid';
-import MessageList from './components/MessageList';
-import { DebateChatContainerProps } from './types/debate.types';
+import { useSocketConnection } from '../main_hooks/useSocketConnection';
+import { useDebateState } from '../main_hooks/useDebateState';
+import MessageInput from './MessageInput';
+import ParticipantGrid from './ParticipantGrid';
+import MessageList from './MessageList';
+import { DebateChatContainerProps, ChatMessage, ParticipantInfo } from '../main_types/debate.types';
 
 const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   room,

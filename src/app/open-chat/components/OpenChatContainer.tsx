@@ -4,6 +4,8 @@ import { useOpenChatState } from '../hooks/useOpenChatState';
 import SocketStatusIndicator from './SocketStatusIndicator';
 import ChatRoomList from './ChatRoomList';
 import CreateChatModal from './CreateChatModal';
+import PhilosopherDetailsModal from './PhilosopherDetailsModal';
+import { Philosopher, ChatRoom } from '../types/openChat.types';
 
 const OpenChatContainer: React.FC = () => {
   const [showTooltip, setShowTooltip] = useState(false);

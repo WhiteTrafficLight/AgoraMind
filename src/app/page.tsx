@@ -213,7 +213,7 @@ export default function Home() {
               <p className="text-lg">AGORAMIND</p>
             </div>
             <div className="text-center">
-              <p className="text-lg">2023</p>
+              <p className="text-lg">2025</p>
             </div>
             <div className="text-right">
               <p className="text-lg">agoramind.io</p>

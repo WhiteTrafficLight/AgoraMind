@@ -110,37 +110,42 @@ export default function CustomNpcPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Custom Philosophers</h1>
-          <p className="text-gray-600 text-sm mb-3">
+    <div className="custom-npc-container">
+      <main className="custom-npc-main">
+        <div className="custom-npc-content">
+          <h1 className="custom-npc-title">Custom Philosophers</h1>
+          
+          <p className="custom-npc-description first">
             Create your own AI philosopher with unique perspectives and approaches. 
             You can customize their personality, philosophical stance, and debate style.
           </p>
-          <p className="text-gray-600 text-sm">
+          <p className="custom-npc-description">
             Your custom philosophers will be available in all your conversations and can 
             interact with the built-in historical philosophers. Whether you want to create 
             a modern thinker, blend different philosophical traditions, or explore entirely 
             new perspectives, the choice is yours.
           </p>
-          <p className="text-gray-600 text-sm mt-3">
+          <p className="custom-npc-description note">
             <strong>Note:</strong> Custom NPCs are currently in beta. You can create and 
             edit them, but some advanced features like detailed philosophical analysis 
             and cross-referencing with historical texts are still being developed.
           </p>
-          <p className="text-gray-600 text-sm mt-2">
+          <p className="custom-npc-description tip">
             <strong>Tip:</strong> For best results, provide detailed descriptions of your 
             philosopher&apos;s views, their approach to ethical questions, and how they might 
             respond to contemporary issues.
           </p>
           
           {/* Create New Philosopher Button */}
-          <div className="mb-8">
-            <button onClick={() => setShowModal(true)} className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition">
+          <div className="custom-npc-create-section">
+            <button 
+              onClick={() => setShowModal(true)} 
+              className="custom-npc-create-button"
+            >
               + Create New Philosopher
             </button>
           </div>
+          
           {/* NPC Creation Modal */}
           {showModal && (
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Create New Philosopher">
@@ -150,58 +155,31 @@ export default function CustomNpcPage() {
           
           {/* Your Custom Philosophers */}
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Your Custom Philosophers</h2>
-              <div className="text-sm text-gray-500">{npcs.length} philosophers</div>
+            <div className="custom-npc-list-header">
+              <h2 className="custom-npc-list-title">Your Custom Philosophers</h2>
+              <div className="custom-npc-count">{npcs.length} philosophers</div>
             </div>
             
             {isLoading ? (
-              <div className="flex justify-center items-center h-40">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+              <div className="custom-npc-loading">
+                <div className="custom-npc-spinner"></div>
               </div>
             ) : (
-              <div className="md:grid md:grid-cols-2 md:gap-8">
+              <div className="custom-npc-grid">
                 {npcs.map(npc => (
-                  <div 
-                    key={npc.id} 
-                    style={{ 
-                      backgroundColor: 'white',
-                      borderTop: '1px solid #e5e7eb',
-                      borderBottom: '1px solid #e5e7eb',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      marginBottom: '2rem',
-                      paddingTop: '2rem',
-                      paddingBottom: '2rem',
-                      minHeight: '240px',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center',
-                      padding: '0 1.25rem'
-                    }}>
+                  <div key={npc.id} className="custom-npc-card">
+                    <div className="custom-npc-card-content">
                       {/* Portrait or spinner */}
-                      <div style={{ 
-                        marginRight: '1.5rem',
-                        alignSelf: 'center'
-                      }}>
-                        <div className="relative" style={{ width: '170px', height: '170px' }}>
+                      <div className="custom-npc-portrait-section">
+                        <div className="custom-npc-portrait-container">
                           {npc.portrait_url || portraitMap[npc.id] ? (
-                            <div className="rounded-full overflow-hidden relative" style={{ width: '170px', height: '170px' }}>
+                            <div className="custom-npc-portrait-wrapper">
                               <img
                                 src={getRelativePortraitUrl(portraitMap[npc.id] || npc.portrait_url || '')}
                                 alt={npc.name}
-                                className="rounded-full object-cover"
                                 width={170} 
                                 height={170}
-                                style={{ 
-                                  width: '170px', 
-                                  height: '170px',
-                                  objectFit: 'cover'
-                                }}
+                                className="custom-npc-portrait-image"
                                 onError={(e) => {
                                   console.error(`Image load error for ${npc.id}:`, e);
                                   (e.target as HTMLImageElement).src = '/Profile.png';
@@ -212,101 +190,46 @@ export default function CustomNpcPage() {
                             <img
                               src="/Profile.png"
                               alt={`${npc.name} placeholder`}
-                              className="rounded-full object-cover"
                               width={170}
                               height={170}
-                              style={{ width: '170px', height: '170px' }}
+                              className="custom-npc-portrait-placeholder"
                             />
                           )}
                           {loadingPortrait === npc.id && (
-                            <div className="absolute inset-0 z-10 flex justify-center items-center bg-white bg-opacity-50 rounded-full">
-                              <div className="animate-spin rounded-full h-16 w-16 border-2 border-t-2 border-gray-900"></div>
+                            <div className="custom-npc-portrait-loading">
+                              <div className="custom-npc-portrait-loading-spinner"></div>
                             </div>
                           )}
                         </div>
                         {portraitError[npc.id] && (
-                          <div className="text-red-500 text-xs mt-1">{portraitError[npc.id]}</div>
+                          <div className="custom-npc-portrait-error">
+                            {portraitError[npc.id]}
+                          </div>
                         )}
                       </div>
-                      <div>
-                        <h3 style={{ 
-                          fontWeight: 'bold',
-                          fontSize: '1.75rem',
-                          marginBottom: '0.75rem' 
-                        }}>{npc.name}</h3>
-                        <p style={{ 
-                          color: '#4b5563',
-                          fontSize: '1.125rem',
-                          marginBottom: '1rem',
-                          lineHeight: '1.5'
-                        }}>{npc.description}</p>
-                        <div style={{ 
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: '0.5rem',
-                          marginBottom: '1rem'
-                        }}>
+                      
+                      <div className="custom-npc-info-section">
+                        <h3 className="custom-npc-name">{npc.name}</h3>
+                        <p className="custom-npc-description-text">{npc.description}</p>
+                        <div className="custom-npc-concepts">
                           {npc.concepts.map((concept, idx) => (
-                            <span 
-                              key={idx} 
-                              style={{
-                                padding: '0.375rem 0.75rem',
-                                backgroundColor: '#f3f4f6',
-                                color: '#1f2937',
-                                fontSize: '0.875rem',
-                                borderRadius: '9999px',
-                                fontWeight: '500'
-                              }}
-                            >
+                            <span key={idx} className="custom-npc-concept-tag">
                               {concept}
                             </span>
                           ))}
                         </div>
-                        <div style={{ 
-                          display: 'flex', 
-                          gap: '8px', 
-                          marginTop: '16px', 
-                          justifyContent: 'flex-end',
-                          position: 'absolute', 
-                          right: '20px', 
-                          bottom: '20px', 
-                          zIndex: 20 
-                        }}>
+                        <div className="custom-npc-actions">
                           <button 
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              width: '48px', 
-                              height: '48px', 
-                              borderRadius: '50%',
-                              border: 'none',
-                              background: 'transparent',
-                              cursor: 'pointer'
-                            }}
-                            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
-                            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            className="custom-npc-action-button"
                             aria-label="Edit philosopher"
                           >
-                            <PencilIcon style={{ width: '24px', height: '24px', color: '#4b5563' }} />
+                            <PencilIcon className="custom-npc-edit-icon" />
                           </button>
                           <button 
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              width: '48px', 
-                              height: '48px', 
-                              borderRadius: '50%',
-                              border: 'none',
-                              background: 'transparent',
-                              cursor: 'pointer'
-                            }}
-                            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
-                            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            className="custom-npc-action-button"
                             aria-label="Delete philosopher"
                           >
-                            <TrashIcon style={{ width: '24px', height: '24px', color: '#ef4444' }} />
+                            <TrashIcon className="custom-npc-delete-icon" />
                           </button>
                         </div>
                       </div>
@@ -317,9 +240,14 @@ export default function CustomNpcPage() {
             )}
             
             {!isLoading && npcs.length === 0 && (
-              <div className="text-center py-10 bg-gray-50 rounded-lg">
-                <p className="text-gray-500 mb-4">You haven't created any custom philosophers yet.</p>
-                <button className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition">
+              <div className="custom-npc-empty-state">
+                <p className="custom-npc-empty-text">
+                  You haven't created any custom philosophers yet.
+                </p>
+                <button 
+                  onClick={() => setShowModal(true)}
+                  className="custom-npc-empty-button"
+                >
                   Create Your First Philosopher
                 </button>
               </div>

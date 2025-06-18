@@ -1,0 +1,276 @@
+.container {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 20px 40px 20px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 40px;
+  color: #1e293b;
+}
+
+.contentWrapper {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.card {
+  background-color: white;
+  border-radius: 16px;
+  padding: 48px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.loadingContainer {
+  display: flex;
+  justify-content: center;
+  padding: 64px 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #3b82f6;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loginMessage {
+  text-align: center;
+  padding: 64px 0;
+}
+
+.loginText {
+  font-size: 1.25rem;
+  color: #64748b;
+}
+
+.profileContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profileSection {
+  position: relative;
+  margin-bottom: 64px;
+  margin-top: 24px;
+}
+
+.profileImageContainer {
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #e2e8f0;
+  width: 200px;
+  height: 200px;
+  min-width: 200px;
+  min-height: 200px;
+  display: block;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cameraButton {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  border-radius: 50%;
+  background-color: #1e293b;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 12px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.cameraButton:hover {
+  background-color: #334155;
+  transform: scale(1.05);
+}
+
+.formContainer {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.fieldContainer {
+  text-align: center;
+}
+
+.fieldLabel {
+  margin-bottom: 12px;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.editingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  text-align: center;
+  padding: 16px;
+  border-bottom: 2px solid #e2e8f0;
+  border: none;
+  outline: none;
+  font-size: 1.25rem;
+  font-weight: 500;
+  background-color: transparent;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.input:focus {
+  border-bottom-color: #3b82f6;
+}
+
+.textarea {
+  width: 100%;
+  text-align: center;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  outline: none;
+  resize: none;
+  font-size: 1.1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.textarea:focus {
+  border-color: #3b82f6;
+}
+
+.buttonContainer {
+  display: flex;
+  margin-top: 16px;
+  gap: 16px;
+}
+
+.saveButton {
+  padding: 12px 24px;
+  background-color: #1e293b;
+  color: white;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+
+.saveButton:hover:not(:disabled) {
+  background-color: #334155;
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+}
+
+.cancelButton {
+  padding: 12px 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: white;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+
+.cancelButton:hover {
+  background-color: #f8fafc;
+}
+
+.displayContainer {
+  position: relative;
+  width: 100%;
+}
+
+.displayValue {
+  padding-bottom: 8px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  color: #1e293b;
+}
+
+.emailValue {
+  padding-bottom: 8px;
+  font-size: 1.25rem;
+  text-align: center;
+  color: #1e293b;
+}
+
+.bioValue {
+  padding-bottom: 8px;
+  font-size: 1.25rem;
+  text-align: center;
+  min-height: 80px;
+  color: #1e293b;
+  line-height: 1.5;
+}
+
+.divider {
+  width: 100%;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 16px;
+}
+
+.editButton {
+  position: absolute;
+  right: 0;
+  bottom: 16px;
+  opacity: 0.7;
+  transition: opacity 0.2s ease-in-out;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #64748b;
+}
+
+.editButton:hover {
+  color: #1e293b;
+  opacity: 1;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+} 

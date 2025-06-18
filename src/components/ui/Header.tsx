@@ -54,11 +54,17 @@ const Header = () => {
         <div className="container mx-auto px-4 h-24 flex items-center">
           <div className="flex items-center w-32">
             <button 
-              className="border-0 bg-transparent p-0"
+              className="border-0 bg-transparent p-0 header-nav-button"
               onClick={() => setIsNavDrawerOpen(true)}
               aria-label="Open navigation menu"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="40" height="40">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+                className="header-nav-icon"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>

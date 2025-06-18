@@ -1,209 +1,62 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import ChatUI from '@/components/chat/ChatUI';
-import CircularChatUI from '@/components/chat/CircularChatUI';
-import DebateChatUI from '@/components/chat/DebateChatUI';
-import chatService, { ChatRoom, ChatMessage } from '@/lib/ai/chatService';
+import DebateChatContainer from '@/components/chat/main_components/DebateChatContainer';
+import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 
-export default function ChatPage() {
+function ChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // 컴포넌트 초기화 시 한 번만 id 값을 추출하고 null 체크
   const chatIdParam = searchParams ? searchParams.get('id') : null;
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [chatData, setChatData] = useState<ChatRoom | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
-  
-  // WebSocket 연결 관리
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [socketClient, setSocketClient] = useState<any>(null);
+  const [username, setUsername] = useState<string>('');
+  const [typingMessageIds, setTypingMessageIds] = useState<Set<string>>(new Set());
+  const [waitingForUserInput, setWaitingForUserInput] = useState(false);
+  const [currentUserTurn, setCurrentUserTurn] = useState<{speaker_id: string, role: string} | null>(null);
 
-  // WebSocket 연결 함수
-  const connectWebSocket = (roomId: string) => {
-    const wsUrl = `ws://localhost:8000/api/chat/ws/${roomId}`;
-    console.log(`🔌 WebSocket 연결 시도: ${wsUrl}`);
-    
-    try {
-      const ws = new WebSocket(wsUrl);
-      
-      ws.onopen = () => {
-        console.log(`✅ WebSocket 연결 성공: ${roomId}`);
-        console.log(`🔌 WebSocket 상태: OPEN (readyState: ${ws.readyState})`);
-        wsRef.current = ws;
-      };
-      
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log(`📥 WebSocket 메시지 수신:`, data);
-          console.log(`📥 [상세] event_type: ${data.event_type}, speaker: ${data.speaker}, stage: ${data.stage}`);
-          console.log(`📥 [메시지 내용] ${data.message ? data.message.substring(0, 100) + '...' : 'No message content'}`);
-          
-          if (data.event_type === 'new_message') {
-            console.log(`✅ 새 메시지 데이터 처리 시작 - 발신자: ${data.speaker}`);
-            
-            // 실시간 메시지를 채팅에 추가
-            const newMessage: ChatMessage = {
-              id: data.id || `ws-${Date.now()}`,
-              text: data.message || data.content || '',
-              sender: data.speaker,
-              isUser: false,
-              timestamp: new Date(data.timestamp || Date.now()),
-              isSystemMessage: data.speaker === 'moderator' || data.message_type === 'moderator',
-              role: data.speaker === 'moderator' ? 'moderator' : 'participant'
-            };
-            
-            console.log(`📝 생성된 메시지 객체:`, {
-              id: newMessage.id,
-              text: newMessage.text.substring(0, 50) + '...',
-              sender: newMessage.sender,
-              role: newMessage.role
-            });
-            
-            // 임시 대기 메시지 교체 및 새 메시지 추가
-            setChatData(prevData => {
-              if (!prevData) {
-                console.log('❌ prevData가 없음 - 메시지 추가 불가');
-                return prevData;
-              }
-              
-              const updatedData = { ...prevData };
-              
-              // 임시 대기 메시지 제거
-              if (data.speaker === 'moderator' || data.speaker === 'Moderator') {
-                const beforeCount = updatedData.messages?.length || 0;
-                updatedData.messages = updatedData.messages?.filter(msg => 
-                  !msg.id.startsWith('temp-waiting-')
-                ) || [];
-                const afterCount = updatedData.messages.length;
-                console.log(`🔄 임시 대기 메시지 제거: ${beforeCount} -> ${afterCount}`);
-              }
-              
-              // 중복 메시지 확인
-              const isDuplicate = updatedData.messages?.some(msg => 
-                msg.text === newMessage.text && msg.sender === newMessage.sender
-              );
-              
-              if (!isDuplicate) {
-                const beforeCount = updatedData.messages?.length || 0;
-                updatedData.messages = [...(updatedData.messages || []), newMessage];
-                console.log(`✅ 메시지 추가 완료: ${beforeCount + 1}개 메시지 (${data.speaker})`);
-                console.log(`📄 메시지 내용: "${newMessage.text.substring(0, 100)}..."`);
-                
-                // 💾 DB에 메시지 저장
-                const saveMessageToDB = async () => {
-                  try {
-                    console.log(`💾 DB 저장 시작: 방 ${roomId}, 메시지 ID ${newMessage.id}`);
-                    
-                    const response = await fetch(`/api/rooms?id=${roomId}`, {
-                      method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        message: newMessage
-                      }),
-                    });
-
-                    if (response.ok) {
-                      const result = await response.json();
-                      console.log(`✅ DB 저장 성공: 방 ${roomId}, 메시지 "${newMessage.text.substring(0, 50)}..."`);
-                    } else {
-                      const errorData = await response.json();
-                      console.error(`❌ DB 저장 실패: ${response.status}`, errorData);
-                    }
-                  } catch (error) {
-                    console.error(`❌ DB 저장 중 오류: 방 ${roomId}`, error);
-                  }
-                };
-                
-                // 비동기로 DB 저장 (UI 블로킹 방지)
-                saveMessageToDB();
-              } else {
-                console.log(`⚠️ 중복 메시지 무시: ${data.speaker}`);
-              }
-              
-              return updatedData;
-            });
-          } else {
-            console.log(`📥 기타 이벤트 타입: ${data.event_type}`);
-          }
-        } catch (error) {
-          console.error('❌ WebSocket 메시지 파싱 오류:', error);
-          console.error('❌ 원본 데이터:', event.data);
-        }
-      };
-      
-      ws.onerror = (error) => {
-        console.error(`❌ WebSocket 오류:`, error);
-        console.error(`🔌 WebSocket 상태: ERROR (readyState: ${ws.readyState})`);
-      };
-      
-      ws.onclose = (event) => {
-        console.log(`🔌 WebSocket 연결 종료: 코드=${event.code}, 이유="${event.reason}"`);
-        console.log(`🔌 정상 종료 여부: ${event.wasClean ? 'YES' : 'NO'}`);
-        wsRef.current = null;
-        
-        // 비정상 종료시 재연결 시도
-        if (event.code !== 1000 && event.code !== 1001) {
-          console.log('🔄 5초 후 WebSocket 재연결 시도...');
-          reconnectTimeoutRef.current = setTimeout(() => {
-            console.log(`🔄 재연결 시도 중: ${roomId}`);
-            connectWebSocket(roomId);
-          }, 5000);
-        }
-      };
-      
-    } catch (error) {
-      console.error('❌ WebSocket 연결 생성 실패:', error);
-    }
+  // 타이핑 완료 핸들러
+  const handleTypingComplete = (messageId: string) => {
+    setTypingMessageIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(messageId);
+      return newSet;
+    });
   };
 
-  // WebSocket 연결 해제 함수
-  const disconnectWebSocket = () => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    
-    if (wsRef.current) {
-      console.log('🔌 WebSocket 연결 해제');
-      wsRef.current.close(1000, 'Component unmounting');
-      wsRef.current = null;
-    }
-  };
-
-  // 페이지 진입 시 body 스타일 변경
+  // 사용자 정보 로드
   useEffect(() => {
-    // 헤더를 숨기기 위한 클래스 추가
-    document.body.classList.add('chat-page-open');
-    
-    // 페이지 나갈 때 스타일 복원 및 WebSocket 연결 해제
-    return () => {
-      document.body.classList.remove('chat-page-open');
-      disconnectWebSocket();
+    const loadUserInfo = async () => {
+      try {
+        const response = await fetch('/api/user/profile');
+        if (response.ok) {
+          const userData = await response.json();
+          const userDisplayName = userData.username || userData.name || `User_${Math.floor(Math.random() * 10000)}`;
+          setUsername(userDisplayName);
+          sessionStorage.setItem('chat_username', userDisplayName);
+          console.log('✅ V2: 사용자 정보 로드됨:', userDisplayName);
+        } else {
+          const storedUsername = sessionStorage.getItem('chat_username') || `User_${Math.floor(Math.random() * 10000)}`;
+          setUsername(storedUsername);
+          sessionStorage.setItem('chat_username', storedUsername);
+        }
+      } catch (error) {
+        console.error('V2: 사용자 정보 로드 실패:', error);
+        const fallbackUsername = `User_${Math.floor(Math.random() * 10000)}`;
+        setUsername(fallbackUsername);
+        sessionStorage.setItem('chat_username', fallbackUsername);
+      }
     };
+    
+    loadUserInfo();
   }, []);
 
-  // 채팅 데이터 로드 후 WebSocket 연결
   useEffect(() => {
-    if (chatData && chatData.dialogueType === 'debate') {
-      // debate_info에서 room_id를 찾거나 chatData.id를 사용
-      const roomId = chatData.id.toString();
-      console.log(`🎯 디베이트 모드 감지 - WebSocket 연결 시작: ${roomId}`);
-      connectWebSocket(roomId);
-    }
-    
-    return () => {
-      disconnectWebSocket();
-    };
-  }, [chatData]);
-
-  useEffect(() => {
-    // 마운트 시 상태 초기화
     setLoading(true);
     setError(null);
     setChatData(null);
@@ -214,13 +67,8 @@ export default function ChatPage() {
       return;
     }
 
-    console.log('Chat page received ID:', chatIdParam, typeof chatIdParam);
-
-    // Use string chatId instead of converting to number
     const chatId = chatIdParam;
-    console.log('Using chat ID as string:', chatId, `(${typeof chatId})`);
     
-    // Remove numeric validation since we now support string IDs
     if (!chatId || chatId.trim() === '') {
       console.error(`Invalid chat ID format: ${chatIdParam}`);
       setError('Invalid chat room ID format');
@@ -233,8 +81,7 @@ export default function ChatPage() {
         setLoading(true);
         setError(null);
         
-        // URL의 chatId와 함께 실행되는 요청임을 명확히 로깅
-        console.log(`🔍 CHAT PAGE: Fetching chat room with ID: ${chatId}, (type: ${typeof chatId})`);
+        console.log(`🔍 CHAT PAGE V2: Fetching chat room with ID: ${chatId}`);
         const room = await chatService.getChatRoomById(chatId);
         
         if (!room) {
@@ -243,50 +90,13 @@ export default function ChatPage() {
           return;
         }
         
-        // ID 타입 및 일치 여부 확인
-        console.log(`🔍 CHAT PAGE: Room returned with ID: ${room.id} (${typeof room.id})`);
+        console.log(`🔍 CHAT PAGE V2: Successfully loaded room #${room.id} (${room.title})`);
         
-        // 🔧 ID를 문자열로 정규화 (parseInt 제거)
-        const roomId = String(room.id);
-        const requestedChatId = String(chatId);
-        
-        if (roomId !== requestedChatId) {
-          console.error(`ID mismatch: requested=${requestedChatId}, received=${roomId}`);
-          setError('Incorrect chat room loaded');
-          return;
-        }
-        
-        // 🔧 ID를 명시적으로 문자열로 설정
-        room.id = String(chatId);
-        
-        // 채팅방 메시지 상태 확인
-        const messageCount = room.messages?.length || 0;
-        console.log(`🔍 CHAT PAGE: Successfully loaded room #${room.id} (${room.title}) with ${messageCount} messages`);
-        console.log(`🔍 CHAT PAGE: Dialog type: "${room.dialogueType || 'not set'}"`, room);
-        
-        if (messageCount > 0 && room.messages) {
-          // 메시지 내용 간략히 로깅
-          console.log(`🔍 CHAT PAGE: First message: "${room.messages[0].text.substring(0, 30)}..."`);
-          if (messageCount > 1) {
-            console.log(`🔍 CHAT PAGE: Last message: "${room.messages[messageCount-1].text.substring(0, 30)}..."`);
-          }
-        }
-        
-        // Check if room has any users (excluding NPCs)
-        if (room.participants.users.length === 0) {
-          // No users left in the chat room, redirect to open chat page
-          console.log('🔍 CHAT PAGE: No users in room, redirecting to open chat');
-          router.push('/open-chat');
-          return;
-        }
-        
-        // Ensure dialogueType is set (default to 'free' if not explicitly set in database)
+        // Ensure dialogueType is set
         if (!room.dialogueType) {
-          console.log('🔧 CHAT PAGE: Setting default dialogueType to "free"');
           room.dialogueType = 'free';
         }
         
-        // 이전 상태와 완전히 다른 새 객체로 설정하여 상태 격리
         setChatData(JSON.parse(JSON.stringify(room)));
       } catch (error) {
         console.error('Failed to load chat:', error);
@@ -299,148 +109,247 @@ export default function ChatPage() {
     loadChatData();
   }, [chatIdParam, router]);
 
+  // Socket.IO 연결 및 실시간 메시지 수신 설정
+  useEffect(() => {
+    let socketInstance: any = null;
+
+    const initializeSocket = async () => {
+      if (!chatData?.id || !username) return;
+
+      try {
+        // socketClient 인스턴스 임포트 
+        const socketClient = (await import('@/lib/socket/socketClient')).default;
+        socketInstance = socketClient;
+        await socketInstance.init(username);
+        
+        // 방에 참가 (username 전달)
+        const roomId = String(chatData.id);
+        socketInstance.joinRoom(roomId, username);
+        
+        // new-message 이벤트 리스너 설정
+        socketInstance.on('new-message', async (data: { roomId: string, message: ChatMessage }) => {
+          console.log('🎯 [V2] 소켓 이벤트 수신: new-message');
+          console.log('🎯 [V2] 수신 데이터:', JSON.stringify(data).substring(0, 300));
+          console.log('🎯 [V2] 현재 방 ID:', String(chatData.id));
+          console.log('🎯 [V2] 수신된 방 ID:', String(data.roomId));
+          
+          // 현재 방의 메시지인지 확인
+          const currentRoomId = String(chatData.id);
+          const receivedRoomId = String(data.roomId);
+          
+          if (currentRoomId === receivedRoomId && data.message) {
+            console.log('✅ [V2] 방 ID 일치! 메시지를 DB에 저장 후 UI에 업데이트');
+            console.log('✅ [V2] 메시지 내용:', data.message.text?.substring(0, 100));
+            console.log('✅ [V2] 이벤트 타입:', data.message.metadata?.event_type);
+            
+            // 완성된 메시지인지 확인
+            const isCompleteMessage = data.message.metadata?.event_type === 'debate_message_complete';
+            const isUserMessage = data.message.isUser === true;
+            
+            try {
+              // 1. DB에 메시지 저장 (완성된 AI 메시지 또는 사용자 메시지)
+              if (isCompleteMessage || isUserMessage) {
+                console.log('💾 [V2] 메시지 DB 저장 시작...', isUserMessage ? '(사용자 메시지)' : '(AI 메시지)');
+                const saveResponse = await fetch('/api/messages', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    roomId: currentRoomId,
+                    message: {
+                      ...data.message,
+                      timestamp: data.message.timestamp || new Date().toISOString()
+                    }
+                  }),
+                });
+                
+                if (saveResponse.ok) {
+                  console.log('✅ [V2] DB 저장 성공!');
+                } else {
+                  const errorData = await saveResponse.json();
+                  console.error('❌ [V2] DB 저장 실패:', errorData);
+                }
+              }
+              
+              // 2. UI 업데이트
+              setChatData(prev => {
+                if (!prev) return prev;
+                
+                // 완성된 메시지인 경우 임시 생성 중 메시지를 교체
+                if (isCompleteMessage) {
+                  console.log('🔄 [V2] 임시 메시지를 완성된 메시지로 교체');
+                  
+                  // 같은 발언자의 생성 중인 임시 메시지 찾기
+                  const messagesCopy = [...(prev.messages || [])];
+                  const tempMessageIndex = messagesCopy.findIndex(msg => 
+                    msg.isGenerating && msg.sender === data.message.sender
+                  );
+                  
+                  if (tempMessageIndex >= 0) {
+                    // 임시 메시지를 완성된 메시지로 교체
+                    const completeMessage = {
+                      ...data.message,
+                      skipAnimation: false,  // 완성된 메시지는 타이핑 애니메이션 적용
+                      // metadata에서 RAG 정보 추출
+                      rag_used: data.message.metadata?.rag_used || false,
+                      rag_source_count: data.message.metadata?.rag_source_count || 0,
+                      rag_sources: data.message.metadata?.rag_sources || []
+                    };
+                    messagesCopy[tempMessageIndex] = completeMessage;
+                    console.log('✅ [V2] 임시 메시지 교체 완료');
+                    console.log('🔍 [V2] RAG 정보:', {
+                      rag_used: completeMessage.rag_used,
+                      rag_source_count: completeMessage.rag_source_count,
+                      rag_sources_length: completeMessage.rag_sources?.length || 0
+                    });
+                    
+                    // 타이핑 애니메이션 시작을 위해 typingMessageIds에 추가
+                    setTimeout(() => {
+                      setTypingMessageIds(prev => new Set([...prev, completeMessage.id]));
+                    }, 100);
+                  } else {
+                    // 임시 메시지가 없으면 새로 추가
+                    console.log('⚠️ [V2] 임시 메시지를 찾을 수 없어 새로 추가');
+                    const newMessage = {
+                      ...data.message,
+                      skipAnimation: false,
+                      // metadata에서 RAG 정보 추출
+                      rag_used: data.message.metadata?.rag_used || false,
+                      rag_source_count: data.message.metadata?.rag_source_count || 0,
+                      rag_sources: data.message.metadata?.rag_sources || []
+                    };
+                    
+                    console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
+                      rag_used: newMessage.rag_used,
+                      rag_source_count: newMessage.rag_source_count,
+                      rag_sources_length: newMessage.rag_sources?.length || 0
+                    });
+                    
+                    messagesCopy.push(newMessage);
+                  }
+                  
+                  return {
+                    ...prev,
+                    messages: messagesCopy
+                  };
+                } else {
+                  // 일반 메시지인 경우 기존 로직 사용
+                  console.log('🔄 [V2] 일반 메시지 추가');
+                  const newMessage = {
+                    ...data.message,
+                    skipAnimation: false,
+                    // metadata에서 RAG 정보 추출
+                    rag_used: data.message.metadata?.rag_used || false,
+                    rag_source_count: data.message.metadata?.rag_source_count || 0,
+                    rag_sources: data.message.metadata?.rag_sources || []
+                  };
+                  
+                  console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
+                    rag_used: newMessage.rag_used,
+                    rag_source_count: newMessage.rag_source_count,
+                    rag_sources_length: newMessage.rag_sources?.length || 0
+                  });
+                  
+                  return {
+                    ...prev,
+                    messages: [...(prev.messages || []), newMessage]
+                  };
+                }
+              });
+              
+            } catch (error) {
+              console.error('❌ [V2] 메시지 처리 중 오류:', error);
+            }
+            
+          } else {
+            console.log('❌ [V2] 방 ID 불일치 또는 메시지 없음');
+            console.log('❌ [V2] 현재 방:', currentRoomId, '수신 방:', receivedRoomId, '메시지 존재:', !!data.message);
+          }
+        });
+        
+        // 추가 디버그 이벤트들
+        socketInstance.on('connect', () => {
+          console.log('🔗 [V2] Socket 연결됨:', socketInstance.getSocket()?.id);
+        });
+        
+        socketInstance.on('disconnect', () => {
+          console.log('❌ [V2] Socket 연결 해제됨');
+        });
+        
+        // 모든 이벤트 캐치
+        socketInstance.getSocket()?.onAny((eventName: string, ...args: any[]) => {
+          console.log(`🎧 [V2] 받은 이벤트: ${eventName}`, args);
+        });
+        
+        setSocketClient(socketInstance);
+        console.log('V2: Socket.IO 연결 완료');
+        
+      } catch (error) {
+        console.error('V2: Socket.IO 연결 실패:', error);
+      }
+    };
+
+    if (chatData?.id) {
+      initializeSocket();
+    }
+
+    return () => {
+      if (socketInstance) {
+        if (chatData?.id && username) {
+          const roomId = String(chatData.id);
+          socketInstance.leaveRoom(roomId, username);
+        }
+        socketInstance.disconnect();
+      }
+    };
+  }, [chatData?.id, username]);
+
   const handleBackToOpenChat = () => {
     router.push('/open-chat');
   };
 
-  // 사용자 역할 결정 헬퍼 함수
-  const getUserRole = () => {
-    if (!chatData) return 'neutral';
-    
-    console.log('⚡ 유저 역할 결정 - 분석 중', {
-      roomData: chatData,
-      proParticipants: chatData.pro || [],
-      conParticipants: chatData.con || [],
-      userInPro: chatData.pro?.some(id => id === 'User' || id === 'User123' || id === 'You'),
-      userInCon: chatData.con?.some(id => id === 'User' || id === 'User123' || id === 'You')
-    });
-    
-    // 명시적으로 pro 배열에 사용자가 있는지 확인
-    if (chatData.pro?.some(id => id === 'User' || id === 'User123' || id === 'You')) {
-      console.log('⚡ 유저는 PRO(찬성) 측입니다');
-      return 'pro';
-    }
-    
-    // 명시적으로 con 배열에 사용자가 있는지 확인
-    if (chatData.con?.some(id => id === 'User' || id === 'User123' || id === 'You')) {
-      console.log('⚡ 유저는 CON(반대) 측입니다');
-      return 'con';
-    }
-    
-    console.log('⚡ 유저 역할을 결정할 수 없습니다. neutral로 설정합니다.');
-    return 'neutral';
-  };
-
-  // 메시지 전송 및 AI 응답 생성 함수
   const handleSendMessage = async (message: string) => {
     if (!chatData) return;
     
     try {
-      // 디베이트 모드인지 확인
-      const isDebateMode = chatData.dialogueType === 'debate';
+      console.log(`💬 V2: User message sent: ${message}`);
       
-      // 현재 사용자 역할 확인
-      const currentUserRole = getUserRole();
-      console.log(`💬 사용자 메시지 전송 시작 - 역할: ${currentUserRole}, 디베이트 모드: ${isDebateMode}`);
-      
-      // 사용자 메시지 객체 생성 - 모든 필수 필드 명시적으로 설정
-      const userMessageObj = {
+      // 간단한 메시지 전송 (기존 로직 단순화)
+      const result = await chatService.sendMessage(chatData.id, message, {
         id: `user-${Date.now()}`,
         text: message.trim(),
-        sender: 'User',
+        sender: username || 'User',
         isUser: true,
         timestamp: new Date().toISOString(),
-        role: currentUserRole
-      };
+        role: 'user'
+      });
       
-      console.log(`📝 사용자 메시지 객체:`, userMessageObj);
+      console.log(`✅ V2: Message sent successfully:`, result);
       
-      // 1. Next.js API를 통해 메시지 DB 저장 (중요: debate 모드여도 먼저 저장)
-      try {
-        console.log(`💾 Next.js API에 메시지 저장 시도...`);
-        const saveResult = await chatService.sendMessage(chatData.id, message, userMessageObj);
-        console.log(`✅ 메시지 저장 결과:`, saveResult);
-      } catch (error) {
-        console.error('❌ Next.js API 메시지 저장 실패:', error);
-      }
-      
-      // 2. 디베이트 모드인 경우, Python API에게 메시지 처리 요청
-      if (isDebateMode) {
-        console.log('🔄 디베이트 API에 사용자 메시지 처리 요청...');
-        
-        // Python API URL 설정
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-        
-        try {
-          // 메시지 처리 API 호출 - 사용자 역할 정보 포함
-          console.log(`📤 Python API 요청: ${apiBaseUrl}/api/dialogue/${chatData.id}/process-message`, {
-            message: message,
-            user_id: 'User',
-            role: currentUserRole
-          });
-          
-          const processResponse = await fetch(`${apiBaseUrl}/api/dialogue/${chatData.id}/process-message`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              message: message,
-              user_id: 'User', // 일관된 사용자 ID 사용
-              role: currentUserRole // 사용자 역할 정보 추가
-            })
-          });
-          
-          if (processResponse.ok) {
-            const processResult = await processResponse.json();
-            console.log('✅ Debate API 처리 결과:', processResult);
-            
-            // 사용자 메시지 처리 후, 자동으로 다음 발언자 요청 (짧은 지연 후)
-            setTimeout(() => {
-              handleRequestNextMessage();
-            }, 1000);
-          } else {
-            console.error('❌ Debate API 처리 오류:', processResponse.status);
-            const errorText = await processResponse.text();
-            console.error('오류 내용:', errorText);
-            
-            // 오류가 발생해도 다음 발언자 요청을 시도
-            setTimeout(() => {
-              handleRequestNextMessage();
-            }, 1000);
-          }
-        } catch (error) {
-          console.error('❌ Debate API 호출 오류:', error);
-        }
-      }
-      
-      // 항상 UI 상태 업데이트
-      setIsGeneratingResponse(true);
-      
-      // 채팅 목록 새로고침
+      // 채팅 데이터 새로고침
       const updatedRoom = await chatService.getChatRoomById(chatData.id);
       if (updatedRoom) {
         setChatData(updatedRoom);
       }
     } catch (error) {
-      console.error('❌ 메시지 처리 중 예외 발생:', error);
-    } finally {
-      // 처리 완료 상태로 변경
-      setTimeout(() => {
-      setIsGeneratingResponse(false);
-      }, 500);
+      console.error('❌ V2: Message sending failed:', error);
     }
   };
 
-  // 채팅룸 새로고침 함수
   const handleRefreshChat = async () => {
     if (!chatData) return;
+    
+    console.log('🔄 [V2] handleRefreshChat 호출됨');
+    console.log('🔄 [V2] 새로고침 전 메시지 수:', chatData.messages?.length || 0);
     
     setLoading(true);
     try {
       const refreshedRoom = await chatService.getChatRoomById(chatData.id);
       if (refreshedRoom) {
+        console.log('🔄 [V2] 서버에서 가져온 메시지 수:', refreshedRoom.messages?.length || 0);
         setChatData(JSON.parse(JSON.stringify(refreshedRoom)));
+        console.log('🔄 [V2] 새로고침 완료 - 데이터 교체됨');
       }
     } catch (error) {
       console.error('Failed to refresh chat:', error);
@@ -449,289 +358,322 @@ export default function ChatPage() {
     }
   };
 
-  // Debate 모드에서 다음 메시지 요청 함수
   const handleRequestNextMessage = async () => {
-    if (!chatData || chatData.dialogueType !== 'debate') return;
+    if (!chatData) return;
     
     try {
-      // 응답 생성 중 상태 표시
       setIsGeneratingResponse(true);
+      console.log('🔄 V2: Requesting next debate message for room:', chatData.id);
       
-      console.log('🔄 Requesting next debate message for room:', chatData.id);
-      
-      // Socket.io 클라이언트를 통한 요청
-      const socketModule = await import('@/lib/socket/socketClient');
-      await socketModule.default.init();
-      
-      // Socket 연결 확인
-      if (!socketModule.default.isConnected()) {
-        console.warn('Socket not connected, attempting to initialize...');
-        await socketModule.default.init();
-        
-        if (!socketModule.default.isConnected()) {
-          throw new Error('Failed to establish socket connection');
-        }
-      }
-      
-      // 1. 방 입장 확인
-      const roomId = String(chatData.id);
-      const storedUsername = sessionStorage.getItem('chat_username') || 'User';
-      socketModule.default.joinRoom(roomId, storedUsername);
-      
-      // 이벤트 리스너 설정 - 다음 발언자 업데이트 수신
-      socketModule.default.on('next-speaker-update', (data: { roomId: string, nextSpeaker: any }) => {
-        console.log('Next speaker update from socket:', data);
-        if (data.roomId === roomId && data.nextSpeaker) {
-          // 전역 이벤트로 발행하여 DebateChatUI에서 감지하도록 함
-          window.dispatchEvent(new CustomEvent('next-speaker-updated', { 
-            detail: data.nextSpeaker 
-          }));
-          
-          // 사용자 차례인 경우 자동 응답 생성하지 않음
-          if (data.nextSpeaker.is_user) {
-            console.log('👤 User is the next speaker - waiting for input');
-            setIsGeneratingResponse(false);
-            return;
-          }
-        }
-      });
-      
-      // 새로운 메시지를 위한 이벤트 리스너 추가
-      socketModule.default.on('new-message', (data: { roomId: string, message: ChatMessage }) => {
-        console.log('New message received from socket:', data);
-        if (data.roomId === roomId && data.message) {
-          console.log('Adding new message to chatData state:', data.message);
-          if (chatData) {
-            // 기존 메시지 배열에 새 메시지 추가
-            const updatedMessages = [...(chatData.messages || []), data.message];
-            // 채팅방 데이터 업데이트
-            setChatData(prevData => {
-              if (!prevData) return null;
-              return {
-                ...prevData,
-                messages: updatedMessages
-              };
-            });
-          }
-        }
-      });
-      
-      // Python API URL 설정
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const roomId = String(chatData.id);
       
-      // 2. 디베이트 다음 메시지 요청 (백엔드 API 직접 호출)
-      const response = await fetch(`${apiBaseUrl}/api/dialogue/${roomId}/next-speaker`, {
+      const response = await fetch(`${apiBaseUrl}/api/chat/debate/${roomId}/next-message`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to request next debate message: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Next 메시지 요청 실패');
       }
       
-      const nextSpeakerData = await response.json();
-      console.log('Next speaker data:', nextSpeakerData);
+      const data = await response.json();
+      console.log('📋 Next speaker info received:', data);
       
-      // 응답할 NPC ID 확인 - speaker_id 속성 사용 (API 반환 값과 일치)
-      const speakerId = nextSpeakerData.speaker_id;
-      if (!speakerId) {
-        throw new Error('No next speaker returned from API');
-      }
-      
-      console.log(`Next speaker determined: ${speakerId} (${nextSpeakerData.role || 'unknown role'})`);
-      console.log(`Is user turn: ${nextSpeakerData.is_user}`);
-      
-      // 다음 발언자 정보를 localStorage에 저장 (UI에서 사용자 차례를 감지하는 데 활용)
-      window.localStorage.setItem('lastNextSpeakerData', JSON.stringify(nextSpeakerData));
-      
-      // 사용자에게 차례 알림을 위한 전역 이벤트 발행
-      window.dispatchEvent(new CustomEvent('next-speaker-updated', { 
-        detail: nextSpeakerData 
-      }));
-      
-      // NPC 선택 이벤트 발송
-      socketModule.default.emit('npc-selected', {
-        roomId: roomId,
-        npcId: speakerId
-      });
-      
-      // 사용자 ID 확인 (API 응답의 is_user 플래그 사용)
-      const isUserNextSpeaker = nextSpeakerData.is_user === true;
-      
-      // 사용자가 다음 발언자이면 AI 응답 생성 건너뛰기
-      if (isUserNextSpeaker) {
-        console.log('👤 User is the next speaker, waiting for user input...');
-        // 사용자 차례이므로 상태 업데이트만 하고 함수 종료
+      if (data.status === 'success') {
+        // 백엔드에서 next_speaker 정보가 있는 경우
+        if (data.next_speaker) {
+          const { speaker_id, role, is_user } = data.next_speaker;
+          
+          console.log('🎯 Next speaker details:', { speaker_id, role, is_user });
+          console.log('🎯 Current username:', username);
+          
+          if (is_user === true) {
+            console.log('👤 USER TURN CONFIRMED - activating input');
+            console.log('👤 Speaker ID:', speaker_id, 'Role:', role);
+            
+            // 사용자 차례 상태 설정 (테스트 파일과 동일한 로직)
+            setCurrentUserTurn({ speaker_id, role });
+            setWaitingForUserInput(true);
+            setIsGeneratingResponse(false);
+            
+            // 사용자에게 명확한 알림 (테스트 파일과 유사한 메시지)
+            const roleText = role === 'pro' ? 'Pro' : role === 'con' ? 'Con' : role;
+            const message = `It's your turn to speak as the ${roleText} side. Please enter your opinion.`;
+            
+            console.log('👤 Showing user turn alert:', message);
+            alert(message);
+            
+            // 입력창 포커스를 위한 약간의 지연
+            setTimeout(() => {
+              console.log('👤 Attempting to focus input');
+              if (document.querySelector('.debate-input-field')) {
+                (document.querySelector('.debate-input-field') as HTMLTextAreaElement)?.focus();
+              }
+            }, 500);
+            
+            return; // 사용자 차례인 경우 여기서 종료
+          } else {
+            console.log('🤖 Not user turn - is_user is false');
+          }
+        } else {
+          console.log('⚠️ No next_speaker data in success response');
+        }
+        
+        // AI 차례인 경우 (기존 로직은 generating 상태에서 처리)
+        console.log('🤖 Success response but not user turn - treating as AI turn');
         setIsGeneratingResponse(false);
-        return;
-      }
-      
-      // 3. 다음 발언자 메시지 생성 요청 (사용자가 아닌 경우에만)
-      const generateResponse = await fetch(`${apiBaseUrl}/api/dialogue/${roomId}/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          npc_id: speakerId
-        })
-      });
-      
-      if (!generateResponse.ok) {
-        throw new Error(`Failed to generate next debate message: ${generateResponse.status}`);
-      }
-      
-      const messageData = await generateResponse.json();
-      console.log('Generated message:', messageData);
-      
-      // 4. 생성된 메시지를 DB에 저장
-      if (messageData && messageData.response_text) {
-        // NextJS API에 메시지 저장 요청
-        const saveMessageUrl = `/api/messages`;
-        const messageToSave = {
-          id: `ai-${Date.now()}`,
-          text: messageData.response_text,
-          sender: speakerId,
+      } else if (data.status === 'generating') {
+        // 백엔드에서 "generating" 상태를 반환한 경우 처리
+        console.log('🤖 AI generating message - showing thinking animation');
+        
+        const tempMessage: ChatMessage = {
+          id: `temp-waiting-${Date.now()}`,
+          text: 'Generating message...',
+          sender: data.speaker_id,
           isUser: false,
-          timestamp: new Date().toISOString(),
-          role: nextSpeakerData.role  // 역할 정보 추가
+          timestamp: new Date(),
+          isGenerating: true,
+          skipAnimation: true
         };
         
-        console.log('Saving message to database:', messageToSave);
-        
-        // API 요청 형식에 맞게 roomId와 message를 별도로 구성
-        const saveResponse = await fetch(saveMessageUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            roomId: roomId,
-            message: messageToSave
-          })
+        setChatData(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            messages: [...(prev.messages || []), tempMessage]
+          };
         });
         
-        if (!saveResponse.ok) {
-          console.error('Failed to save message to database:', await saveResponse.text());
-        } else {
-          console.log('Message saved to database successfully');
-          
-          // UI에 직접 메시지 추가 (Socket 업데이트를 기다리지 않고 즉시 반영)
-          if (chatData) {
-            setChatData(prevData => {
-              if (!prevData) return null;
-              // 이미 동일한 ID의 메시지가 있는지 확인
-              const messageExists = prevData.messages?.some(msg => msg.id === messageToSave.id);
-              if (messageExists) {
-                return prevData; // 이미 존재하면 상태 변경 없음
-              }
-              
-              // ChatMessage 타입에 맞게 변환
-              const newMessage: ChatMessage = {
-                id: messageToSave.id,
-                text: messageToSave.text,
-                sender: messageToSave.sender,
-                isUser: messageToSave.isUser,
-                timestamp: new Date(messageToSave.timestamp), // string을 Date 객체로 변환
-                role: messageToSave.role
-              };
-              
-              // 새 메시지 추가
-              return {
-                ...prevData,
-                messages: [...(prevData.messages || []), newMessage]
-              };
-            });
-          }
-        }
+        console.log('🎭 Temporary message added, waiting for AI response via Socket.IO');
+        
+      } else if (data.status === 'completed') {
+        console.log('🏁 Debate completed');
+        alert('The debate has been completed!');
+        setIsGeneratingResponse(false);
+      } else {
+        throw new Error(data.message || 'Unknown response status');
       }
       
     } catch (error) {
-      console.error('Failed to request next debate message:', error);
-    } finally {
+      console.error('❌ Error requesting next message:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      alert(`Error occurred while requesting next message: ${errorMessage}`);
       setIsGeneratingResponse(false);
     }
   };
 
+  // 사용자 메시지 처리 함수 (테스트 파일과 동일한 로직)
+  const handleProcessUserMessage = async (message: string) => {
+    if (!currentUserTurn || !chatData) {
+      console.error('❌ Cannot process user message - missing currentUserTurn or chatData');
+      return;
+    }
+    
+    try {
+      console.log('🎯 Processing user message:', message);
+      console.log('🎯 Current user turn:', currentUserTurn);
+      console.log('🎯 Username:', username);
+      
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const roomId = String(chatData.id);
+      
+      // 테스트 파일과 동일한 방식으로 사용자 메시지 처리
+      const requestBody = {
+        message: message,
+        user_id: currentUserTurn.speaker_id  // 백엔드에서 받은 speaker_id 사용
+      };
+      
+      console.log('📤 Sending user message request:', requestBody);
+      
+      const response = await fetch(`${apiBaseUrl}/api/chat/debate/${roomId}/process-user-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '사용자 메시지 처리 실패');
+      }
+      
+      const result = await response.json();
+      console.log('✅ User message processed:', result);
+      
+      if (result.status === 'success') {
+        console.log('✅ User message successfully processed - clearing user turn state');
+        
+        // 사용자 차례 종료 (테스트 파일과 동일한 플로우)
+        setWaitingForUserInput(false);
+        setCurrentUserTurn(null);
+        
+        // 다음 AI 응답 자동 요청 (약간의 지연 후)
+        console.log('🔄 Requesting next AI message...');
+        setTimeout(() => {
+          handleRequestNextMessage();
+        }, 1000);
+        
+      } else if (result.status === 'error' && result.reason === 'not_your_turn') {
+        console.error('❌ Not user turn:', result.message);
+        alert(`It's currently ${result.next_speaker}'s turn.`);
+        setWaitingForUserInput(false);
+        setCurrentUserTurn(null);
+      } else {
+        throw new Error(result.message || 'Failed to process user message');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error processing user message:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      alert(`Error occurred while processing message: ${errorMessage}`);
+      setWaitingForUserInput(false);
+      setCurrentUserTurn(null);
+    }
+  };
+
+  // 디버깅용 헬퍼 함수들
+  const debugHelpers = {
+    getCurrentState: () => ({
+      waitingForUserInput,
+      currentUserTurn,
+      username,
+      chatData: chatData ? { id: chatData.id, title: chatData.title } : null,
+      isGeneratingResponse
+    }),
+    forceUserTurn: (speaker_id: string, role: string) => {
+      console.log('🔧 Forcing user turn:', { speaker_id, role });
+      setCurrentUserTurn({ speaker_id, role });
+      setWaitingForUserInput(true);
+      setIsGeneratingResponse(false);
+    },
+    clearUserTurn: () => {
+      console.log('🔧 Clearing user turn');
+      setWaitingForUserInput(false);
+      setCurrentUserTurn(null);
+    }
+  };
+
+  // 브라우저 콘솔에서 디버깅할 수 있도록 window 객체에 노출
+  useEffect(() => {
+    (window as any).debugChat = debugHelpers;
+    console.log('🔧 Debug helpers available: window.debugChat');
+  }, [waitingForUserInput, currentUserTurn, username, chatData, isGeneratingResponse]);
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 w-screen h-screen bg-white flex justify-center items-center">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-8 w-48 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 w-32 bg-gray-200 rounded"></div>
+          <div className="text-sm text-blue-600 mt-4">V2 Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 z-50 w-screen h-screen bg-white flex justify-center items-center flex-col">
+        <p className="text-xl text-gray-500 mb-4">{error}</p>
+        <div className="text-sm text-red-600 mb-4">V2 Error Page</div>
+        <button 
+          onClick={handleBackToOpenChat}
+          className="px-4 py-2 bg-black text-white rounded-md"
+        >
+          Back to Open Chat
+        </button>
+      </div>
+    );
+  }
+
+  if (!chatData) {
+    return (
+      <div className="fixed inset-0 z-50 w-screen h-screen bg-white flex justify-center items-center">
+        <p className="text-xl text-gray-500">Chat not found (V2)</p>
+      </div>
+    );
+  }
+
+  // V2 구조에서는 debate 타입만 지원 (점진적 확장 예정)
+  if (chatData.dialogueType !== 'debate') {
+    return (
+      <div className="fixed inset-0 z-50 w-screen h-screen bg-white flex justify-center items-center flex-col">
+        <p className="text-xl text-gray-500 mb-4">
+          V2 구조는 현재 토론(debate) 채팅만 지원합니다.
+        </p>
+        <div className="text-sm text-blue-600 mb-4">
+          현재 채팅 타입: {chatData.dialogueType}
+        </div>
+        <button 
+          onClick={() => router.push(`/chat?id=${chatData.id}`)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md mr-2"
+        >
+          기존 버전으로 보기
+        </button>
+        <button 
+          onClick={handleBackToOpenChat}
+          className="px-4 py-2 bg-gray-600 text-white rounded-md"
+        >
+          Back to Open Chat
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 w-screen h-screen bg-white">
-      {loading ? (
-        <div className="flex h-full justify-center items-center">
-          <div className="animate-pulse flex flex-col items-center">
-            <div className="h-8 w-48 bg-gray-200 rounded mb-4"></div>
-            <div className="h-4 w-32 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      ) : error ? (
-        <div className="flex h-full justify-center items-center flex-col">
-          <p className="text-xl text-gray-500 mb-4">{error}</p>
-          <button 
-            onClick={handleBackToOpenChat}
-            className="px-4 py-2 bg-black text-white rounded-md"
-          >
-            Back to Open Chat
-          </button>
-        </div>
-      ) : chatData ? (
-        chatData.dialogueType === 'free' || !chatData.dialogueType ? (
-          <CircularChatUI
-            chatId={String(chatData.id)}
-            chatTitle={chatData.title}
-            participants={chatData.participants}
-            initialMessages={chatData.messages || []}
-            onBack={() => router.push('/open-chat')}
-          />
-        ) : chatData.dialogueType === 'debate' ? (
-          <DebateChatUI
-            room={{
-              ...chatData,
-              id: String(chatData.id)
-            }}
-            messages={chatData.messages || []}
-            npcDetails={chatData.npcDetails || []}
-            onSendMessage={handleSendMessage}
-            onRefresh={handleRefreshChat}
-            isLoading={loading}
-            isGeneratingResponse={isGeneratingResponse}
-            username="You"
-            onEndChat={() => router.push('/open-chat')}
-            userRole={
-              // 사용자 역할 확인 (pro, con, neutral)
-              chatData.pro?.includes('You') || chatData.pro?.includes('User123') ? 'pro' :
-              chatData.con?.includes('You') || chatData.con?.includes('User123') ? 'con' :
-              'neutral'
-            }
-            onRequestNextMessage={handleRequestNextMessage}
-          />
-        ) : (
-        <ChatUI 
-          chatId={String(chatData.id)}
-          chatTitle={chatData.title}
-          participants={chatData.participants}
-          initialMessages={chatData.messages || []}
-          onBack={() => router.push('/open-chat')}
+      {/* 메인 채팅 컨테이너 */}
+      <div className="h-full">
+        <DebateChatContainer
+          room={{
+            ...chatData,
+            id: String(chatData.id),
+            dialogueType: chatData.dialogueType || 'debate'
+          }}
+          messages={chatData.messages || []}
+          npcDetails={chatData.npcDetails || []}
+          onSendMessage={handleSendMessage}
+          onRefresh={handleRefreshChat}
+          isLoading={loading}
+          isGeneratingResponse={isGeneratingResponse}
+          username={username || 'You'}
+          onEndChat={() => router.push('/open-chat')}
+          userRole={
+            chatData.pro?.includes(username) || chatData.pro?.includes('You') ? 'pro' :
+            chatData.con?.includes(username) || chatData.con?.includes('You') ? 'con' :
+            'neutral'
+          }
+          onRequestNextMessage={handleRequestNextMessage}
+          typingMessageIds={typingMessageIds}
+          onTypingComplete={handleTypingComplete}
+          waitingForUserInput={waitingForUserInput}
+          currentUserTurn={currentUserTurn}
+          onProcessUserMessage={handleProcessUserMessage}
         />
-        )
-      ) : (
-        <div className="flex h-full justify-center items-center">
-          <p className="text-xl text-gray-500">Chat not found</p>
-        </div>
-      )}
+      </div>
       
-      {/* 스타일 추가 */}
+      {/* 글로벌 스타일 */}
       <style jsx global>{`
-        /* 채팅 페이지에서 헤더 숨기기 */
         body.chat-page-open header {
           display: none !important;
         }
-        
-        /* 채팅 페이지가 열렸을 때 body 스크롤 방지 */
         body.chat-page-open {
           overflow: hidden;
         }
       `}</style>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChatContent />
+    </Suspense>
   );
 } 

@@ -3,7 +3,12 @@ import { useRouter } from 'next/navigation';
 import { Socket } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
 import chatService, { ChatRoom as ServiceChatRoom } from '@/lib/ai/chatService';
-import { ChatRoom, Philosopher, ChatRoomCreationParams, OpenChatState } from '../types/openChat.types';
+import { 
+  ChatRoom, 
+  Philosopher, 
+  ChatRoomCreationParams, 
+  OpenChatState 
+} from '../types/openChat.types';
 
 // Convert service ChatRoom to our ChatRoom type
 const convertChatRoom = (room: ServiceChatRoom): ChatRoom => {
@@ -203,8 +208,8 @@ export function useOpenChatState() {
       const newChat = await chatService.createChatRoom(paramsWithUser);
       console.log('Chat creation response:', newChat);
       
-      // Redirect to V2 version
-      router.push(`/chat/v2?id=${newChat.id}`);
+      // Redirect to main chat page (v2 content is now main)
+      router.push(`/chat?id=${newChat.id}`);
       
       updateState({ showCreateChatModal: false });
     } catch (error) {
@@ -218,7 +223,7 @@ export function useOpenChatState() {
   // Join chat
   const handleJoinChat = (chatId: string) => {
     console.log('Joining chat with ID:', chatId);
-    router.push(`/chat/v2?id=${chatId}`);
+    router.push(`/chat?id=${chatId}`);
   };
 
   // Initialize everything
