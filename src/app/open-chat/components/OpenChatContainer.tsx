@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { useOpenChatState } from '../hooks/useOpenChatState';
 import SocketStatusIndicator from './SocketStatusIndicator';
-import ChatRoomList from './ChatRoomList';
+import DebateTopicsList from './DebateTopicsList';
 import CreateChatModal from './CreateChatModal';
 import PhilosopherDetailsModal from './PhilosopherDetailsModal';
 import { Philosopher, ChatRoom } from '../types/openChat.types';
+import { DebateTopic } from '../utils/debateTopics';
 
 const OpenChatContainer: React.FC = () => {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -33,6 +34,16 @@ const OpenChatContainer: React.FC = () => {
     updateState({ showCreateChatModal: true });
   };
 
+  const handleTopicSelect = (categoryKey: string, topicIndex: number, topic: DebateTopic) => {
+    // TODO: Navigate to debate room creation or directly start a debate
+    // For now, we'll just log the selection
+    console.log('Selected topic:', { categoryKey, topicIndex, topic });
+    
+    // You could implement navigation here, for example:
+    // router.push(`/debate/${categoryKey}/${topicIndex}`);
+    // or open a modal to configure the debate
+  };
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Socket Status */}
@@ -44,7 +55,7 @@ const OpenChatContainer: React.FC = () => {
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Open Philosophical Dialogues</h1>
+          <h1 className="text-2xl font-bold">Philosophical Debate Topics</h1>
           <div className="flex items-center gap-4">
             {/* Create Chat Button */}
             <div className="relative">
@@ -63,20 +74,19 @@ const OpenChatContainer: React.FC = () => {
               <div 
                 className={`btn-create-chat-tooltip ${showTooltip ? '' : 'hidden'}`}
               >
-                Create New Chat
+                Create Custom Debate
               </div>
             </div>
           </div>
         </div>
       </div>
       
-      {/* Chat Room List */}
+      {/* Debate Topics List */}
       <div className="flex-1 overflow-hidden">
-        <ChatRoomList
-          chatRooms={activeChats}
-          isLoading={isLoading}
-          onRefresh={loadChatRooms}
-          onJoinChat={handleJoinChat}
+        <DebateTopicsList
+          onSelectTopic={handleTopicSelect}
+          philosophers={philosophers}
+          customNpcs={customNpcs}
         />
       </div>
       

@@ -1,0 +1,185 @@
+{
+    "categories": {
+      "dilemma_challenge": {
+        "name": "Dilemma Challenge",
+        "topics": [
+          {
+            "title": "Would you step on a puppy for 10 billion dollars?",
+            "context": {
+              "type": "text",
+              "content": "You've been unemployed for eight months. Your savings are gone, credit cards maxed out, and eviction notices keep piling up. Your elderly parents need expensive medical treatment you can't afford. The bank is foreclosing on your childhood home tomorrow. Then, a mysterious billionaire appears with an offer: step on this innocent puppy once, and receive 10 billion dollars instantly. No one will ever know. The puppy will survive but suffer temporary pain. Your family's financial nightmares would vanish forever, and you could help countless others with the remaining money. But you'd have to live with this moment for the rest of your life. The clock is ticking – what do you choose?"
+            },
+            "moderator_style": 2,
+            "pro_philosophers": ["nietzsche", "sartre"],
+            "con_philosophers": ["kant", "confucius"]
+          },
+          {
+            "title": "Would you sacrifice one innocent person to save five lives?",
+            "context": {
+              "type": "text",
+              "content": "You're a doctor in a busy emergency room when five patients arrive, each dying from different organ failures. Coincidentally, a healthy person comes in for a routine check-up – their organs could save all five patients. You have minutes to decide. The healthy person is young, with their whole life ahead of them, but the five patients include a mother of three, a brilliant scientist on the verge of a cancer breakthrough, and a teacher beloved by hundreds of students. No one would question your decision if you acted quickly. Medical ethics say preserve life at all costs, but whose life matters more? The weight of five families' grief versus one, the potential contributions to society, the precedent you'd set – everything hangs in the balance. What do you do?"
+            },
+            "moderator_style": 3,
+            "pro_philosophers": ["hegel", "marx"],
+            "con_philosophers": ["kant", "buddha"]
+          },
+          {
+            "title": "Would you erase your worst memory for peace of mind?",
+            "context": {
+              "type": "text",
+              "content": "A revolutionary technology can selectively delete specific memories forever. You've carried a traumatic memory for years – perhaps abuse, the loss of a loved one, or a mistake that haunts you daily. This memory affects your relationships, career, and happiness. The procedure is safe and permanent; you'd remember that something happened but lose all emotional pain and vivid details. However, this memory has also shaped who you are today – your empathy, resilience, and understanding of others' pain. Some say our scars make us human, that suffering gives life meaning. But others argue that unnecessary pain prevents us from living fully. Your therapist can't decide for you. The appointment is tomorrow, and the choice will change your identity forever. Do you embrace the pain that makes you who you are, or choose peace at the cost of losing part of yourself?"
+            },
+            "moderator_style": 0,
+            "pro_philosophers": ["camus", "sartre"],
+            "con_philosophers": ["nietzsche", "buddha"]
+          },
+          {
+            "title": "Would you lie to save someone's feelings?",
+            "context": {
+              "type": "text",
+              "content": "Your best friend has spent two years writing what they believe is a masterpiece novel. They've sacrificed relationships, money, and mental health for this dream. Today, they've received their fifteenth rejection letter, and they're asking for your honest opinion before giving up writing forever. You've read the manuscript – it's genuinely terrible. The plot is confusing, characters are one-dimensional, and the writing is amateur at best. Your friend has no natural talent for writing, and constructive criticism hasn't helped. They're already severely depressed and have mentioned feeling worthless. A honest critique might crush their remaining hope and push them toward self-harm. But false encouragement might waste more years of their life chasing an impossible dream. Other friends pressure you to 'be supportive,' but you know the brutal truth about the publishing industry. In five minutes, they'll ask: 'What do you really think?' Your answer could change their life trajectory forever."
+            },
+            "moderator_style": 1,
+            "pro_philosophers": ["confucius", "rousseau"],
+            "con_philosophers": ["kant", "wittgenstein"]
+          }
+        ]
+      },
+      "self_and_philosophy": {
+        "name": "Self & Philosophy",
+        "topics": [
+          {
+            "title": "Is absolute freedom possible or is it an illusion?",
+            "context": {
+              "type": "",
+              "content": ""
+            },
+            "moderator_style": 1,
+            "pro_philosophers": ["sartre", "nietzsche"],
+            "con_philosophers": ["hegel", "buddha"]
+          },
+          {
+            "title": "Does life have inherent meaning or do we create our own?",
+            "context": {
+              "type": "",
+              "content": ""
+            },
+            "moderator_style": 3,
+            "pro_philosophers": ["plato", "confucius"],
+            "con_philosophers": ["camus", "sartre"]
+          },
+          {
+            "title": "Should we pursue happiness or virtue as life's ultimate goal?",
+            "context": {
+              "type": "",
+              "content": ""
+            },
+            "moderator_style": 4,
+            "pro_philosophers": ["aristotle", "rousseau"],
+            "con_philosophers": ["kant", "buddha"]
+          },
+          {
+            "title": "Is the self a permanent entity or constantly changing?",
+            "context": {
+              "type": "",
+              "content": ""
+            },
+            "moderator_style": 1,
+            "pro_philosophers": ["plato", "kant"],
+            "con_philosophers": ["buddha", "wittgenstein"]
+          }
+        ]
+      },
+      "global_and_current_affairs": {
+        "name": "Global & Current Affairs",
+        "topics": [
+          {
+            "title": "Should wealthy nations open their borders to climate refugees?",
+            "context": {
+              "type": "url",
+              "content": "https://www.theguardian.com/environment/2025/jun/20/tuvalu-climate-crisis-australia-visa-ballot"
+            },
+            "moderator_style": 1,
+            "pro_philosophers": ["rousseau", "beauvoir"],
+            "con_philosophers": ["aristotle", "confucius"]
+          },
+          {
+            "title": "Is economic inequality a necessary evil or moral failure?",
+            "context": {
+              "type": "url",
+              "content": ""
+            },
+            "moderator_style": 3,
+            "pro_philosophers": ["marx", "rousseau"],
+            "con_philosophers": ["aristotle", "nietzsche"]
+          },
+          {
+            "title": "Should democracy be imposed on non-democratic societies?",
+            "context": {
+              "type": "url",
+              "content": ""
+            },
+            "moderator_style": 1,
+            "pro_philosophers": ["kant", "rousseau"],
+            "con_philosophers": ["confucius", "laozi"]
+          },
+          {
+            "title": "Is cultural relativism compatible with universal human rights?",
+            "context": {
+              "type": "url",
+              "content": ""
+            },
+            "moderator_style": 4,
+            "pro_philosophers": ["beauvoir", "kant"],
+            "con_philosophers": ["wittgenstein", "confucius"]
+          }
+        ]
+      },
+      "science_and_technology": {
+        "name": "Science & Technology",
+        "topics": [
+          {
+            "title": "Will AI threaten humanity or liberate us?",
+            "context": {
+              "type": "url",
+              "content": "https://time.com/7297582/ai-safety-risks-paul-tudor-jones-essay/"
+            },
+            "moderator_style": 2,
+            "pro_philosophers": ["camus", "beauvoir"],
+            "con_philosophers": ["nietzsche", "hegel"]
+          },
+          {
+            "title": "Should we genetically enhance human beings?",
+            "context": {
+              "type": "url",
+              "content": "https://www.nationalgeographic.com/science/article/partner-content-genom-editing"
+            },
+            "moderator_style": 3,
+            "pro_philosophers": ["nietzsche", "sartre"],
+            "con_philosophers": ["kant", "confucius"]
+          },
+          {
+            "title": "Is the pursuit of immortality ethical?",
+            "context": {
+              "type": "url",
+              "content": "https://philosophy.institute/philosophy-of-technology/ethical-philosophical-implications-immortality/"
+            },
+            "moderator_style": 1,
+            "pro_philosophers": ["plato", "nietzsche"],
+            "con_philosophers": ["buddha", "camus"]
+          },
+          {
+            "title": "Should scientific progress be limited by ethical concerns?",
+            "context": {
+              "type": "url",
+              "content": ""
+            },
+            "moderator_style": 4,
+            "pro_philosophers": ["kant", "confucius"],
+            "con_philosophers": ["nietzsche", "marx"]
+          }
+        ]
+      }
+    }
+  }
+  
