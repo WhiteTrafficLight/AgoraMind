@@ -323,13 +323,6 @@ const MessageList: React.FC<MessageListProps> = ({
                 </div>
               )}
             </div>
-            
-            <div className="debate-message-timestamp">
-              {new Date(message.timestamp).toLocaleTimeString('ko-KR', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </div>
           </div>
         </div>
       </div>
