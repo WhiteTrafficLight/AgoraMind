@@ -194,7 +194,8 @@ function ChatContent() {
                       // metadata에서 RAG 정보 추출
                       rag_used: data.message.metadata?.rag_used || false,
                       rag_source_count: data.message.metadata?.rag_source_count || 0,
-                      rag_sources: data.message.metadata?.rag_sources || []
+                      rag_sources: data.message.metadata?.rag_sources || [],
+                      citations: data.message.metadata?.citations || []
                     };
                     messagesCopy[tempMessageIndex] = completeMessage;
                     console.log('✅ [V2] 임시 메시지 교체 완료');
@@ -217,7 +218,8 @@ function ChatContent() {
                       // metadata에서 RAG 정보 추출
                       rag_used: data.message.metadata?.rag_used || false,
                       rag_source_count: data.message.metadata?.rag_source_count || 0,
-                      rag_sources: data.message.metadata?.rag_sources || []
+                      rag_sources: data.message.metadata?.rag_sources || [],
+                      citations: data.message.metadata?.citations || []
                     };
                     
                     console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
@@ -242,7 +244,8 @@ function ChatContent() {
                     // metadata에서 RAG 정보 추출
                     rag_used: data.message.metadata?.rag_used || false,
                     rag_source_count: data.message.metadata?.rag_source_count || 0,
-                    rag_sources: data.message.metadata?.rag_sources || []
+                    rag_sources: data.message.metadata?.rag_sources || [],
+                    citations: data.message.metadata?.citations || []
                   };
                   
                   console.log('🔍 [V2] 일반 메시지 RAG 정보:', {

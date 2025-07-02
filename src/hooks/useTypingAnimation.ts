@@ -44,11 +44,23 @@ export const useTypingAnimation = ({
 
   const beginTyping = () => {
     let index = 0;
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
     
     intervalRef.current = setInterval(() => {
       if (index < text.length) {
-        setDisplayedText(text.slice(0, index + 1));
-        index++;
+        // 현재 위치에서 링크 시작 확인
+        const remainingText = text.slice(index);
+        const linkMatch = remainingText.match(linkRegex);
+        
+        if (linkMatch && remainingText.indexOf(linkMatch[0]) === 0) {
+          // 링크 전체를 한번에 추가
+          index += linkMatch[0].length;
+        } else {
+          // 일반 텍스트는 한 글자씩
+          index++;
+        }
+        
+        setDisplayedText(text.slice(0, index));
       } else {
         setIsTyping(false);
         if (intervalRef.current) {

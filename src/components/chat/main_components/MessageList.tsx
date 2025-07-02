@@ -16,6 +16,87 @@ interface MessageListProps {
   isGeneratingNext: boolean;
 }
 
+// 마크다운 링크를 JSX로 변환하는 함수
+const parseMarkdownToJSX = (text: string, citations: any[] = []) => {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    // 링크 앞의 텍스트
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    
+    const linkText = match[1];
+    const linkUrl = match[2];
+    
+    // citations 배열에서 매칭되는 완전한 URL 찾기
+    let fullUrl = linkUrl;
+    if (citations && citations.length > 0) {
+      // 도메인이나 제목으로 매칭 시도
+      const matchingCitation = citations.find(citation => {
+        if (!citation.url) return false;
+        
+        // URL에서 도메인 추출하여 비교
+        try {
+          const citationDomain = new URL(citation.url).hostname;
+          const simplifiedDomain = citationDomain.replace('www.', '');
+          const linkDomain = linkUrl.replace('www.', '').replace('https://', '').replace('http://', '');
+          
+          return simplifiedDomain === linkDomain || 
+                 citation.url.includes(linkDomain) ||
+                 citation.text === linkText ||
+                 citation.title === linkText;
+        } catch (e) {
+          // URL 파싱 실패 시 문자열 비교
+          return citation.url.includes(linkUrl) || 
+                 citation.text === linkText ||
+                 citation.title === linkText;
+        }
+      });
+      
+      if (matchingCitation) {
+        fullUrl = matchingCitation.url;
+      }
+    }
+    
+    // 링크 요소
+    parts.push(
+      <a
+        key={key++}
+        href={fullUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="citation-link"
+        style={{
+          color: '#3b82f6',
+          textDecoration: 'underline',
+          cursor: 'pointer',
+          fontWeight: '500'
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+        title={fullUrl !== linkUrl ? `Link to: ${fullUrl}` : undefined}
+      >
+        {linkText}
+      </a>
+    );
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // 마지막 텍스트
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  
+  return parts.length > 0 ? parts : [text];
+};
+
 const MessageList: React.FC<MessageListProps> = ({
   messages,
   messagesEndRef,
@@ -30,94 +111,74 @@ const MessageList: React.FC<MessageListProps> = ({
   isGeneratingNext
 }) => {
   const renderRagTooltip = (message: any) => {
-    // 디버깅을 위한 콘솔 로그 추가
-    console.log('🔍 RAG 정보 확인:', {
-      messageId: message.id,
+    // RAG 정보 로깅
+    console.log('🔍 RAG Tooltip 데이터:', {
       rag_used: message.rag_used,
       rag_source_count: message.rag_source_count,
       rag_sources: message.rag_sources,
-      hasRagSources: message.rag_sources && message.rag_sources.length > 0
+      citations: message.citations,
+      hasRagSources: message.rag_sources && message.rag_sources.length > 0,
+      hasCitations: message.citations && message.citations.length > 0
     });
 
-    if (!message.rag_used || !message.rag_sources || message.rag_sources.length === 0) {
+    // citations가 있으면 citations 사용, 없으면 기존 rag_sources 사용 (하위 호환성)
+    const hasCitations = message.citations && message.citations.length > 0;
+    const hasRagSources = message.rag_sources && message.rag_sources.length > 0;
+    
+    if (!message.rag_used || (!hasCitations && !hasRagSources)) {
       return null;
     }
 
-    // 웹 소스 클릭 핸들러
     const handleSourceClick = (source: any) => {
       console.log('🔗 Source clicked:', source);
-      console.log('🔗 Source type:', source.type);
-      console.log('🔗 Source data:', source);
       
-      if (source.type === 'web') {
-        // 백엔드에서 사용하는 다양한 URL 필드명 확인
-        let url = source.url || source.link || source.href || source.source;
-        console.log('🔗 Found URL:', url);
-        
-        if (url) {
-          // URL이 http/https로 시작하지 않으면 추가
-          if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            if (url.startsWith('www.')) {
-              url = 'https://' + url;
-            } else if (url.includes('.')) {
-              url = 'https://' + url;
-            }
-          }
-          
-          console.log('🔗 Final URL to open:', url);
-          
+      if (hasCitations) {
+        // citations 구조: { title, url }
+        if (source.url && source.url.startsWith('http')) {
           try {
-            window.open(url, '_blank', 'noopener,noreferrer');
-            console.log('✅ URL opened successfully');
+            window.open(source.url, '_blank', 'noopener,noreferrer');
           } catch (error) {
-            console.error('❌ Error opening URL:', error);
-            alert('Could not open the link. URL: ' + url);
+            console.error('Failed to open URL:', error);
           }
-        } else {
-          console.warn('⚠️ No URL found in web source');
-          console.log('🔍 Available fields:', Object.keys(source));
-          alert('No valid URL found for this source');
         }
       } else {
-        console.log('🔗 Not a web source, no action taken');
+        // 기존 rag_sources 구조 처리 (하위 호환성)
+        if (source.type === 'web' && source.metadata?.url) {
+          try {
+            window.open(source.metadata.url, '_blank', 'noopener,noreferrer');
+          } catch (error) {
+            console.error('Failed to open URL:', error);
+          }
+        } else if (source.type === 'context' && source.metadata?.file_path) {
+          console.log('Context file:', source.metadata.file_path);
+        }
       }
     };
 
-    // 소스가 클릭 가능한지 확인
     const isClickable = (source: any) => {
-      if (source.type !== 'web') return false;
-      
-      // 백엔드에서 사용하는 다양한 URL 필드명 확인
-      const url = source.url || source.link || source.href || source.source;
-      const hasValidUrl = url && (
-        url.startsWith('http://') || 
-        url.startsWith('https://') || 
-        url.startsWith('www.') ||
-        (typeof url === 'string' && url.includes('.'))
-      );
-      
-      console.log('🔗 Checking if clickable:', { 
-        type: source.type, 
-        url, 
-        hasValidUrl,
-        availableFields: Object.keys(source)
-      });
-      
-      return hasValidUrl;
+      if (hasCitations) {
+        return source.url && source.url.startsWith('http');
+      } else {
+        return (source.type === 'web' && source.metadata?.url) || 
+               (source.type === 'context' && source.metadata?.file_path);
+      }
     };
+
+    const sourceCount = hasCitations ? message.citations.length : message.rag_source_count;
+    const sources = hasCitations ? message.citations : message.rag_sources;
 
     return (
       <div className="debate-rag-indicator">
-        <div className="debate-rag-icon" title={`RAG 검색 결과 ${message.rag_source_count}개 활용`}>
+        <div className="debate-rag-icon" title={`RAG 검색 결과 ${sourceCount}개 활용`}>
           <InformationCircleIcon style={{ height: '16px', width: '16px' }} />
-          <span className="debate-rag-count">{message.rag_source_count}</span>
+          <span className="debate-rag-count">{sourceCount}</span>
         </div>
         <div className="debate-rag-tooltip">
           <div className="debate-rag-tooltip-header">
-            Sources ({message.rag_source_count})
+            Sources ({sourceCount})
           </div>
           <div className="debate-rag-tooltip-content">
-            {message.rag_sources.slice(0, 3).map((source: any, idx: number) => (
+            {sources.slice(0, 3).map((source: any, idx: number) => (
               <div 
                 key={idx} 
                 className={`debate-rag-source-item ${isClickable(source) ? 'clickable' : ''}`}
@@ -137,30 +198,52 @@ const MessageList: React.FC<MessageListProps> = ({
                   ...(isClickable(source) && { cursor: 'pointer' })
                 }}
               >
-                <div className="debate-rag-source-type">
-                  {source.type === 'web' ? '🌐 Web' : 
-                   source.type === 'context' ? '📄 Context' :
-                   source.type === 'dialogue' ? '💬 Dialogue' :
-                   source.type === 'philosopher' ? '🧠 Philosopher' : '📚 Source'}
-                </div>
-                <div className="debate-rag-source-content">
-                  {source.content.substring(0, 100)}...
-                </div>
-                {source.relevance_score && (
-                  <div className="debate-rag-source-score">
-                    Relevance: {(source.relevance_score * 100).toFixed(1)}%
-                  </div>
-                )}
-                {!source.relevance_score && source.relevance && (
-                  <div className="debate-rag-source-score">
-                    Relevance: {(source.relevance * 100).toFixed(1)}%
-                  </div>
+                {hasCitations ? (
+                  // Citations 구조 렌더링
+                  <>
+                    <div className="debate-rag-source-type">
+                      🌐 Web Citation
+                    </div>
+                    <div className="debate-rag-source-content">
+                      <div className="debate-citation-title">
+                        {source.title || 'Untitled'}
+                      </div>
+                      {source.url && (
+                        <div className="debate-citation-url">
+                          {source.url.length > 60 ? `${source.url.substring(0, 60)}...` : source.url}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  // 기존 rag_sources 구조 렌더링 (하위 호환성)
+                  <>
+                    <div className="debate-rag-source-type">
+                      {source.type === 'web' ? '🌐 Web' : 
+                       source.type === 'context' ? '📄 Context' :
+                       source.type === 'dialogue' ? '💬 Dialogue' :
+                       source.type === 'philosopher' ? '🧠 Philosopher' : '📚 Source'}
+                    </div>
+                    <div className="debate-rag-source-content">
+                      {source.content ? source.content.substring(0, 100) : 'No content available'}...
+                    </div>
+                    {source.relevance_score && (
+                      <div className="debate-rag-source-score">
+                        Relevance: {(source.relevance_score * 100).toFixed(1)}%
+                      </div>
+                    )}
+                    {!source.relevance_score && source.relevance && (
+                      <div className="debate-rag-source-score">
+                        Relevance: {(source.relevance * 100).toFixed(1)}%
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ))}
-            {message.rag_sources.length > 3 && (
+            {sources.length > 3 && (
               <div className="debate-rag-more">
-                +{message.rag_sources.length - 3} more
+                +{sources.length - 3} more
               </div>
             )}
           </div>
@@ -226,30 +309,17 @@ const MessageList: React.FC<MessageListProps> = ({
                   {typingMessageIds.has(message.id) ? (
                     <TypingMessage
                       text={message.text}
-                      speed={30}
+                      speed={10}
                       delay={200}
                       enabled={true}
                       showCursor={true}
                       autoStart={true}
                       onTypingComplete={() => handleTypingComplete(message.id)}
+                      citations={message.citations}
                     />
                   ) : (
-                    message.text
+                    parseMarkdownToJSX(message.text, message.citations)
                   )}
-                </div>
-              )}
-              
-              {message.citations && message.citations.length > 0 && (
-                <div className="debate-message-citations">
-                  <strong>출처:</strong>
-                  <ul>
-                    {message.citations.map((citation: any, idx: number) => (
-                      <li key={idx}>
-                        [{citation.id}] {citation.source}
-                        {citation.location && ` (${citation.location})`}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               )}
             </div>
