@@ -26,9 +26,11 @@ export interface Philosopher {
   id: string;
   name: string;
   period?: string; 
+  era?: string;
   nationality?: string;
+  school?: string;
   description?: string;
-  key_concepts?: string[];
+  key_ideas?: string[];
   portrait_url?: string;
 }
 

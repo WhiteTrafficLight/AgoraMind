@@ -1,0 +1,139 @@
+{
+  "philosophers": [
+    {
+      "id": "socrates",
+      "name": "Socrates",
+      "era": "Ancient Greece (470-399 BCE)",
+      "school": "Classical Philosophy",
+      "description": "Known for the Socratic method and the idea that 'the only thing I know is that I know nothing'",
+      "key_ideas": ["Know thyself", "Socratic method", "Virtue is knowledge", "Examined life"],
+      "portrait_url": "/philosophers_portraits/Socrates.png"
+    },
+    {
+      "id": "plato",
+      "name": "Plato",
+      "era": "Ancient Greece (428-348 BCE)",
+      "school": "Platonism",
+      "description": "Student of Socrates, founded the Academy in Athens",
+      "key_ideas": ["Theory of Forms", "Philosopher kings", "Allegory of the Cave", "Justice"],
+      "portrait_url": "/philosophers_portraits/Plato.png"
+    },
+    {
+      "id": "aristotle",
+      "name": "Aristotle",
+      "era": "Ancient Greece (384-322 BCE)",
+      "school": "Aristotelianism",
+      "description": "Student of Plato, tutor to Alexander the Great",
+      "key_ideas": ["Virtue ethics", "Golden mean", "Four causes", "Logic"],
+      "portrait_url": "/philosophers_portraits/Aristotle.png"
+    },
+    {
+      "id": "kant",
+      "name": "Immanuel Kant",
+      "era": "Enlightenment (1724-1804)",
+      "school": "German Idealism",
+      "description": "Central figure of modern philosophy, known for categorical imperative",
+      "key_ideas": ["Categorical imperative", "Transcendental idealism", "Synthetic a priori", "Moral autonomy"],
+      "portrait_url": "/philosophers_portraits/Kant.png"
+    },
+    {
+      "id": "nietzsche",
+      "name": "Friedrich Nietzsche",
+      "era": "19th Century (1844-1900)",
+      "school": "Existentialism/Nihilism",
+      "description": "Influential German philosopher and cultural critic",
+      "key_ideas": ["Will to power", "Übermensch", "Eternal recurrence", "God is dead"],
+      "portrait_url": "/philosophers_portraits/Nietzsche.png"
+    },
+    {
+      "id": "sartre",
+      "name": "Jean-Paul Sartre",
+      "era": "20th Century (1905-1980)",
+      "school": "Existentialism",
+      "description": "Leading figure in 20th-century French philosophy",
+      "key_ideas": ["Existence precedes essence", "Bad faith", "Freedom and responsibility", "Being-for-others"],
+      "portrait_url": "/philosophers_portraits/Sartre.png"
+    },
+    {
+      "id": "camus",
+      "name": "Albert Camus",
+      "era": "20th Century (1913-1960)",
+      "school": "Absurdism",
+      "description": "French-Algerian philosopher and Nobel Prize winner",
+      "key_ideas": ["Absurdism", "The stranger", "Revolt", "The myth of Sisyphus"],
+      "portrait_url": "/philosophers_portraits/Camus.png"
+    },
+    {
+      "id": "simone_de_beauvoir",
+      "name": "Simone de Beauvoir",
+      "era": "20th Century (1908-1986)",
+      "school": "Existentialism/Feminism",
+      "description": "French existentialist philosopher and feminist theorist",
+      "key_ideas": ["The Second Sex", "Women's liberation", "Situated ethics", "Existential feminism"],
+      "portrait_url": "/philosophers_portraits/Beauvoir.png"
+    },
+    {
+      "id": "marx",
+      "name": "Karl Marx",
+      "era": "19th Century (1818-1883)",
+      "school": "Marxism",
+      "description": "German philosopher, economist, and revolutionary socialist",
+      "key_ideas": ["Historical materialism", "Class struggle", "Alienation", "Communist manifesto"],
+      "portrait_url": "/philosophers_portraits/Marx.png"
+    },
+    {
+      "id": "rousseau",
+      "name": "Jean-Jacques Rousseau",
+      "era": "Enlightenment (1712-1778)",
+      "school": "Social Contract Theory",
+      "description": "Genevan philosopher, writer, and composer",
+      "key_ideas": ["Social contract", "General will", "Natural goodness", "Education philosophy"],
+      "portrait_url": "/philosophers_portraits/Rousseau.png"
+    },
+    {
+      "id": "confucius",
+      "name": "Confucius",
+      "era": "Ancient China (551-479 BCE)",
+      "school": "Confucianism",
+      "description": "Chinese philosopher and politician of the Spring and Autumn period",
+      "key_ideas": ["Ren (benevolence)", "Li (ritual propriety)", "Junzi (exemplary person)", "Filial piety"],
+      "portrait_url": "/philosophers_portraits/Confucius.png"
+    },
+    {
+      "id": "laozi",
+      "name": "Laozi",
+      "era": "Ancient China (6th century BCE)",
+      "school": "Taoism",
+      "description": "Ancient Chinese philosopher and writer, founder of Taoism",
+      "key_ideas": ["Tao (the Way)", "Wu wei (non-action)", "Yin and Yang", "Te (virtue/power)"],
+      "portrait_url": "/philosophers_portraits/Laozi.png"
+    },
+    {
+      "id": "buddha",
+      "name": "Buddha",
+      "era": "Ancient India (563-483 BCE)",
+      "school": "Buddhism",
+      "description": "Spiritual teacher and founder of Buddhism, known for teachings on suffering and enlightenment",
+      "key_ideas": ["Four Noble Truths", "Eightfold Path", "Impermanence", "Nirvana"],
+      "portrait_url": "/philosophers_portraits/Buddha.png"
+    },
+    {
+      "id": "hegel",
+      "name": "Georg Wilhelm Friedrich Hegel",
+      "era": "19th Century (1770-1831)",
+      "school": "German Idealism",
+      "description": "German philosopher known for his dialectical method and systematic philosophy",
+      "key_ideas": ["Dialectical method", "Absolute Spirit", "Master-slave dialectic", "Phenomenology"],
+      "portrait_url": "/philosophers_portraits/Hegel.png"
+    },
+    {
+      "id": "wittgenstein",
+      "name": "Ludwig Wittgenstein",
+      "era": "20th Century (1889-1951)",
+      "school": "Analytic Philosophy",
+      "description": "Austrian-British philosopher known for his work in logic and language",
+      "key_ideas": ["Language games", "Picture theory", "Private language argument", "Form of life"],
+      "portrait_url": "/philosophers_portraits/Wittgenstein.png"
+    }
+  ]
+} 

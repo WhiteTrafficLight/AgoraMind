@@ -1,0 +1,184 @@
+{
+  "philosophers": [
+    {
+      "id": "socrates",
+      "name": "소크라테스",
+      "nameEn": "Socrates",
+      "era": "기원전 469-399년",
+      "country": "그리스",
+      "school": "아테네 학파",
+      "images": {
+        "portrait": "socrates.jpg",
+        "thumbnail": "socrates_thumb.jpg"
+      },
+      "description": "진정한 지혜는 자신이 무지하다는 것을 아는 것이다",
+      "keyPhilosophy": "무지의 지, 산파술, 덕은 지식이다",
+      "famousQuotes": [
+        "나는 아무것도 모른다는 것을 안다",
+        "검토받지 않은 삶은 살 가치가 없다"
+      ]
+    },
+    {
+      "id": "plato",
+      "name": "플라톤",
+      "nameEn": "Plato",
+      "era": "기원전 428-348년",
+      "country": "그리스",
+      "school": "아카데미아",
+      "images": {
+        "portrait": "plato.jpg",
+        "thumbnail": "plato_thumb.jpg"
+      },
+      "description": "이데아 세계의 창시자이자 서양 철학의 아버지",
+      "keyPhilosophy": "이데아론, 동굴의 비유, 철인왕",
+      "famousQuotes": [
+        "철학은 죽음의 연습이다",
+        "최고의 부는 정의를 행하는 것이다"
+      ]
+    },
+    {
+      "id": "aristotle",
+      "name": "아리스토텔레스",
+      "nameEn": "Aristotle",
+      "era": "기원전 384-322년",
+      "country": "그리스",
+      "school": "페리파토스 학파",
+      "images": {
+        "portrait": "aristotle.jpg",
+        "thumbnail": "aristotle_thumb.jpg"
+      },
+      "description": "논리학과 윤리학의 체계를 확립한 실증주의의 아버지",
+      "keyPhilosophy": "논리학, 니코마코스 윤리학, 형이상학",
+      "famousQuotes": [
+        "인간은 사회적 동물이다",
+        "탁월함은 행위가 아니라 습관이다"
+      ]
+    },
+    {
+      "id": "kant",
+      "name": "이마누엘 칸트",
+      "nameEn": "Immanuel Kant",
+      "era": "1724-1804년",
+      "country": "독일",
+      "school": "독일 관념론",
+      "images": {
+        "portrait": "kant.jpg",
+        "thumbnail": "kant_thumb.jpg"
+      },
+      "description": "근대 철학의 완성자이자 비판철학의 창시자",
+      "keyPhilosophy": "순수이성비판, 정언명령, 선험적 종합판단",
+      "famousQuotes": [
+        "감히 알려고 하라",
+        "네 의지의 격률이 보편적 법칙이 되도록 행동하라"
+      ]
+    },
+    {
+      "id": "nietzsche",
+      "name": "프리드리히 니체",
+      "nameEn": "Friedrich Nietzsche",
+      "era": "1844-1900년",
+      "country": "독일",
+      "school": "실존주의",
+      "images": {
+        "portrait": "nietzsche.jpg",
+        "thumbnail": "nietzsche_thumb.jpg"
+      },
+      "description": "신의 죽음을 선언하고 초인 사상을 제시한 철학자",
+      "keyPhilosophy": "초인사상, 영원회귀, 권력의지",
+      "famousQuotes": [
+        "신은 죽었다",
+        "나를 죽이지 못하는 것은 나를 더 강하게 만든다"
+      ]
+    },
+    {
+      "id": "sartre",
+      "name": "장 폴 사르트르",
+      "nameEn": "Jean-Paul Sartre",
+      "era": "1905-1980년",
+      "country": "프랑스",
+      "school": "실존주의",
+      "images": {
+        "portrait": "sartre.jpg",
+        "thumbnail": "sartre_thumb.jpg"
+      },
+      "description": "존재가 본질에 앞선다는 실존주의의 대표 철학자",
+      "keyPhilosophy": "실존주의, 자유의 형벌, 타자의 시선",
+      "famousQuotes": [
+        "존재가 본질에 앞선다",
+        "인간은 자유의 형벌에 처해졌다"
+      ]
+    },
+    {
+      "id": "camus",
+      "name": "알베르 카뮈",
+      "nameEn": "Albert Camus",
+      "era": "1913-1960년",
+      "country": "프랑스",
+      "school": "부조리주의",
+      "images": {
+        "portrait": "camus.jpg",
+        "thumbnail": "camus_thumb.jpg"
+      },
+      "description": "부조리와 반항의 철학을 제시한 노벨문학상 수상자",
+      "keyPhilosophy": "부조리, 반항, 시지프 신화",
+      "famousQuotes": [
+        "삶이 부조리하다고 해서 살 가치가 없는 것은 아니다",
+        "자살은 유일하게 진지한 철학적 문제다"
+      ]
+    },
+    {
+      "id": "simone_de_beauvoir",
+      "name": "시몬 드 보부아르",
+      "nameEn": "Simone de Beauvoir",
+      "era": "1908-1986년",
+      "country": "프랑스",
+      "school": "실존주의 페미니즘",
+      "images": {
+        "portrait": "simone_de_beauvoir.jpg",
+        "thumbnail": "simone_de_beauvoir_thumb.jpg"
+      },
+      "description": "여성은 태어나는 것이 아니라 만들어진다는 페미니즘의 어머니",
+      "keyPhilosophy": "실존주의 페미니즘, 타자성, 여성의 해방",
+      "famousQuotes": [
+        "여성은 태어나는 것이 아니라 만들어진다",
+        "압제자가 되지 않으려면 노예가 되어서는 안 된다"
+      ]
+    },
+    {
+      "id": "marx",
+      "name": "카를 마르크스",
+      "nameEn": "Karl Marx",
+      "era": "1818-1883년",
+      "country": "독일",
+      "school": "마르크스주의",
+      "images": {
+        "portrait": "marx.jpg",
+        "thumbnail": "marx_thumb.jpg"
+      },
+      "description": "역사유물론과 계급투쟁론을 제시한 혁명적 사상가",
+      "keyPhilosophy": "역사유물론, 계급투쟁, 소외론",
+      "famousQuotes": [
+        "철학자들은 세계를 다양하게 해석했을 뿐이다. 중요한 것은 세계를 변혁하는 것이다",
+        "만국의 노동자여, 단결하라"
+      ]
+    },
+    {
+      "id": "rousseau",
+      "name": "장 자크 루소",
+      "nameEn": "Jean-Jacques Rousseau",
+      "era": "1712-1778년",
+      "country": "프랑스",
+      "school": "계몽주의",
+      "images": {
+        "portrait": "rousseau.jpg",
+        "thumbnail": "rousseau_thumb.jpg"
+      },
+      "description": "사회계약론과 자연상태론을 제시한 계몽주의 철학자",
+      "keyPhilosophy": "사회계약론, 자연상태, 일반의지",
+      "famousQuotes": [
+        "인간은 자유롭게 태어났으나 어디서나 사슬에 묶여 있다",
+        "자연으로 돌아가라"
+      ]
+    }
+  ]
+} 

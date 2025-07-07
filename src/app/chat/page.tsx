@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DebateChatContainer from '@/components/chat/main_components/DebateChatContainer';
 import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';
+import { useSocket } from '@/hooks/useSocket';
 
 function ChatContent() {
   const router = useRouter();
@@ -14,11 +15,165 @@ function ChatContent() {
   const [error, setError] = useState<string | null>(null);
   const [chatData, setChatData] = useState<ChatRoom | null>(null);
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
-  const [socketClient, setSocketClient] = useState<any>(null);
   const [username, setUsername] = useState<string>('');
   const [typingMessageIds, setTypingMessageIds] = useState<Set<string>>(new Set());
   const [waitingForUserInput, setWaitingForUserInput] = useState(false);
   const [currentUserTurn, setCurrentUserTurn] = useState<{speaker_id: string, role: string} | null>(null);
+
+  // Socket.IO client connection
+  const { socket, isConnected, joinRoom, leaveRoom } = useSocket({
+    roomId: chatData?.id ? String(chatData.id) : undefined,
+    userId: username,
+    onConnect: () => {
+      console.log('✅ [V2] Socket connected to backend server');
+    },
+    onDisconnect: () => {
+      console.log('🔌 [V2] Socket disconnected from backend server');
+    },
+    onMessage: async (data: { roomId: string, message: ChatMessage }) => {
+      console.log('🎯 [V2] 소켓 이벤트 수신: new-message');
+      console.log('🎯 [V2] 수신 데이터:', JSON.stringify(data).substring(0, 300));
+      console.log('🎯 [V2] 현재 방 ID:', String(chatData?.id));
+      console.log('🎯 [V2] 수신된 방 ID:', String(data.roomId));
+      
+      // 현재 방의 메시지인지 확인
+      const currentRoomId = String(chatData?.id);
+      const receivedRoomId = String(data.roomId);
+      
+      if (currentRoomId === receivedRoomId && data.message) {
+        console.log('✅ [V2] 방 ID 일치! 메시지를 DB에 저장 후 UI에 업데이트');
+        console.log('✅ [V2] 메시지 내용:', data.message.text?.substring(0, 100));
+        console.log('✅ [V2] 이벤트 타입:', data.message.metadata?.event_type);
+        
+        // 완성된 메시지인지 확인
+        const isCompleteMessage = data.message.metadata?.event_type === 'debate_message_complete';
+        const isUserMessage = data.message.isUser === true;
+        
+        try {
+          // 1. DB에 메시지 저장 (완성된 AI 메시지 또는 사용자 메시지)
+          if (isCompleteMessage || isUserMessage) {
+            console.log('💾 [V2] 메시지 DB 저장 시작...', isUserMessage ? '(사용자 메시지)' : '(AI 메시지)');
+            const saveResponse = await fetch('/api/messages', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                roomId: currentRoomId,
+                message: {
+                  ...data.message,
+                  timestamp: data.message.timestamp || new Date().toISOString()
+                }
+              }),
+            });
+            
+            if (saveResponse.ok) {
+              console.log('✅ [V2] DB 저장 성공!');
+            } else {
+              const errorData = await saveResponse.json();
+              console.error('❌ [V2] DB 저장 실패:', errorData);
+            }
+          }
+          
+          // 2. UI 업데이트
+          setChatData(prev => {
+            if (!prev) return prev;
+            
+            // 완성된 메시지인 경우 임시 생성 중 메시지를 교체
+            if (isCompleteMessage) {
+              console.log('🔄 [V2] 임시 메시지를 완성된 메시지로 교체');
+              
+              // 같은 발언자의 생성 중인 임시 메시지 찾기
+              const messagesCopy = [...(prev.messages || [])];
+              const tempMessageIndex = messagesCopy.findIndex(msg => 
+                msg.isGenerating && msg.sender === data.message.sender
+              );
+              
+              if (tempMessageIndex >= 0) {
+                // 임시 메시지를 완성된 메시지로 교체
+                const completeMessage = {
+                  ...data.message,
+                  skipAnimation: false,  // 완성된 메시지는 타이핑 애니메이션 적용
+                  // metadata에서 RAG 정보 추출
+                  rag_used: data.message.metadata?.rag_used || false,
+                  rag_source_count: data.message.metadata?.rag_source_count || 0,
+                  rag_sources: data.message.metadata?.rag_sources || [],
+                  citations: data.message.metadata?.citations || []
+                };
+                messagesCopy[tempMessageIndex] = completeMessage;
+                console.log('✅ [V2] 임시 메시지 교체 완료');
+                console.log('🔍 [V2] RAG 정보:', {
+                  rag_used: completeMessage.rag_used,
+                  rag_source_count: completeMessage.rag_source_count,
+                  rag_sources_length: completeMessage.rag_sources?.length || 0
+                });
+                
+                // 타이핑 애니메이션 시작을 위해 typingMessageIds에 추가
+                setTimeout(() => {
+                  setTypingMessageIds(prev => new Set([...prev, completeMessage.id]));
+                }, 100);
+              } else {
+                // 임시 메시지가 없으면 새로 추가
+                console.log('⚠️ [V2] 임시 메시지를 찾을 수 없어 새로 추가');
+                const newMessage = {
+                  ...data.message,
+                  skipAnimation: false,
+                  // metadata에서 RAG 정보 추출
+                  rag_used: data.message.metadata?.rag_used || false,
+                  rag_source_count: data.message.metadata?.rag_source_count || 0,
+                  rag_sources: data.message.metadata?.rag_sources || [],
+                  citations: data.message.metadata?.citations || []
+                };
+                
+                console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
+                  rag_used: newMessage.rag_used,
+                  rag_source_count: newMessage.rag_source_count,
+                  rag_sources_length: newMessage.rag_sources?.length || 0
+                });
+                
+                messagesCopy.push(newMessage);
+              }
+              
+              return {
+                ...prev,
+                messages: messagesCopy
+              };
+            } else {
+              // 일반 메시지인 경우 기존 로직 사용
+              console.log('🔄 [V2] 일반 메시지 추가');
+              const newMessage = {
+                ...data.message,
+                skipAnimation: false,
+                // metadata에서 RAG 정보 추출
+                rag_used: data.message.metadata?.rag_used || false,
+                rag_source_count: data.message.metadata?.rag_source_count || 0,
+                rag_sources: data.message.metadata?.rag_sources || [],
+                citations: data.message.metadata?.citations || []
+              };
+              
+              console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
+                rag_used: newMessage.rag_used,
+                rag_source_count: newMessage.rag_source_count,
+                rag_sources_length: newMessage.rag_sources?.length || 0
+              });
+              
+              return {
+                ...prev,
+                messages: [...(prev.messages || []), newMessage]
+              };
+            }
+          });
+          
+        } catch (error) {
+          console.error('❌ [V2] 메시지 처리 중 오류:', error);
+        }
+        
+      } else {
+        console.log('❌ [V2] 방 ID 불일치 또는 메시지 없음');
+        console.log('❌ [V2] 현재 방:', currentRoomId, '수신 방:', receivedRoomId, '메시지 존재:', !!data.message);
+      }
+    }
+  });
 
   // 타이핑 완료 핸들러
   const handleTypingComplete = (messageId: string) => {
@@ -109,204 +264,14 @@ function ChatContent() {
     loadChatData();
   }, [chatIdParam, router]);
 
-  // Socket.IO 연결 및 실시간 메시지 수신 설정
+  // 소켓이 연결되고 채팅 데이터와 사용자명이 준비되면 방에 참여
   useEffect(() => {
-    let socketInstance: any = null;
-
-    const initializeSocket = async () => {
-      if (!chatData?.id || !username) return;
-
-      try {
-        // socketClient 인스턴스 임포트 
-        const socketClient = (await import('@/lib/socket/socketClient')).default;
-        socketInstance = socketClient;
-        await socketInstance.init(username);
-        
-        // 방에 참가 (username 전달)
-        const roomId = String(chatData.id);
-        socketInstance.joinRoom(roomId, username);
-        
-        // new-message 이벤트 리스너 설정
-        socketInstance.on('new-message', async (data: { roomId: string, message: ChatMessage }) => {
-          console.log('🎯 [V2] 소켓 이벤트 수신: new-message');
-          console.log('🎯 [V2] 수신 데이터:', JSON.stringify(data).substring(0, 300));
-          console.log('🎯 [V2] 현재 방 ID:', String(chatData.id));
-          console.log('🎯 [V2] 수신된 방 ID:', String(data.roomId));
-          
-          // 현재 방의 메시지인지 확인
-          const currentRoomId = String(chatData.id);
-          const receivedRoomId = String(data.roomId);
-          
-          if (currentRoomId === receivedRoomId && data.message) {
-            console.log('✅ [V2] 방 ID 일치! 메시지를 DB에 저장 후 UI에 업데이트');
-            console.log('✅ [V2] 메시지 내용:', data.message.text?.substring(0, 100));
-            console.log('✅ [V2] 이벤트 타입:', data.message.metadata?.event_type);
-            
-            // 완성된 메시지인지 확인
-            const isCompleteMessage = data.message.metadata?.event_type === 'debate_message_complete';
-            const isUserMessage = data.message.isUser === true;
-            
-            try {
-              // 1. DB에 메시지 저장 (완성된 AI 메시지 또는 사용자 메시지)
-              if (isCompleteMessage || isUserMessage) {
-                console.log('💾 [V2] 메시지 DB 저장 시작...', isUserMessage ? '(사용자 메시지)' : '(AI 메시지)');
-                const saveResponse = await fetch('/api/messages', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    roomId: currentRoomId,
-                    message: {
-                      ...data.message,
-                      timestamp: data.message.timestamp || new Date().toISOString()
-                    }
-                  }),
-                });
-                
-                if (saveResponse.ok) {
-                  console.log('✅ [V2] DB 저장 성공!');
-                } else {
-                  const errorData = await saveResponse.json();
-                  console.error('❌ [V2] DB 저장 실패:', errorData);
-                }
-              }
-              
-              // 2. UI 업데이트
-              setChatData(prev => {
-                if (!prev) return prev;
-                
-                // 완성된 메시지인 경우 임시 생성 중 메시지를 교체
-                if (isCompleteMessage) {
-                  console.log('🔄 [V2] 임시 메시지를 완성된 메시지로 교체');
-                  
-                  // 같은 발언자의 생성 중인 임시 메시지 찾기
-                  const messagesCopy = [...(prev.messages || [])];
-                  const tempMessageIndex = messagesCopy.findIndex(msg => 
-                    msg.isGenerating && msg.sender === data.message.sender
-                  );
-                  
-                  if (tempMessageIndex >= 0) {
-                    // 임시 메시지를 완성된 메시지로 교체
-                    const completeMessage = {
-                      ...data.message,
-                      skipAnimation: false,  // 완성된 메시지는 타이핑 애니메이션 적용
-                      // metadata에서 RAG 정보 추출
-                      rag_used: data.message.metadata?.rag_used || false,
-                      rag_source_count: data.message.metadata?.rag_source_count || 0,
-                      rag_sources: data.message.metadata?.rag_sources || [],
-                      citations: data.message.metadata?.citations || []
-                    };
-                    messagesCopy[tempMessageIndex] = completeMessage;
-                    console.log('✅ [V2] 임시 메시지 교체 완료');
-                    console.log('🔍 [V2] RAG 정보:', {
-                      rag_used: completeMessage.rag_used,
-                      rag_source_count: completeMessage.rag_source_count,
-                      rag_sources_length: completeMessage.rag_sources?.length || 0
-                    });
-                    
-                    // 타이핑 애니메이션 시작을 위해 typingMessageIds에 추가
-                    setTimeout(() => {
-                      setTypingMessageIds(prev => new Set([...prev, completeMessage.id]));
-                    }, 100);
-                  } else {
-                    // 임시 메시지가 없으면 새로 추가
-                    console.log('⚠️ [V2] 임시 메시지를 찾을 수 없어 새로 추가');
-                    const newMessage = {
-                      ...data.message,
-                      skipAnimation: false,
-                      // metadata에서 RAG 정보 추출
-                      rag_used: data.message.metadata?.rag_used || false,
-                      rag_source_count: data.message.metadata?.rag_source_count || 0,
-                      rag_sources: data.message.metadata?.rag_sources || [],
-                      citations: data.message.metadata?.citations || []
-                    };
-                    
-                    console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
-                      rag_used: newMessage.rag_used,
-                      rag_source_count: newMessage.rag_source_count,
-                      rag_sources_length: newMessage.rag_sources?.length || 0
-                    });
-                    
-                    messagesCopy.push(newMessage);
-                  }
-                  
-                  return {
-                    ...prev,
-                    messages: messagesCopy
-                  };
-                } else {
-                  // 일반 메시지인 경우 기존 로직 사용
-                  console.log('🔄 [V2] 일반 메시지 추가');
-                  const newMessage = {
-                    ...data.message,
-                    skipAnimation: false,
-                    // metadata에서 RAG 정보 추출
-                    rag_used: data.message.metadata?.rag_used || false,
-                    rag_source_count: data.message.metadata?.rag_source_count || 0,
-                    rag_sources: data.message.metadata?.rag_sources || [],
-                    citations: data.message.metadata?.citations || []
-                  };
-                  
-                  console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
-                    rag_used: newMessage.rag_used,
-                    rag_source_count: newMessage.rag_source_count,
-                    rag_sources_length: newMessage.rag_sources?.length || 0
-                  });
-                  
-                  return {
-                    ...prev,
-                    messages: [...(prev.messages || []), newMessage]
-                  };
-                }
-              });
-              
-            } catch (error) {
-              console.error('❌ [V2] 메시지 처리 중 오류:', error);
-            }
-            
-          } else {
-            console.log('❌ [V2] 방 ID 불일치 또는 메시지 없음');
-            console.log('❌ [V2] 현재 방:', currentRoomId, '수신 방:', receivedRoomId, '메시지 존재:', !!data.message);
-          }
-        });
-        
-        // 추가 디버그 이벤트들
-        socketInstance.on('connect', () => {
-          console.log('🔗 [V2] Socket 연결됨:', socketInstance.getSocket()?.id);
-        });
-        
-        socketInstance.on('disconnect', () => {
-          console.log('❌ [V2] Socket 연결 해제됨');
-        });
-        
-        // 모든 이벤트 캐치
-        socketInstance.getSocket()?.onAny((eventName: string, ...args: any[]) => {
-          console.log(`🎧 [V2] 받은 이벤트: ${eventName}`, args);
-        });
-        
-        setSocketClient(socketInstance);
-        console.log('V2: Socket.IO 연결 완료');
-        
-      } catch (error) {
-        console.error('V2: Socket.IO 연결 실패:', error);
-      }
-    };
-
-    if (chatData?.id) {
-      initializeSocket();
+    if (isConnected && chatData?.id && username && joinRoom) {
+      const roomId = String(chatData.id);
+      console.log(`🏠 [V2] Joining room ${roomId} as ${username}`);
+      joinRoom(roomId, username);
     }
-
-    return () => {
-      if (socketInstance) {
-        if (chatData?.id && username) {
-          const roomId = String(chatData.id);
-          socketInstance.leaveRoom(roomId, username);
-        }
-        socketInstance.disconnect();
-      }
-    };
-  }, [chatData?.id, username]);
+  }, [isConnected, chatData?.id, username, joinRoom]);
 
   const handleBackToOpenChat = () => {
     router.push('/open-chat');

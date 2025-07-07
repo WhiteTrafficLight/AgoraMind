@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { Socket } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
 import chatService, { ChatRoom as ServiceChatRoom } from '@/lib/ai/chatService';
+import { useSocket } from '@/hooks/useSocket';
 import { 
   ChatRoom, 
   Philosopher, 
@@ -37,12 +38,28 @@ export function useOpenChatState() {
   });
   
   const [isCreating, setIsCreating] = useState(false);
-  const socketRef = useRef<Socket | null>(null);
+
+  // Socket.IO client connection
+  const { socket, isConnected: socketConnected } = useSocket({
+    onConnect: () => {
+      console.log('✅ Socket.IO connected in open chat!');
+      updateState({ socketConnected: true });
+    },
+    onDisconnect: () => {
+      console.log('🔌 Socket.IO disconnected in open chat');
+      updateState({ socketConnected: false });
+    }
+  });
 
   // Update individual state properties
   const updateState = (updates: Partial<OpenChatState>) => {
     setState(prev => ({ ...prev, ...updates }));
   };
+
+  // Update socket connection state
+  useEffect(() => {
+    updateState({ socketConnected });
+  }, [socketConnected]);
 
   // Load chat rooms
   const loadChatRooms = async () => {
@@ -63,66 +80,6 @@ export function useOpenChatState() {
     } catch (error) {
       console.error('Failed to load chat rooms:', error);
       updateState({ isLoading: false });
-    }
-  };
-
-  // Initialize socket connection
-  const initializeSocket = async () => {
-    try {
-      console.log('Initializing Socket.IO server...');
-      const res = await fetch('/api/socket');
-      if (!res.ok) {
-        throw new Error(`Failed to initialize socket server: ${res.status}`);
-      }
-      console.log('✅ Socket server initialized');
-      
-      // Dynamic import to avoid SSR issues
-      const { io } = await import('socket.io-client');
-      
-      socketRef.current = io('/', {
-        path: '/api/socket/io',
-        autoConnect: false,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
-      
-      const socket = socketRef.current;
-      
-      // Event listeners
-      socket.on('connect', () => {
-        console.log('✅ Socket.IO connected!');
-        updateState({ socketConnected: true });
-      });
-      
-      socket.on('disconnect', () => {
-        console.log('Socket.IO disconnected');
-        updateState({ socketConnected: false });
-      });
-      
-      socket.on('connect_error', (err) => {
-        console.error('Socket.IO connection error:', err);
-        updateState({ socketConnected: false });
-      });
-      
-      // Room created event
-      socket.on('room-created', (newRoom: ServiceChatRoom) => {
-        console.log('🔔 New chat room created:', newRoom.title);
-        
-        setState(prev => ({
-          ...prev,
-          activeChats: [convertChatRoom(newRoom), ...prev.activeChats.filter((room: ChatRoom) => 
-            String(room.id) !== String(newRoom.id)
-          )]
-        }));
-      });
-      
-      socket.connect();
-      console.log('Socket connect() called');
-      
-      return true;
-    } catch (error) {
-      console.error('Failed to initialize socket:', error);
-      return false;
     }
   };
 
@@ -156,7 +113,8 @@ export function useOpenChatState() {
   // Fetch philosophers
   const fetchPhilosophers = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/philosophers');
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${backendUrl}/api/philosophers`);
       if (response.ok) {
         const data = await response.json();
         updateState({ philosophers: data.philosophers || [] });
@@ -177,7 +135,8 @@ export function useOpenChatState() {
   // Fetch custom NPCs
   const fetchCustomNpcs = async () => {
     try {
-      const response = await fetch('/api/npc/list');
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${backendUrl}/api/npc/list`);
       if (response.ok) {
         const data = await response.json();
         updateState({ customNpcs: data.npcs || [] });
@@ -230,7 +189,6 @@ export function useOpenChatState() {
   useEffect(() => {
     const init = async () => {
       await fetchUserProfile();
-      await initializeSocket();
       await loadChatRooms();
       await Promise.all([
         fetchPhilosophers(),
@@ -239,12 +197,6 @@ export function useOpenChatState() {
     };
     
     init();
-    
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
   }, []);
 
   // Periodic refresh
@@ -266,11 +218,10 @@ export function useOpenChatState() {
     // Actions
     updateState,
     loadChatRooms,
-    initializeSocket,
     handleCreateChat,
     handleJoinChat,
     
     // Socket
-    socket: socketRef.current,
+    socket,
   };
 } 

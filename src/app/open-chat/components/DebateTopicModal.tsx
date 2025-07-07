@@ -2,19 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { XMarkIcon, LinkIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { DebateTopic } from '../utils/debateTopics';
 import PhilosopherDetailsModal from './PhilosopherDetailsModal';
-import { ChatRoomCreationParams } from '../types/openChat.types';
+import { ChatRoomCreationParams, Philosopher } from '../types/openChat.types';
 import { chatService } from '@/lib/ai/chatService';
 import { useRouter } from 'next/navigation';
-
-interface Philosopher {
-  id: string;
-  name: string;
-  period?: string; 
-  nationality?: string;
-  description?: string;
-  key_concepts?: string[];
-  portrait_url?: string;
-}
 
 interface DebateTopicModalProps {
   isOpen: boolean;
@@ -108,6 +98,50 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
   // Generate default avatar
   const getDefaultAvatar = (name: string) => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128`;
+  };
+
+  // Generate philosopher portrait path from static files
+  const getPhilosopherPortraitPath = (philosopherName: string): string => {
+    // Map philosopher names to actual file names (using last names mostly)
+    const nameMapping: Record<string, string> = {
+      'socrates': 'Socrates',
+      'plato': 'Plato', 
+      'aristotle': 'Aristotle',
+      'immanuel kant': 'Kant',
+      'kant': 'Kant',
+      'friedrich nietzsche': 'Nietzsche',
+      'nietzsche': 'Nietzsche',
+      'jean-paul sartre': 'Sartre',
+      'sartre': 'Sartre',
+      'albert camus': 'Camus',
+      'camus': 'Camus',
+      'simone de beauvoir': 'Beauvoir',
+      'beauvoir': 'Beauvoir',
+      'karl marx': 'Marx',
+      'marx': 'Marx',
+      'jean-jacques rousseau': 'Rousseau',
+      'rousseau': 'Rousseau',
+      'confucius': 'Confucius',
+      'laozi': 'Laozi',
+      'buddha': 'Buddha',
+      'georg wilhelm friedrich hegel': 'Hegel',
+      'hegel': 'Hegel',
+      'ludwig wittgenstein': 'Wittgenstein',
+      'wittgenstein': 'Wittgenstein'
+    };
+    
+    const normalizedName = philosopherName.toLowerCase().trim();
+    const fileName = nameMapping[normalizedName];
+    
+    if (fileName) {
+      return `/philosophers_portraits/${fileName}.png`;
+    }
+    
+    // Fallback: use capitalized last word as filename
+    const words = philosopherName.split(' ');
+    const lastName = words[words.length - 1];
+    const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
+    return `/philosophers_portraits/${capitalizedLastName}.png`;
   };
 
   if (!isOpen || !topic) {
@@ -234,14 +268,21 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
         return;
       }
       
-      // API 호출로 상세정보 가져오기
-      const response = await fetch(`http://localhost:8000/api/philosophers/${philosopherId}`);
+      // 정적 JSON 파일에서 직접 찾기 (백업)
+      const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        setSelectedPhilosopherDetails(data);
-        setShowPhilosopherDetails(true);
+        const philosopher = data.philosophers.find((p: any) => 
+          p.id.toLowerCase() === philosopherId.toLowerCase()
+        );
+        if (philosopher) {
+          setSelectedPhilosopherDetails(philosopher);
+          setShowPhilosopherDetails(true);
+        } else {
+          console.error(`Philosopher '${philosopherId}' not found in data`);
+        }
       } else {
-        console.error(`Failed to fetch details for philosopher: ${philosopherId}`);
+        console.error(`Failed to load philosopher data from static file`);
       }
     } catch (error) {
       console.error('Error fetching philosopher details:', error);
@@ -303,8 +344,11 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
           border: `2px solid ${side === 'pro' ? '#22c55e' : '#ef4444'}`
         }}>
           <img
-            src={philosopherInfo?.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=48`}
+            src={philosopherInfo?.portrait_url || getPhilosopherPortraitPath(philosopherName)}
             alt={philosopherName}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=48`;
+            }}
             style={{ 
               width: '100%', 
               height: '100%', 
@@ -402,8 +446,11 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
           flex: '1'
         }}>
           <img
-            src={philosopherInfo?.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=32`}
+            src={philosopherInfo?.portrait_url || getPhilosopherPortraitPath(philosopherName)}
             alt={philosopherName}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=32`;
+            }}
             style={{ 
               width: '32px', 
               height: '32px', 
@@ -532,7 +579,7 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
             <div className="moderator-selection-card selected">
               <div className="moderator-card-content">
                 <img
-                  src={`/portraits/Moderator${topic.moderator_style}.png`}
+                  src={`/moderator_portraits/Moderator${topic.moderator_style}.png`}
                   alt={moderatorInfo.name}
                   className="moderator-image"
                 />

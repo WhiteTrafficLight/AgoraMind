@@ -492,15 +492,96 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
   // 모더레이터 Participants 추가 (숨김)
   const moderatorParticipants = ['Moderator'];
   
+  const router = useRouter();
+  
+  // 🆕 Next.js Router를 통한 페이지 이동 감지
+  useEffect(() => {
+    if (!room || !room.id) return;
+    
+    const handleRouteChange = async () => {
+      const storedUsername = sessionStorage.getItem('chat_username') || username;
+      const roomId = String(room.id);
+      
+      console.log(`🔀 Route change: Disconnecting socket for room ${roomId}`);
+      
+      try {
+        const { default: socketClient } = await import('@/lib/socket/socketClient');
+        socketClient.off('npc-selected');
+        socketClient.leaveRoom(roomId, storedUsername);
+        socketClient.disconnect();
+        console.log(`✅ Route change cleanup completed for room ${roomId}`);
+      } catch (error) {
+        console.error('❌ Error during route change cleanup:', error);
+      }
+    };
+    
+    // Router 이벤트 리스너 등록
+    router.events.on('routeChangeStart', handleRouteChange);
+    router.events.on('beforeHistoryChange', handleRouteChange);
+    
+    return () => {
+      // Router 이벤트 리스너 정리
+      router.events.off('routeChangeStart', handleRouteChange);
+      router.events.off('beforeHistoryChange', handleRouteChange);
+    };
+  }, [room.id, username, router.events]);
+  
+  // 🆕 브라우저 페이지 이탈 시 Socket.IO 강제 해제
+  useEffect(() => {
+    if (!room || !room.id) return;
+    
+    const handleBeforeUnload = () => {
+      const storedUsername = sessionStorage.getItem('chat_username') || username;
+      const roomId = String(room.id);
+      
+      console.log(`🔌 Page unload: Disconnecting socket for room ${roomId}`);
+      
+      // Socket.IO 연결 강제 해제
+      try {
+        import('@/lib/socket/socketClient').then(({ default: socketClient }) => {
+          socketClient.off('npc-selected');
+          socketClient.leaveRoom(roomId, storedUsername);
+          socketClient.disconnect();
+          console.log(`✅ Force disconnected socket for room ${roomId}`);
+        });
+      } catch (error) {
+        console.error('❌ Error during force disconnect:', error);
+      }
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // 탭이 백그라운드로 갈 때 연결 정리
+        handleBeforeUnload();
+      }
+    };
+    
+    // 브라우저 이벤트 리스너 등록
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      // 이벤트 리스너 정리
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [room.id, username]);
+  
   // Initialize socket client for npc-selected events
   useEffect(() => {
     // Only initialize if we have a valid room
     if (!room || !room.id) return;
     
+    let socketClient: any = null;
+    let isCleanedUp = false;
+    
     const initSocket = async () => {
       try {
         // Import socketClient dynamically to avoid SSR issues
-        const { default: socketClient } = await import('@/lib/socket/socketClient');
+        const { default: socketClientModule } = await import('@/lib/socket/socketClient');
+        socketClient = socketClientModule;
         
         // Initialize with current username or default
         const storedUsername = sessionStorage.getItem('chat_username') || username;
@@ -521,18 +602,49 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
             setSelectedNpcId(null);
           }, 3000);
         });
-        
-        // Cleanup on unmount
-        return () => {
-          socketClient.leaveRoom(roomId, storedUsername); // 동일한 roomId 사용
-          socketClient.off('npc-selected', () => {});
-        };
       } catch (error) {
         console.error('Error initializing socket for debate UI:', error);
       }
     };
     
+    // 강화된 정리 함수
+    const cleanupSocket = async () => {
+      if (isCleanedUp || !socketClient) return;
+      isCleanedUp = true;
+      
+      const storedUsername = sessionStorage.getItem('chat_username') || username;
+      const roomId = String(room.id);
+      
+      console.log(`🔌 DebateChatUI: Cleaning up socket connection for room ${roomId}`);
+      
+      try {
+        // 1. 이벤트 리스너 제거
+        socketClient.off('npc-selected');
+        
+        // 2. 방 나가기
+        socketClient.leaveRoom(roomId, storedUsername);
+        
+        // 3. 연결 끊기
+        socketClient.disconnect();
+        
+        // 4. 추가적인 정리 (혹시 모를 상황 대비)
+        if (socketClient.socket) {
+          socketClient.socket.disconnect();
+          socketClient.socket.close();
+        }
+        
+        console.log(`✅ Socket disconnected for room ${roomId}`);
+      } catch (error) {
+        console.error('❌ Error during socket cleanup:', error);
+      }
+    };
+    
     initSocket();
+    
+    // Cleanup on unmount
+    return () => {
+      cleanupSocket();
+    };
   }, [room.id, username]);
   
   // Add styling for selected NPC

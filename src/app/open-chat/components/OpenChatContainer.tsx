@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { useOpenChatState } from '../hooks/useOpenChatState';
-import SocketStatusIndicator from './SocketStatusIndicator';
 import DebateTopicsList from './DebateTopicsList';
 import CreateChatModal from './CreateChatModal';
 import PhilosopherDetailsModal from './PhilosopherDetailsModal';
@@ -16,7 +15,6 @@ const OpenChatContainer: React.FC = () => {
     activeChats,
     isLoading,
     showCreateChatModal,
-    socketConnected,
     username,
     philosophers,
     customNpcs,
@@ -25,7 +23,6 @@ const OpenChatContainer: React.FC = () => {
     // Actions
     updateState,
     loadChatRooms,
-    initializeSocket,
     handleCreateChat,
     handleJoinChat,
   } = useOpenChatState();
@@ -46,12 +43,6 @@ const OpenChatContainer: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      {/* Socket Status */}
-      <SocketStatusIndicator 
-        connected={socketConnected} 
-        onReconnect={initializeSocket}
-      />
-      
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center">

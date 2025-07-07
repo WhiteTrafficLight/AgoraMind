@@ -1,17 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { XMarkIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
-import { CreateChatModalProps, ChatRoomCreationParams } from '../types/openChat.types';
+import { CreateChatModalProps, ChatRoomCreationParams, Philosopher } from '../types/openChat.types';
 import PhilosopherDetailsModal from './PhilosopherDetailsModal';
-
-interface Philosopher {
-  id: string;
-  name: string;
-  period?: string; 
-  nationality?: string;
-  description?: string;
-  key_concepts?: string[];
-  portrait_url?: string;
-}
 
 const CreateChatModal: React.FC<CreateChatModalProps> = ({
   isOpen,
@@ -67,11 +57,11 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   };
 
   // Handle philosopher selection
-  const togglePhilosopher = (philosopherName: string) => {
+  const togglePhilosopher = (philosopherId: string) => {
     setSelectedPhilosophers(prev => {
-      const newSelection = prev.includes(philosopherName)
-        ? prev.filter(p => p !== philosopherName)
-        : [...prev, philosopherName];
+      const newSelection = prev.includes(philosopherId)
+        ? prev.filter(p => p !== philosopherId)
+        : [...prev, philosopherId];
       
       // Update formData.npcs
       const allSelected = [...newSelection, ...selectedCustomNpcs];
@@ -82,11 +72,11 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
 
     // Handle npcPositions for debate mode
     if (formData.dialogueType === 'debate') {
-      if (selectedPhilosophers.includes(philosopherName)) {
+      if (selectedPhilosophers.includes(philosopherId)) {
         // Removing philosopher - remove position
         setNpcPositions(prev => {
           const updated = { ...prev };
-          delete updated[philosopherName];
+          delete updated[philosopherId];
           return updated;
         });
       } else {
@@ -97,18 +87,18 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
         
         setNpcPositions(prev => ({
           ...prev,
-          [philosopherName]: defaultPosition
+          [philosopherId]: defaultPosition
         }));
       }
     }
   };
 
   // Handle custom NPC selection
-  const toggleCustomNpc = (npcName: string) => {
+  const toggleCustomNpc = (npcId: string) => {
     setSelectedCustomNpcs(prev => {
-      const newSelection = prev.includes(npcName)
-        ? prev.filter(n => n !== npcName)
-        : [...prev, npcName];
+      const newSelection = prev.includes(npcId)
+        ? prev.filter(n => n !== npcId)
+        : [...prev, npcId];
       
       // Update formData.npcs
       const allSelected = [...selectedPhilosophers, ...newSelection];
@@ -119,11 +109,11 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
 
     // Handle npcPositions for debate mode
     if (formData.dialogueType === 'debate') {
-      if (selectedCustomNpcs.includes(npcName)) {
+      if (selectedCustomNpcs.includes(npcId)) {
         // Removing NPC - remove position
         setNpcPositions(prev => {
           const updated = { ...prev };
-          delete updated[npcName];
+          delete updated[npcId];
           return updated;
         });
       } else {
@@ -134,7 +124,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
         
         setNpcPositions(prev => ({
           ...prev,
-          [npcName]: defaultPosition
+          [npcId]: defaultPosition
         }));
       }
     }
@@ -184,22 +174,29 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
         return;
       }
       
-      // 이미 로드한 기본 철학자 정보가 있다면 재활용
+      // 이미 로드한 기본 철학자 정보가 있다면 사용
       const existingPhil = philosophers.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
-      if (existingPhil && existingPhil.description) {
+      if (existingPhil) {
         setSelectedPhilosopherDetails(existingPhil);
         setShowPhilosopherDetails(true);
         return;
       }
       
-      // API 호출로 상세정보 가져오기
-      const response = await fetch(`http://localhost:8000/api/philosophers/${philosopherId}`);
+      // 정적 JSON 파일에서 직접 찾기 (백업)
+      const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        setSelectedPhilosopherDetails(data);
-        setShowPhilosopherDetails(true);
+        const philosopher = data.philosophers.find((p: any) => 
+          p.id.toLowerCase() === philosopherId.toLowerCase()
+        );
+        if (philosopher) {
+          setSelectedPhilosopherDetails(philosopher);
+          setShowPhilosopherDetails(true);
+        } else {
+          console.error(`Philosopher '${philosopherId}' not found in data`);
+        }
       } else {
-        console.error(`Failed to fetch details for philosopher: ${philosopherId}`);
+        console.error(`Failed to load philosopher data from static file`);
       }
     } catch (error) {
       console.error('Error fetching philosopher details:', error);
@@ -294,6 +291,55 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   if (!isOpen) {
     return null;
   }
+
+  // Generate default avatar
+  const getDefaultAvatar = (name: string) => {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128`;
+  };
+
+  // Generate philosopher portrait path from static files
+  const getPhilosopherPortraitPath = (philosopherName: string): string => {
+    // Map philosopher names to actual file names (using last names mostly)
+    const nameMapping: Record<string, string> = {
+      'socrates': 'Socrates',
+      'plato': 'Plato', 
+      'aristotle': 'Aristotle',
+      'immanuel kant': 'Kant',
+      'kant': 'Kant',
+      'friedrich nietzsche': 'Nietzsche',
+      'nietzsche': 'Nietzsche',
+      'jean-paul sartre': 'Sartre',
+      'sartre': 'Sartre',
+      'albert camus': 'Camus',
+      'camus': 'Camus',
+      'simone de beauvoir': 'Beauvoir',
+      'beauvoir': 'Beauvoir',
+      'karl marx': 'Marx',
+      'marx': 'Marx',
+      'jean-jacques rousseau': 'Rousseau',
+      'rousseau': 'Rousseau',
+      'confucius': 'Confucius',
+      'laozi': 'Laozi',
+      'buddha': 'Buddha',
+      'georg wilhelm friedrich hegel': 'Hegel',
+      'hegel': 'Hegel',
+      'ludwig wittgenstein': 'Wittgenstein',
+      'wittgenstein': 'Wittgenstein'
+    };
+    
+    const normalizedName = philosopherName.toLowerCase().trim();
+    const fileName = nameMapping[normalizedName];
+    
+    if (fileName) {
+      return `/philosophers_portraits/${fileName}.png`;
+    }
+    
+    // Fallback: use capitalized last word as filename
+    const words = philosopherName.split(' ');
+    const lastName = words[words.length - 1];
+    const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
+    return `/philosophers_portraits/${capitalizedLastName}.png`;
+  };
 
   return (
     <>
@@ -735,7 +781,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                         >
                           <div className="moderator-card-content">
                             <img
-                              src={`/portraits/Moderator${style.id}.png`}
+                              src={`/moderator_portraits/Moderator${style.id}.png`}
                               alt={style.name}
                               className="moderator-image"
                             />
@@ -758,16 +804,19 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                     </h3>
                     <div className="flex flex-wrap gap-4">
                       {[...selectedPhilosophers, ...selectedCustomNpcs].map(npcId => {
-                        const npc = [...philosophers, ...customNpcs].find(p => p.id === npcId || p.name === npcId);
+                        const npc = [...philosophers, ...customNpcs].find(p => p.id === npcId);
                         if (!npc) return null;
                         
                         return (
                           <div key={npcId} className="selected-philosopher-container">
                             <div className="selected-philosopher-image-wrapper">
                               <img
-                                src={npc.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=64`}
+                                src={npc.portrait_url || getPhilosopherPortraitPath(npc.name)}
                                 alt={npc.name}
                                 className="philosopher-image-medium"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=64`;
+                                }}
                               />
                               <button
                                 onClick={() => {
@@ -834,9 +883,12 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                             onClick={() => toggleCustomNpc(npc.id)}
                           >
                             <img
-                              src={npc.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=32`}
+                              src={npc.portrait_url || getPhilosopherPortraitPath(npc.name)}
                               alt={npc.name}
                               className="philosopher-image-small"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=32`;
+                              }}
                             />
                             <span className="philosopher-card-name">{npc.name}</span>
                           </div>
@@ -873,9 +925,12 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                           onClick={() => togglePhilosopher(philosopher.id)}
                         >
                           <img
-                            src={philosopher.portrait_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`}
+                            src={philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)}
                             alt={philosopher.name}
                             className="philosopher-image-small"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
+                            }}
                           />
                           <span className="philosopher-card-name">{philosopher.name}</span>
                         </div>
