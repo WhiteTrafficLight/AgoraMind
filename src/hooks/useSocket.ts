@@ -75,7 +75,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     }
 
     // 새로운 연결이 필요한 경우에만 생성
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     
     console.log('🔌 Creating new Socket.IO connection to:', backendUrl);
     
