@@ -91,7 +91,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       }
 
       // 백엔드 업로드 API 호출
-      const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await fetch(`${backendUrl}/api/upload/upload/${category}`, {
         method: 'POST',
         body: formData,
