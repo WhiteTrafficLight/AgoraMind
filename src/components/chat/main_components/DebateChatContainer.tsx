@@ -74,13 +74,13 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
       
       return {
         name: style?.name || 'Jamie the Host',
-        profileImage: `/portraits/Moderator${moderatorConfig.style_id}.png`
+        profileImage: `/moderator_portraits/Moderator${moderatorConfig.style_id}.png`
       };
     }
     
     return {
       name: 'Jamie the Host',
-      profileImage: '/portraits/Moderator0.png'
+      profileImage: '/moderator_portraits/Moderator0.png'
     };
   }, [room]);
 
@@ -257,6 +257,50 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`;
   };
 
+  // Generate philosopher portrait path from static files (DebateTopicModal.tsx와 동일한 함수)
+  const getPhilosopherPortraitPath = (philosopherName: string): string => {
+    // Map philosopher names to actual file names (using last names mostly)
+    const nameMapping: Record<string, string> = {
+      'socrates': 'Socrates',
+      'plato': 'Plato', 
+      'aristotle': 'Aristotle',
+      'immanuel kant': 'Kant',
+      'kant': 'Kant',
+      'friedrich nietzsche': 'Nietzsche',
+      'nietzsche': 'Nietzsche',
+      'jean-paul sartre': 'Sartre',
+      'sartre': 'Sartre',
+      'albert camus': 'Camus',
+      'camus': 'Camus',
+      'simone de beauvoir': 'Beauvoir',
+      'beauvoir': 'Beauvoir',
+      'karl marx': 'Marx',
+      'marx': 'Marx',
+      'jean-jacques rousseau': 'Rousseau',
+      'rousseau': 'Rousseau',
+      'confucius': 'Confucius',
+      'laozi': 'Laozi',
+      'buddha': 'Buddha',
+      'georg wilhelm friedrich hegel': 'Hegel',
+      'hegel': 'Hegel',
+      'ludwig wittgenstein': 'Wittgenstein',
+      'wittgenstein': 'Wittgenstein'
+    };
+    
+    const normalizedName = philosopherName.toLowerCase().trim();
+    const fileName = nameMapping[normalizedName];
+    
+    if (fileName) {
+      return `/philosophers_portraits/${fileName}.png`;
+    }
+    
+    // Fallback: use capitalized last word as filename
+    const words = philosopherName.split(' ');
+    const lastName = words[words.length - 1];
+    const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
+    return `/philosophers_portraits/${capitalizedLastName}.png`;
+  };
+
   const getNpcProfileImage = (npcId: string): string => {
     if (npcId === 'Moderator' || npcId === 'moderator') {
       return moderatorInfo.profileImage;
@@ -266,7 +310,8 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (npc && npc.portrait_url) {
       return npc.portrait_url;
     }
-    return `/portraits/${npcId}.png`;
+    // 철학자 포트레이트 경로 사용 (DebateTopicModal.tsx와 동일)
+    return getPhilosopherPortraitPath(npcId);
   };
 
   const getProfileImage = (id: string, isUser: boolean): string => {
