@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Socket } from 'socket.io-client';
 import { toast } from 'react-hot-toast';
 import chatService, { ChatRoom as ServiceChatRoom } from '@/lib/ai/chatService';
-import { useSocket } from '@/hooks/useSocket';
 import { 
   ChatRoom, 
   Philosopher, 
@@ -22,7 +20,7 @@ const convertChatRoom = (room: ServiceChatRoom): ChatRoom => {
 export function useOpenChatState() {
   const router = useRouter();
   
-  // Core state
+  // Core state - completely removed socketConnected since we don't need Socket.IO
   const [state, setState] = useState<OpenChatState>({
     activeChats: [],
     isLoading: true,
@@ -31,7 +29,7 @@ export function useOpenChatState() {
     showParticipants: null,
     showCreateChatModal: false,
     chatToJoin: null,
-    socketConnected: false,
+    socketConnected: false, // Keep for compatibility with types but won't be used
     username: '',
     philosophers: [],
     customNpcs: []
@@ -39,27 +37,14 @@ export function useOpenChatState() {
   
   const [isCreating, setIsCreating] = useState(false);
 
-  // Socket.IO client connection
-  const { socket, isConnected: socketConnected } = useSocket({
-    onConnect: () => {
-      console.log('✅ Socket.IO connected in open chat!');
-      updateState({ socketConnected: true });
-    },
-    onDisconnect: () => {
-      console.log('🔌 Socket.IO disconnected in open chat');
-      updateState({ socketConnected: false });
-    }
-  });
+  // Refs for avoiding stale closures
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
-  // Update individual state properties
+  // Update state helper
   const updateState = (updates: Partial<OpenChatState>) => {
     setState(prev => ({ ...prev, ...updates }));
   };
-
-  // Update socket connection state
-  useEffect(() => {
-    updateState({ socketConnected });
-  }, [socketConnected]);
 
   // Load chat rooms
   const loadChatRooms = async () => {
@@ -113,13 +98,19 @@ export function useOpenChatState() {
   // Fetch philosophers
   const fetchPhilosophers = async () => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const response = await fetch(`${backendUrl}/api/philosophers`);
+      // Load from static JSON file instead of backend API
+      const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
         updateState({ philosophers: data.philosophers || [] });
       } else {
-        console.error('Failed to fetch philosophers');
+        console.error('Failed to fetch philosophers from static file');
+        // Fallback to basic list
+        const basicPhilosophers = [
+          'Socrates', 'Plato', 'Aristotle', 'Kant', 'Nietzsche', 
+          'Sartre', 'Camus', 'Simone de Beauvoir', 'Marx', 'Rousseau'
+        ].map(name => ({ id: name.toLowerCase(), name }));
+        updateState({ philosophers: basicPhilosophers });
       }
     } catch (error) {
       console.error('Error fetching philosophers:', error);
@@ -135,14 +126,9 @@ export function useOpenChatState() {
   // Fetch custom NPCs
   const fetchCustomNpcs = async () => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      const response = await fetch(`${backendUrl}/api/npc/list`);
-      if (response.ok) {
-        const data = await response.json();
-        updateState({ customNpcs: data.npcs || [] });
-      } else {
-        console.error('Failed to fetch custom NPCs');
-      }
+      // Disabled custom NPCs backend API - using empty array for now
+      console.log('Custom NPCs backend API disabled - using static philosopher data only');
+      updateState({ customNpcs: [] });
     } catch (error) {
       console.error('Error fetching custom NPCs:', error);
       updateState({ customNpcs: [] });
@@ -199,20 +185,29 @@ export function useOpenChatState() {
     init();
   }, []);
 
-  // Periodic refresh
+  // Periodic refresh - removed socket dependency
   useEffect(() => {
     const intervalId = setInterval(() => {
-      if (state.socketConnected && !state.isLoading && !state.showCreateChatModal) {
+      if (!state.isLoading && !state.showCreateChatModal) {
         loadChatRooms();
       }
     }, 60000); // 1분마다
     
     return () => clearInterval(intervalId);
-  }, [state.socketConnected, state.isLoading, state.showCreateChatModal]);
+  }, [state.isLoading, state.showCreateChatModal]);
 
   return {
-    // State
-    ...state,
+    // State - removed socketConnected from return
+    activeChats: state.activeChats,
+    isLoading: state.isLoading,
+    searchQuery: state.searchQuery,
+    activeTab: state.activeTab,
+    showParticipants: state.showParticipants,
+    showCreateChatModal: state.showCreateChatModal,
+    chatToJoin: state.chatToJoin,
+    username: state.username,
+    philosophers: state.philosophers,
+    customNpcs: state.customNpcs,
     isCreating,
     
     // Actions
@@ -221,7 +216,6 @@ export function useOpenChatState() {
     handleCreateChat,
     handleJoinChat,
     
-    // Socket
-    socket,
+    // Socket removed - no longer needed for open-chat page
   };
 } 

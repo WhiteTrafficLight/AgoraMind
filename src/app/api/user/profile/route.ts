@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       id: user._id,
       username: user.username,
-      email: user.email,
+      // email: user.email,  // ❌ 보안상 이메일 제거 (개발자툴 노출 방지)
       bio: user.bio || '',
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -78,7 +78,7 @@ export async function PUT(req: NextRequest) {
       user: {
         id: updatedUser._id,
         username: updatedUser.username,
-        email: updatedUser.email,
+        // email: updatedUser.email,  // ❌ 보안상 이메일 제거 (개발자툴 노출 방지)
         bio: updatedUser.bio || '',
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,

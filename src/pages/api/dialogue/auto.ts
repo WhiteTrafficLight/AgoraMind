@@ -38,7 +38,7 @@ const chatRoomSchema = new mongoose.Schema({
 });
 
 // 파이썬 백엔드 URL - 환경 변수에서 가져오거나 기본값 사용
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_API_URL || 'http://localhost:8000';
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.BACKEND_API_URL || 'http://localhost:8000';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponseWithIO) {
   console.log(`🔄 [API] /api/dialogue/auto 요청 받음: ${req.method}`);

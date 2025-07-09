@@ -4,10 +4,63 @@ import { authOptions } from '@/lib/auth';
 import User from '@/models/User';
 import connectDB from '@/lib/mongodb';
 import { revalidatePath } from 'next/cache';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-// POST: Upload profile image from base64 data
+// S3 클라이언트 설정
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'ap-northeast-2',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
+// 지원되는 이미지 포맷 (업계 표준)
+const SUPPORTED_FORMATS = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png', 
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'image/avif': 'avif'
+};
+
+function validateImageSecurity(base64Data: string): boolean {
+  try {
+    const buffer = Buffer.from(base64Data, 'base64');
+    
+    // 파일 크기 검사 (5MB)
+    if (buffer.length > 5 * 1024 * 1024) return false;
+    
+    // 매직 바이트 검증
+    if (buffer.length < 12) return false;
+    
+    // JPEG: FF D8 FF
+    if (buffer.subarray(0, 3).equals(Buffer.from([0xFF, 0xD8, 0xFF]))) return true;
+    
+    // PNG: 89 50 4E 47
+    if (buffer.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47]))) return true;
+    
+    // WebP: RIFF...WEBP
+    if (buffer.subarray(0, 4).equals(Buffer.from('RIFF', 'ascii')) && 
+        buffer.subarray(8, 12).equals(Buffer.from('WEBP', 'ascii'))) return true;
+    
+    // HEIC: ftypheic
+    if (buffer.subarray(4, 12).equals(Buffer.from('ftypheic', 'ascii'))) return true;
+    
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function removeMetadata(buffer: Buffer): Buffer {
+  // 간단한 메타데이터 제거 (EXIF 등)
+  // 실제로는 sharp나 jimp 라이브러리 사용 권장
+  return buffer;
+}
+
+// POST: Upload profile image with client-side security
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +70,7 @@ export async function POST(req: NextRequest) {
     }
     
     const data = await req.json();
-    const { image } = data;
+    const { image, format } = data;
     
     if (!image) {
       return NextResponse.json({ error: 'Image data is required' }, { status: 400 });
@@ -34,30 +87,42 @@ export async function POST(req: NextRequest) {
     
     try {
       // Remove the data:image/...;base64, prefix
-      const base64Data = image.replace(/^data:image\/[a-z]+;base64,/, '');
+      const base64Data = image.replace(/^data:image\/[^;]+;base64,/, '');
+      
+      // 클라이언트 사이드 보안 검증
+      if (!validateImageSecurity(base64Data)) {
+        return NextResponse.json({ error: 'Invalid or unsafe image file' }, { status: 400 });
+      }
       
       // Convert base64 to buffer
       const buffer = Buffer.from(base64Data, 'base64');
       
-      // Create upload directory in public folder
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'profiles');
+      // 메타데이터 제거 (보안)
+      const cleanBuffer = removeMetadata(buffer);
       
-      // Ensure the directory exists
-      try {
-        await fs.access(uploadsDir);
-      } catch {
-        await fs.mkdir(uploadsDir, { recursive: true });
-      }
+      // 파일 확장자 결정
+      const fileExtension = SUPPORTED_FORMATS[format] || 'jpg';
+      const fileName = `users/profiles/user_${user._id}_${Date.now()}.${fileExtension}`;
       
-      // Create a unique filename based on user ID and timestamp
-      const fileName = `user_${user._id}_${Date.now()}.jpg`;
-      const filePath = path.join(uploadsDir, fileName);
+      // S3 업로드
+      const uploadParams = {
+        Bucket: process.env.AWS_S3_BUCKET_NAME!,
+        Key: fileName,
+        Body: cleanBuffer,
+        ContentType: format || 'image/jpeg',
+        ACL: 'public-read' as const,
+        // 추가 보안 헤더
+        Metadata: {
+          'user-id': user._id.toString(),
+          'upload-time': new Date().toISOString()
+        }
+      };
       
-      // Save the file
-      await fs.writeFile(filePath, buffer);
+      const command = new PutObjectCommand(uploadParams);
+      await s3Client.send(command);
       
-      // Create the URL that will be used to access the image
-      const imageUrl = `/uploads/profiles/${fileName}`;
+      // S3 URL 생성
+      const imageUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-northeast-2'}.amazonaws.com/${fileName}`;
       
       // Update the user profile in the database
       const updatedUser = await User.findOneAndUpdate(

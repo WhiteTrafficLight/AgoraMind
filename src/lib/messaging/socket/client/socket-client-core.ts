@@ -10,7 +10,7 @@ export class SocketClientCore {
   private username: string | null = null;
 
   // 소켓 연결 초기화
-  async connect(url: string = '/api/socket'): Promise<Socket> {
+  async connect(url: string = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'): Promise<Socket> {
     try {
       console.log('🔌 Initializing Socket.IO connection...');
       console.log('🔌 Connection URL:', url);
@@ -28,11 +28,11 @@ export class SocketClientCore {
         this.socket = null;
       }
 
-      // Socket.IO 클라이언트 생성 - 기존과 동일한 설정
+      // Socket.IO 클라이언트 생성 - 백엔드와 일치하는 설정
       console.log('🔧 Creating new Socket.IO instance...');
-      this.socket = io({
-        path: '/api/socket/io',  // 기존과 동일한 경로로 변경
-        transports: ['websocket', 'polling'], // WebSocket 다시 활성화
+      this.socket = io(url, {
+        path: '/socket.io/',  // 백엔드와 일치하는 기본 경로
+        transports: ['polling', 'websocket'], // polling 우선
         autoConnect: false, // 수동 연결
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,
