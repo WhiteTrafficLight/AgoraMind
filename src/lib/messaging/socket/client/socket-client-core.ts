@@ -10,7 +10,7 @@ export class SocketClientCore {
   private username: string | null = null;
 
   // 소켓 연결 초기화
-  async connect(url: string = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'): Promise<Socket> {
+  async connect(url: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'): Promise<Socket> {
     try {
       console.log('🔌 Initializing Socket.IO connection...');
       console.log('🔌 Connection URL:', url);
