@@ -310,7 +310,8 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
     console.log(`🎯 Next 버튼 클릭 - 방 ${room.id}에 대한 다음 메시지 요청`);
     
     try {
-      const response = await fetch(`http://localhost:8000/api/chat/debate/${room.id}/next-message`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiUrl}/api/chat/debate/${room.id}/next-message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
