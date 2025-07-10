@@ -5,6 +5,7 @@ import PhilosopherDetailsModal from './PhilosopherDetailsModal';
 import { ChatRoomCreationParams, Philosopher } from '../types/openChat.types';
 import { chatService } from '@/lib/ai/chatService';
 import { useRouter } from 'next/navigation';
+import { loggers } from '@/utils/logger';
 
 interface DebateTopicModalProps {
   isOpen: boolean;
@@ -61,22 +62,22 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
         const response = await fetch('/api/user/profile');
         if (response.ok) {
           const profileData = await response.json();
-          console.log('Profile data received in DebateTopicModal:', profileData);
+          loggers.auth.debug('Profile data received in DebateTopicModal', profileData);
           
           if (profileData && (profileData.profileImage || profileData.profilePicture)) {
             const profileImageUrl = profileData.profileImage || profileData.profilePicture;
-            console.log('Setting profile image:', profileImageUrl);
+            loggers.auth.debug('Setting profile image', { profileImageUrl });
             setUserProfilePicture(profileImageUrl);
           } else {
-            console.log('No profile image found, using default avatar');
+            loggers.auth.info('No profile image found, using default avatar');
             setUserProfilePicture(getDefaultAvatar(storedUsername || 'You'));
           }
         } else {
-          console.error('Error response from profile API:', response.status);
+          loggers.auth.error('Error response from profile API', { status: response.status });
           setUserProfilePicture(getDefaultAvatar(storedUsername || 'You'));
         }
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        loggers.auth.error('Error fetching user profile', error);
         setUserProfilePicture(getDefaultAvatar(storedUsername || 'You'));
       }
     };
@@ -209,18 +210,18 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
         username: username || sessionStorage.getItem('chat_username') || 'Anonymous'
       };
 
-      console.log('Creating debate room with params:', chatParams);
+      loggers.chat.debug('Creating debate room with params', chatParams);
 
       // Create the chat room
       const newChat = await chatService.createChatRoom(chatParams);
-      console.log('Debate room creation response:', newChat);
+      loggers.chat.info('Debate room creation response', newChat);
 
       // Close modal and navigate to chat
       onClose();
       router.push(`/chat?id=${newChat.id}`);
 
     } catch (error) {
-      console.error('Failed to create debate room:', error);
+      loggers.chat.error('Failed to create debate room', error);
       alert('Failed to create debate room. Please try again.');
     } finally {
       setIsCreating(false);
@@ -279,13 +280,13 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
           setSelectedPhilosopherDetails(philosopher);
           setShowPhilosopherDetails(true);
         } else {
-          console.error(`Philosopher '${philosopherId}' not found in data`);
+          loggers.ui.error(`Philosopher '${philosopherId}' not found in data`);
         }
       } else {
-        console.error(`Failed to load philosopher data from static file`);
+        loggers.ui.error('Failed to load philosopher data from static file');
       }
     } catch (error) {
-      console.error('Error fetching philosopher details:', error);
+      loggers.ui.error('Error fetching philosopher details', error);
     }
   };
 

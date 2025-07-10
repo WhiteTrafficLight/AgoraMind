@@ -1,5 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { BaseMessage, SocketEvents } from '../../types/common.types';
+import { loggers } from '@/utils/logger';
 
 export class SocketClientCore {
   private socket: Socket | null = null;
@@ -12,24 +13,26 @@ export class SocketClientCore {
   // 소켓 연결 초기화
   async connect(url: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'): Promise<Socket> {
     try {
-      console.log('🔌 Initializing Socket.IO connection...');
-      console.log('🔌 Connection URL:', url);
-      console.log('🔌 Current location:', window.location.origin);
+      loggers.socket.info('Initializing Socket.IO connection');
+      loggers.socket.debug('Connection details', { 
+        url, 
+        currentLocation: typeof window !== 'undefined' ? window.location.origin : 'SSR'
+      });
 
       if (this.socket?.connected) {
-        console.log('✅ Socket already connected');
+        loggers.socket.info('Socket already connected');
         return this.socket;
       }
 
       // 기존 소켓이 있다면 정리
       if (this.socket) {
-        console.log('🧹 Cleaning up existing socket');
+        loggers.socket.debug('Cleaning up existing socket');
         this.socket.disconnect();
         this.socket = null;
       }
 
       // Socket.IO 클라이언트 생성 - 백엔드와 일치하는 설정
-      console.log('🔧 Creating new Socket.IO instance...');
+      loggers.socket.debug('Creating new Socket.IO instance');
       this.socket = io(url, {
         path: '/socket.io/',  // 백엔드와 일치하는 기본 경로
         transports: ['polling', 'websocket'], // polling 우선
@@ -44,23 +47,23 @@ export class SocketClientCore {
         withCredentials: false
       });
 
-      console.log('📡 Socket.IO instance created, setting up events...');
+      loggers.socket.debug('Socket.IO instance created, setting up events');
 
       // 연결 이벤트 설정
       this.setupConnectionEvents();
 
       // 수동으로 연결 시작
-      console.log('⏳ Starting connection...');
+      loggers.socket.info('Starting connection');
       this.socket.connect();
 
       // 연결 대기
       await this.waitForConnection();
 
-      console.log('✅ Socket.IO connection established (polling)');
+      loggers.socket.info('Socket.IO connection established (polling)');
       return this.socket;
 
     } catch (error) {
-      console.error('❌ Socket connection failed:', error);
+      loggers.socket.error('Socket connection failed', error);
       throw error;
     }
   }
@@ -86,7 +89,7 @@ export class SocketClientCore {
       };
 
       const errorHandler = (error: any) => {
-        console.error('Connection error:', error);
+        loggers.socket.error('Connection error during wait', error);
         reject(error);
       };
 
@@ -109,7 +112,7 @@ export class SocketClientCore {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('✅ Socket connected:', this.socket?.id);
+      loggers.socket.info('Socket connected', { socketId: this.socket?.id });
       this.isConnected = true;
       this.reconnectAttempts = 0;
 
@@ -120,28 +123,28 @@ export class SocketClientCore {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('❌ Socket disconnected:', reason);
+      loggers.socket.warn('Socket disconnected', { reason });
       this.isConnected = false;
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`🔄 Socket reconnected (attempt ${attemptNumber})`);
+      loggers.socket.info(`Socket reconnected after ${attemptNumber} attempts`);
       this.isConnected = true;
     });
 
     this.socket.on('reconnect_error', (error) => {
       this.reconnectAttempts++;
-      console.error(`❌ Reconnection attempt ${this.reconnectAttempts} failed:`, error);
+      loggers.socket.error(`Reconnection attempt ${this.reconnectAttempts} failed`, error);
     });
 
     this.socket.on('reconnect_failed', () => {
-      console.error(`❌ All reconnection attempts failed (${this.maxReconnectAttempts})`);
+      loggers.socket.error(`All reconnection attempts failed (${this.maxReconnectAttempts})`);
       this.isConnected = false;
     });
 
     this.socket.on('connect_error', (error: any) => {
-      console.error('❌ Socket connection error:', error.message || error);
-      console.error('Error details:', {
+      loggers.socket.error('Socket connection error', {
+        message: error.message || error,
         type: error.type || 'unknown',
         description: error.description || 'No description',
         context: error.context || 'No context',
@@ -150,30 +153,32 @@ export class SocketClientCore {
     });
 
     this.socket.on('error', (error) => {
-      console.error('❌ Socket general error:', error);
+      loggers.socket.error('Socket general error', error);
     });
 
     // Transport 관련 이벤트
     this.socket.on('connect', () => {
-      console.log(`🚀 Connected via transport: ${this.socket?.io?.engine?.transport?.name}`);
+      loggers.socket.info('Connected via transport', { 
+        transport: this.socket?.io?.engine?.transport?.name 
+      });
     });
 
     this.socket.io.on('error', (error) => {
-      console.error('❌ Socket.IO engine error:', error);
+      loggers.socket.error('Socket.IO engine error', error);
     });
   }
 
   // 방 입장
   joinRoom(roomId: string, username: string): void {
     if (!this.socket || !this.isConnected) {
-      console.warn('❌ Cannot join room: Socket not connected');
+      loggers.socket.warn('Cannot join room: Socket not connected', { roomId, username });
       return;
     }
 
     this.roomId = roomId;
     this.username = username;
 
-    console.log(`👤 Joining room ${roomId} as ${username}`);
+    loggers.socket.info('Joining room', { roomId, username });
     
     this.socket.emit('join-room', {
       roomId,
@@ -188,7 +193,7 @@ export class SocketClientCore {
   leaveRoom(roomId: string, username: string): void {
     if (!this.socket) return;
 
-    console.log(`👋 Leaving room ${roomId}`);
+    loggers.socket.info('Leaving room', { roomId, username });
     
     this.socket.emit('leave-room', {
       roomId,
@@ -202,11 +207,11 @@ export class SocketClientCore {
   // 메시지 전송
   sendMessage(roomId: string, message: string, sender: string): void {
     if (!this.socket || !this.isConnected) {
-      console.warn('❌ Cannot send message: Socket not connected');
+      loggers.socket.warn('Cannot send message: Socket not connected', { roomId, sender });
       return;
     }
 
-    console.log(`📨 메시지 전송: ${roomId}, 발신자: ${sender}`);
+    loggers.socket.debug('Sending message', { roomId, sender, messageLength: message.length });
     this.socket.emit('send-message', {
       roomId,
       message,
@@ -229,7 +234,7 @@ export class SocketClientCore {
   // 이벤트 발송
   emit(event: string, data: any): void {
     if (!this.socket || !this.isConnected) {
-      console.warn(`❌ Cannot emit ${event}: Socket not connected`);
+      loggers.socket.warn(`Cannot emit ${event}: Socket not connected`);
       return;
     }
     this.socket.emit(event, data);
@@ -248,7 +253,7 @@ export class SocketClientCore {
   // 연결 해제
   disconnect(): void {
     if (this.socket) {
-      console.log('🔌 Disconnecting socket...');
+      loggers.socket.info('Disconnecting socket');
       this.socket.disconnect();
       this.socket = null;
       this.isConnected = false;

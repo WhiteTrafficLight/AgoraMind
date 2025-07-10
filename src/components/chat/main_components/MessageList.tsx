@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowDownCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import TypingMessage from '../TypingMessage';
+import { loggers } from '@/utils/logger';
 
 interface MessageListProps {
   messages: any[];
@@ -111,8 +112,8 @@ const MessageList: React.FC<MessageListProps> = ({
   isGeneratingNext
 }) => {
   const renderRagTooltip = (message: any) => {
-    // RAG 정보 로깅
-    console.log('🔍 RAG Tooltip 데이터:', {
+    // RAG information logging
+    loggers.rag.debug('RAG Tooltip data', {
       rag_used: message.rag_used,
       rag_source_count: message.rag_source_count,
       rag_sources: message.rag_sources,
@@ -130,7 +131,7 @@ const MessageList: React.FC<MessageListProps> = ({
     }
 
     const handleSourceClick = (source: any) => {
-      console.log('🔗 Source clicked:', source);
+      loggers.rag.info('Source clicked', source);
       
       if (hasCitations) {
         // citations 구조: { title, url }
@@ -138,7 +139,7 @@ const MessageList: React.FC<MessageListProps> = ({
           try {
             window.open(source.url, '_blank', 'noopener,noreferrer');
           } catch (error) {
-            console.error('Failed to open URL:', error);
+            loggers.rag.error('Failed to open URL', error);
           }
         }
       } else {
@@ -147,10 +148,10 @@ const MessageList: React.FC<MessageListProps> = ({
           try {
             window.open(source.metadata.url, '_blank', 'noopener,noreferrer');
           } catch (error) {
-            console.error('Failed to open URL:', error);
+            loggers.rag.error('Failed to open web URL', error);
           }
         } else if (source.type === 'context' && source.metadata?.file_path) {
-          console.log('Context file:', source.metadata.file_path);
+          loggers.rag.info('Context file accessed', { filePath: source.metadata.file_path });
         }
       }
     };

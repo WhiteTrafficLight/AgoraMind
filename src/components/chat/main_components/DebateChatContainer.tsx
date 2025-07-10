@@ -8,6 +8,7 @@ import MessageInput from './MessageInput';
 import ParticipantGrid from './ParticipantGrid';
 import MessageList from './MessageList';
 import { DebateChatContainerProps, ChatMessage, ParticipantInfo } from '../main_types/debate.types';
+import { loggers } from '@/utils/logger';
 
 const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   room,
@@ -97,7 +98,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
         }
       }
     } catch (error: any) {
-      console.error('Error fetching user profile:', error);
+      loggers.auth.error('사용자 프로필 가져오기 실패', error);
     }
   };
 
@@ -126,7 +127,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
             details[npcId] = npcDetail;
           }
         } catch (error) {
-          console.error(`Error loading NPC details for ${npcId}:`, error);
+          loggers.npc.error(`NPC 세부정보 로드 실패: ${npcId}`, error);
         }
       }
       
@@ -174,7 +175,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (waitingForUserInput && inputRef.current) {
       setTimeout(() => {
         inputRef.current?.focus();
-        console.log('🎯 Auto-focused input for user turn');
+        loggers.ui.info('사용자 턴에서 입력창 자동 포커스');
       }, 300); // 약간의 지연을 주어 렌더링 완료 후 포커스
     }
   }, [waitingForUserInput]);
@@ -185,11 +186,16 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (messageText.trim() && !isInputDisabled) {
       // 사용자 차례인 경우 onProcessUserMessage 사용
       if (waitingForUserInput && currentUserTurn && onProcessUserMessage) {
-        console.log('🎯 Processing user message via onProcessUserMessage');
+        loggers.chat.info('사용자 메시지를 onProcessUserMessage로 처리', { 
+          messageLength: messageText.trim().length,
+          userTurn: currentUserTurn 
+        });
         onProcessUserMessage(messageText.trim());
       } else {
         // 일반적인 경우 기존 로직 사용
-        console.log('📤 Sending message via onSendMessage');
+        loggers.chat.info('메시지를 onSendMessage로 전송', { 
+          messageLength: messageText.trim().length 
+        });
         onSendMessage(messageText.trim());
       }
       setMessageText('');
@@ -201,12 +207,12 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (isGeneratingNext || !onRequestNextMessage) return;
     
     setIsGeneratingNext(true);
-    console.log(`Next 버튼 클릭 - 방 ${room.id}에 대한 다음 메시지 요청`);
+    loggers.chat.info(`Next 버튼 클릭 - 방에 대한 다음 메시지 요청`, { roomId: room.id });
     
     try {
       await onRequestNextMessage();
     } catch (error) {
-      console.error('Next 메시지 요청 중 오류:', error);
+      loggers.chat.error('Next 메시지 요청 중 오류', error);
     } finally {
       setIsGeneratingNext(false);
     }

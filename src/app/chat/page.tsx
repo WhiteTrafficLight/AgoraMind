@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import DebateChatContainer from '@/components/chat/main_components/DebateChatContainer';
 import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 import { useSocket } from '@/hooks/useSocket';
+import { loggers } from '@/utils/logger';
 
 function ChatContent() {
   const router = useRouter();
@@ -25,25 +26,32 @@ function ChatContent() {
     roomId: chatData?.id ? String(chatData.id) : undefined,
     userId: username,
     onConnect: () => {
-      console.log('✅ [V2] Socket connected to backend server');
+      loggers.socket.info('V2 소켓이 백엔드 서버에 연결됨');
     },
     onDisconnect: () => {
-      console.log('🔌 [V2] Socket disconnected from backend server');
+      loggers.socket.info('V2 소켓이 백엔드 서버에서 연결 해제됨');
     },
     onMessage: async (data: { roomId: string, message: ChatMessage }) => {
-      console.log('🎯 [V2] 소켓 이벤트 수신: new-message');
-      console.log('🎯 [V2] 수신 데이터:', JSON.stringify(data).substring(0, 300));
-      console.log('🎯 [V2] 현재 방 ID:', String(chatData?.id));
-      console.log('🎯 [V2] 수신된 방 ID:', String(data.roomId));
+      loggers.chat.debug('소켓 이벤트 수신: new-message');
+      loggers.chat.debug('수신 데이터', { 
+        roomId: data.roomId, 
+        messagePreview: JSON.stringify(data).substring(0, 300) 
+      });
+      loggers.chat.debug('방 ID 비교', { 
+        currentRoomId: String(chatData?.id), 
+        receivedRoomId: String(data.roomId) 
+      });
       
       // 현재 방의 메시지인지 확인
       const currentRoomId = String(chatData?.id);
       const receivedRoomId = String(data.roomId);
       
       if (currentRoomId === receivedRoomId && data.message) {
-        console.log('✅ [V2] 방 ID 일치! 메시지를 DB에 저장 후 UI에 업데이트');
-        console.log('✅ [V2] 메시지 내용:', data.message.text?.substring(0, 100));
-        console.log('✅ [V2] 이벤트 타입:', data.message.metadata?.event_type);
+        loggers.chat.info('방 ID 일치! 메시지를 DB에 저장 후 UI에 업데이트');
+        loggers.chat.debug('메시지 내용', { 
+          preview: data.message.text?.substring(0, 100),
+          eventType: data.message.metadata?.event_type 
+        });
         
         // 완성된 메시지인지 확인
         const isCompleteMessage = data.message.metadata?.event_type === 'debate_message_complete';
@@ -52,7 +60,9 @@ function ChatContent() {
         try {
           // 1. DB에 메시지 저장 (완성된 AI 메시지 또는 사용자 메시지)
           if (isCompleteMessage || isUserMessage) {
-            console.log('💾 [V2] 메시지 DB 저장 시작...', isUserMessage ? '(사용자 메시지)' : '(AI 메시지)');
+            loggers.db.info('메시지 DB 저장 시작', { 
+              messageType: isUserMessage ? '사용자 메시지' : 'AI 메시지' 
+            });
             const saveResponse = await fetch('/api/messages', {
               method: 'POST',
               headers: {
@@ -68,10 +78,10 @@ function ChatContent() {
             });
             
             if (saveResponse.ok) {
-              console.log('✅ [V2] DB 저장 성공!');
+              loggers.db.info('DB 저장 성공');
             } else {
               const errorData = await saveResponse.json();
-              console.error('❌ [V2] DB 저장 실패:', errorData);
+              loggers.db.error('DB 저장 실패', errorData);
             }
           }
           
@@ -81,7 +91,7 @@ function ChatContent() {
             
             // 완성된 메시지인 경우 임시 생성 중 메시지를 교체
             if (isCompleteMessage) {
-              console.log('🔄 [V2] 임시 메시지를 완성된 메시지로 교체');
+              loggers.chat.debug('임시 메시지를 완성된 메시지로 교체');
               
               // 같은 발언자의 생성 중인 임시 메시지 찾기
               const messagesCopy = [...(prev.messages || [])];
@@ -101,8 +111,8 @@ function ChatContent() {
                   citations: data.message.metadata?.citations || []
                 };
                 messagesCopy[tempMessageIndex] = completeMessage;
-                console.log('✅ [V2] 임시 메시지 교체 완료');
-                console.log('🔍 [V2] RAG 정보:', {
+                loggers.chat.info('임시 메시지 교체 완료');
+                loggers.rag.debug('RAG 정보', {
                   rag_used: completeMessage.rag_used,
                   rag_source_count: completeMessage.rag_source_count,
                   rag_sources_length: completeMessage.rag_sources?.length || 0
@@ -114,7 +124,7 @@ function ChatContent() {
                 }, 100);
               } else {
                 // 임시 메시지가 없으면 새로 추가
-                console.log('⚠️ [V2] 임시 메시지를 찾을 수 없어 새로 추가');
+                loggers.chat.warn('임시 메시지를 찾을 수 없어 새로 추가');
                 const newMessage = {
                   ...data.message,
                   skipAnimation: false,
@@ -125,7 +135,7 @@ function ChatContent() {
                   citations: data.message.metadata?.citations || []
                 };
                 
-                console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
+                loggers.rag.debug('일반 메시지 RAG 정보', {
                   rag_used: newMessage.rag_used,
                   rag_source_count: newMessage.rag_source_count,
                   rag_sources_length: newMessage.rag_sources?.length || 0
@@ -140,7 +150,7 @@ function ChatContent() {
               };
             } else {
               // 일반 메시지인 경우 기존 로직 사용
-              console.log('🔄 [V2] 일반 메시지 추가');
+              loggers.chat.debug('일반 메시지 추가');
               const newMessage = {
                 ...data.message,
                 skipAnimation: false,
@@ -151,7 +161,7 @@ function ChatContent() {
                 citations: data.message.metadata?.citations || []
               };
               
-              console.log('🔍 [V2] 일반 메시지 RAG 정보:', {
+              loggers.rag.debug('일반 메시지 RAG 정보', {
                 rag_used: newMessage.rag_used,
                 rag_source_count: newMessage.rag_source_count,
                 rag_sources_length: newMessage.rag_sources?.length || 0
@@ -165,12 +175,15 @@ function ChatContent() {
           });
           
         } catch (error) {
-          console.error('❌ [V2] 메시지 처리 중 오류:', error);
+          loggers.chat.error('메시지 처리 중 오류', error);
         }
         
       } else {
-        console.log('❌ [V2] 방 ID 불일치 또는 메시지 없음');
-        console.log('❌ [V2] 현재 방:', currentRoomId, '수신 방:', receivedRoomId, '메시지 존재:', !!data.message);
+        loggers.chat.warn('방 ID 불일치 또는 메시지 없음', {
+          currentRoom: currentRoomId,
+          receivedRoom: receivedRoomId,
+          hasMessage: !!data.message
+        });
       }
     }
   });
@@ -194,14 +207,14 @@ function ChatContent() {
           const userDisplayName = userData.username || userData.name || `User_${Math.floor(Math.random() * 10000)}`;
           setUsername(userDisplayName);
           sessionStorage.setItem('chat_username', userDisplayName);
-          console.log('✅ V2: 사용자 정보 로드됨:', userDisplayName);
+          loggers.auth.info('V2 사용자 정보 로드됨', { username: userDisplayName });
         } else {
           const storedUsername = sessionStorage.getItem('chat_username') || `User_${Math.floor(Math.random() * 10000)}`;
           setUsername(storedUsername);
           sessionStorage.setItem('chat_username', storedUsername);
         }
       } catch (error) {
-        console.error('V2: 사용자 정보 로드 실패:', error);
+        loggers.auth.error('V2 사용자 정보 로드 실패', error);
         const fallbackUsername = `User_${Math.floor(Math.random() * 10000)}`;
         setUsername(fallbackUsername);
         sessionStorage.setItem('chat_username', fallbackUsername);
@@ -225,7 +238,7 @@ function ChatContent() {
     const chatId = chatIdParam;
     
     if (!chatId || chatId.trim() === '') {
-      console.error(`Invalid chat ID format: ${chatIdParam}`);
+      loggers.chat.error(`Invalid chat ID format: ${chatIdParam}`);
       setError('Invalid chat room ID format');
       setLoading(false);
       return;
@@ -236,16 +249,16 @@ function ChatContent() {
         setLoading(true);
         setError(null);
         
-        console.log(`🔍 CHAT PAGE V2: Fetching chat room with ID: ${chatId}`);
+        loggers.chat.info(`CHAT PAGE V2: Fetching chat room with ID: ${chatId}`);
         const room = await chatService.getChatRoomById(chatId);
         
         if (!room) {
-          console.error('Room not found for ID:', chatId);
+          loggers.chat.error('Room not found for ID:', chatId);
           setError('Chat room not found');
           return;
         }
         
-        console.log(`🔍 CHAT PAGE V2: Successfully loaded room #${room.id} (${room.title})`);
+        loggers.chat.info(`CHAT PAGE V2: Successfully loaded room #${room.id} (${room.title})`);
         
         // Ensure dialogueType is set
         if (!room.dialogueType) {
@@ -254,7 +267,7 @@ function ChatContent() {
         
         setChatData(JSON.parse(JSON.stringify(room)));
       } catch (error) {
-        console.error('Failed to load chat:', error);
+        loggers.chat.error('Failed to load chat:', error);
         setError('Failed to load chat data. Please try again.');
       } finally {
         setLoading(false);
@@ -268,7 +281,7 @@ function ChatContent() {
   useEffect(() => {
     if (isConnected && chatData?.id && username && joinRoom) {
       const roomId = String(chatData.id);
-      console.log(`🏠 [V2] Joining room ${roomId} as ${username}`);
+      loggers.chat.info(`V2 방 ${roomId}에 참여, 사용자: ${username}`);
       joinRoom(roomId, username);
     }
   }, [isConnected, chatData?.id, username, joinRoom]);
@@ -281,7 +294,7 @@ function ChatContent() {
     if (!chatData) return;
     
     try {
-      console.log(`💬 V2: User message sent: ${message}`);
+      loggers.chat.info(`V2: User message sent: ${message}`);
       
       // 간단한 메시지 전송 (기존 로직 단순화)
       const result = await chatService.sendMessage(chatData.id, message, {
@@ -293,7 +306,7 @@ function ChatContent() {
         role: 'user'
       });
       
-      console.log(`✅ V2: Message sent successfully:`, result);
+      loggers.chat.info('Message sent successfully:', result);
       
       // 채팅 데이터 새로고침
       const updatedRoom = await chatService.getChatRoomById(chatData.id);
@@ -301,26 +314,26 @@ function ChatContent() {
         setChatData(updatedRoom);
       }
     } catch (error) {
-      console.error('❌ V2: Message sending failed:', error);
+      loggers.chat.error('Message sending failed:', error);
     }
   };
 
   const handleRefreshChat = async () => {
     if (!chatData) return;
     
-    console.log('🔄 [V2] handleRefreshChat 호출됨');
-    console.log('🔄 [V2] 새로고침 전 메시지 수:', chatData.messages?.length || 0);
+    loggers.chat.debug('handleRefreshChat 호출됨');
+    loggers.chat.debug('새로고침 전 메시지 수:', chatData.messages?.length || 0);
     
     setLoading(true);
     try {
       const refreshedRoom = await chatService.getChatRoomById(chatData.id);
       if (refreshedRoom) {
-        console.log('🔄 [V2] 서버에서 가져온 메시지 수:', refreshedRoom.messages?.length || 0);
+        loggers.chat.debug('서버에서 가져온 메시지 수:', refreshedRoom.messages?.length || 0);
         setChatData(JSON.parse(JSON.stringify(refreshedRoom)));
-        console.log('🔄 [V2] 새로고침 완료 - 데이터 교체됨');
+        loggers.chat.info('새로고침 완료 - 데이터 교체됨');
       }
     } catch (error) {
-      console.error('Failed to refresh chat:', error);
+      loggers.chat.error('Failed to refresh chat:', error);
     } finally {
       setLoading(false);
     }
@@ -331,7 +344,7 @@ function ChatContent() {
     
     try {
       setIsGeneratingResponse(true);
-      console.log('🔄 V2: Requesting next debate message for room:', chatData.id);
+      loggers.chat.info('Requesting next debate message for room:', chatData.id);
       
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const roomId = String(chatData.id);
@@ -349,19 +362,19 @@ function ChatContent() {
       }
       
       const data = await response.json();
-      console.log('📋 Next speaker info received:', data);
+      loggers.chat.info('Next speaker info received:', data);
       
       if (data.status === 'success') {
         // 백엔드에서 next_speaker 정보가 있는 경우
         if (data.next_speaker) {
           const { speaker_id, role, is_user } = data.next_speaker;
           
-          console.log('🎯 Next speaker details:', { speaker_id, role, is_user });
-          console.log('🎯 Current username:', username);
+          loggers.chat.info('Next speaker details:', { speaker_id, role, is_user });
+          loggers.chat.info('Current username:', username);
           
           if (is_user === true) {
-            console.log('👤 USER TURN CONFIRMED - activating input');
-            console.log('👤 Speaker ID:', speaker_id, 'Role:', role);
+            loggers.chat.info('USER TURN CONFIRMED - activating input');
+            loggers.chat.info('Speaker ID:', speaker_id, 'Role:', role);
             
             // 사용자 차례 상태 설정 (테스트 파일과 동일한 로직)
             setCurrentUserTurn({ speaker_id, role });
@@ -372,12 +385,12 @@ function ChatContent() {
             const roleText = role === 'pro' ? 'Pro' : role === 'con' ? 'Con' : role;
             const message = `It's your turn to speak as the ${roleText} side. Please enter your opinion.`;
             
-            console.log('👤 Showing user turn alert:', message);
+            loggers.chat.info('Showing user turn alert:', message);
             alert(message);
             
             // 입력창 포커스를 위한 약간의 지연
             setTimeout(() => {
-              console.log('👤 Attempting to focus input');
+              loggers.chat.info('Attempting to focus input');
               if (document.querySelector('.debate-input-field')) {
                 (document.querySelector('.debate-input-field') as HTMLTextAreaElement)?.focus();
               }
@@ -385,18 +398,18 @@ function ChatContent() {
             
             return; // 사용자 차례인 경우 여기서 종료
           } else {
-            console.log('🤖 Not user turn - is_user is false');
+            loggers.chat.info('Not user turn - is_user is false');
           }
         } else {
-          console.log('⚠️ No next_speaker data in success response');
+          loggers.chat.warn('No next_speaker data in success response');
         }
         
         // AI 차례인 경우 (기존 로직은 generating 상태에서 처리)
-        console.log('🤖 Success response but not user turn - treating as AI turn');
+        loggers.chat.info('Success response but not user turn - treating as AI turn');
         setIsGeneratingResponse(false);
       } else if (data.status === 'generating') {
         // 백엔드에서 "generating" 상태를 반환한 경우 처리
-        console.log('🤖 AI generating message - showing thinking animation');
+        loggers.chat.info('AI generating message - showing thinking animation');
         
         const tempMessage: ChatMessage = {
           id: `temp-waiting-${Date.now()}`,
@@ -416,10 +429,10 @@ function ChatContent() {
           };
         });
         
-        console.log('🎭 Temporary message added, waiting for AI response via Socket.IO');
+        loggers.chat.info('Temporary message added, waiting for AI response via Socket.IO');
         
       } else if (data.status === 'completed') {
-        console.log('🏁 Debate completed');
+        loggers.chat.info('Debate completed');
         alert('The debate has been completed!');
         setIsGeneratingResponse(false);
       } else {
@@ -427,7 +440,7 @@ function ChatContent() {
       }
       
     } catch (error) {
-      console.error('❌ Error requesting next message:', error);
+      loggers.chat.error('Error requesting next message:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       alert(`Error occurred while requesting next message: ${errorMessage}`);
       setIsGeneratingResponse(false);
@@ -437,14 +450,14 @@ function ChatContent() {
   // 사용자 메시지 처리 함수 (테스트 파일과 동일한 로직)
   const handleProcessUserMessage = async (message: string) => {
     if (!currentUserTurn || !chatData) {
-      console.error('❌ Cannot process user message - missing currentUserTurn or chatData');
+      loggers.chat.error('Cannot process user message - missing currentUserTurn or chatData');
       return;
     }
     
     try {
-      console.log('🎯 Processing user message:', message);
-      console.log('🎯 Current user turn:', currentUserTurn);
-      console.log('🎯 Username:', username);
+      loggers.chat.info('Processing user message:', message);
+      loggers.chat.info('Current user turn:', currentUserTurn);
+      loggers.chat.info('Username:', username);
       
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const roomId = String(chatData.id);
@@ -455,7 +468,7 @@ function ChatContent() {
         user_id: currentUserTurn.speaker_id  // 백엔드에서 받은 speaker_id 사용
       };
       
-      console.log('📤 Sending user message request:', requestBody);
+      loggers.chat.info('Sending user message request:', requestBody);
       
       const response = await fetch(`${apiBaseUrl}/api/chat/debate/${roomId}/process-user-message`, {
         method: 'POST',
@@ -471,23 +484,23 @@ function ChatContent() {
       }
       
       const result = await response.json();
-      console.log('✅ User message processed:', result);
+      loggers.chat.info('User message processed:', result);
       
       if (result.status === 'success') {
-        console.log('✅ User message successfully processed - clearing user turn state');
+        loggers.chat.info('User message successfully processed - clearing user turn state');
         
         // 사용자 차례 종료 (테스트 파일과 동일한 플로우)
         setWaitingForUserInput(false);
         setCurrentUserTurn(null);
         
         // 다음 AI 응답 자동 요청 (약간의 지연 후)
-        console.log('🔄 Requesting next AI message...');
+        loggers.chat.info('Requesting next AI message...');
         setTimeout(() => {
           handleRequestNextMessage();
         }, 1000);
         
       } else if (result.status === 'error' && result.reason === 'not_your_turn') {
-        console.error('❌ Not user turn:', result.message);
+        loggers.chat.error('Not user turn:', result.message);
         alert(`It's currently ${result.next_speaker}'s turn.`);
         setWaitingForUserInput(false);
         setCurrentUserTurn(null);
@@ -496,7 +509,7 @@ function ChatContent() {
       }
       
     } catch (error) {
-      console.error('❌ Error processing user message:', error);
+      loggers.chat.error('Error processing user message:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       alert(`Error occurred while processing message: ${errorMessage}`);
       setWaitingForUserInput(false);
@@ -514,13 +527,13 @@ function ChatContent() {
       isGeneratingResponse
     }),
     forceUserTurn: (speaker_id: string, role: string) => {
-      console.log('🔧 Forcing user turn:', { speaker_id, role });
+      loggers.chat.debug('Forcing user turn:', { speaker_id, role });
       setCurrentUserTurn({ speaker_id, role });
       setWaitingForUserInput(true);
       setIsGeneratingResponse(false);
     },
     clearUserTurn: () => {
-      console.log('🔧 Clearing user turn');
+      loggers.chat.debug('Clearing user turn');
       setWaitingForUserInput(false);
       setCurrentUserTurn(null);
     }
@@ -529,7 +542,7 @@ function ChatContent() {
   // 브라우저 콘솔에서 디버깅할 수 있도록 window 객체에 노출
   useEffect(() => {
     (window as any).debugChat = debugHelpers;
-    console.log('🔧 Debug helpers available: window.debugChat');
+    loggers.chat.info('Debug helpers available: window.debugChat');
   }, [waitingForUserInput, currentUserTurn, username, chatData, isGeneratingResponse]);
 
   if (loading) {

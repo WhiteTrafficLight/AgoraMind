@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { loggers } from '@/utils/logger';
 
 interface UseSocketOptions {
   roomId?: string;
@@ -55,7 +56,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
   useEffect(() => {
     // 이미 연결된 소켓이 있으면 재사용
     if (globalSocket && globalSocket.connected) {
-      console.log('♻️ Reusing existing Socket.IO connection');
+      loggers.socket.debug('기존 Socket.IO 연결 재사용 중');
       socketRef.current = globalSocket;
       setIsConnected(true);
       setTransport(globalSocket.io.engine.transport.name);
@@ -68,7 +69,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
           user_id: userId
         });
         hasJoinedRoom.current = true;
-        console.log(`📥 Joining room ${roomId} as ${userId}`);
+        loggers.socket.info(`방 참여: ${roomId} (사용자: ${userId})`);
       }
       
       return;
@@ -77,7 +78,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     // 새로운 연결이 필요한 경우에만 생성
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     
-    console.log('🔌 Creating new Socket.IO connection to:', backendUrl);
+    loggers.socket.info('새 Socket.IO 연결 생성 중', { url: backendUrl });
     
     const socket = io(backendUrl, {
       autoConnect: true,
@@ -99,7 +100,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
 
     // 연결 상태 이벤트
     socket.on('connect', () => {
-      console.log('✅ Socket.IO connected:', socket.id);
+      loggers.socket.info('Socket.IO 연결 성공', { socketId: socket.id });
       setIsConnected(true);
       setTransport(socket.io.engine.transport.name);
       stableOnConnect();
@@ -111,12 +112,12 @@ export const useSocket = (options: UseSocketOptions = {}) => {
           user_id: userId
         });
         hasJoinedRoom.current = true;
-        console.log(`📥 Joining room ${roomId} as ${userId}`);
+        loggers.socket.info(`방 참여: ${roomId} (사용자: ${userId})`);
       }
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('🔌 Socket.IO disconnected:', reason);
+      loggers.socket.warn('Socket.IO 연결 해제됨', { reason });
       setIsConnected(false);
       setTransport('N/A');
       hasJoinedRoom.current = false;
@@ -124,21 +125,21 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     });
 
     socket.on('connect_error', (error) => {
-      console.error('❌ Socket.IO connection error:', error);
+      loggers.socket.error('Socket.IO 연결 오류', error);
       setIsConnected(false);
     });
 
     socket.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Socket.IO reconnected after', attemptNumber, 'attempts');
+      loggers.socket.info(`Socket.IO 재연결 성공 (시도 횟수: ${attemptNumber})`);
       hasJoinedRoom.current = false; // 재연결시 방 재참여 허용
     });
 
     socket.on('reconnect_error', (error) => {
-      console.error('❌ Socket.IO reconnection error:', error);
+      loggers.socket.error('Socket.IO 재연결 오류', error);
     });
 
     socket.on('reconnect_failed', () => {
-      console.error('❌ Socket.IO reconnection failed');
+      loggers.socket.error('Socket.IO 재연결 실패');
       globalSocket = null; // 연결 실패시 전역 소켓 초기화
     });
 
@@ -149,11 +150,11 @@ export const useSocket = (options: UseSocketOptions = {}) => {
 
     // 방 생성/삭제 이벤트
     socket.on('room_created', (data) => {
-      console.log('🏠 Room created:', data);
+      loggers.socket.info('채팅방 생성됨', data);
     });
 
     socket.on('room_deleted', (data) => {
-      console.log('🗑️ Room deleted:', data);
+      loggers.socket.info('채팅방 삭제됨', data);
     });
 
     // 전송 상태 변경 시
@@ -162,7 +163,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     });
 
     return () => {
-      console.log('🔌 Cleaning up Socket.IO connection');
+      loggers.socket.debug('Socket.IO 연결 정리 중');
       connectionCount--;
       
       // 방 떠나기 (roomId와 userId가 있는 경우)
@@ -172,12 +173,12 @@ export const useSocket = (options: UseSocketOptions = {}) => {
           user_id: userId
         });
         hasJoinedRoom.current = false;
-        console.log(`📤 Leaving room ${roomId} as ${userId}`);
+        loggers.socket.info(`방 떠나기: ${roomId} (사용자: ${userId})`);
       }
       
       // 마지막 연결이면 소켓 해제
       if (connectionCount <= 0) {
-        console.log('🔌 Disconnecting global socket (last connection)');
+        loggers.socket.info('마지막 연결 해제 - 전역 소켓 종료');
         socket.disconnect();
         globalSocket = null;
         connectionCount = 0;
@@ -188,7 +189,11 @@ export const useSocket = (options: UseSocketOptions = {}) => {
   // 메시지 전송 함수
   const sendMessage = (message: string, side: string = 'neutral') => {
     if (!socketRef.current || !roomId || !userId) {
-      console.error('❌ Cannot send message: missing socket, roomId, or userId');
+      loggers.socket.error('메시지 전송 불가: 소켓, roomId 또는 userId 누락', {
+        hasSocket: !!socketRef.current,
+        roomId,
+        userId
+      });
       return false;
     }
 
@@ -200,7 +205,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       timestamp: new Date().toISOString()
     };
 
-    console.log('📤 Sending message:', messageData);
+    loggers.socket.debug('메시지 전송 중', { roomId, userId, messageLength: message.length });
     socketRef.current.emit('send_message', messageData);
     return true;
   };
@@ -208,7 +213,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
   // 방 참여 함수
   const joinRoom = (newRoomId: string, newUserId: string) => {
     if (!socketRef.current) {
-      console.error('❌ Cannot join room: socket not connected');
+      loggers.socket.error('방 참여 불가: 소켓이 연결되지 않음');
       return false;
     }
 
@@ -217,14 +222,14 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       user_id: newUserId
     });
     
-    console.log(`📥 Joining room ${newRoomId} as ${newUserId}`);
+    loggers.socket.info(`방 참여: ${newRoomId} (사용자: ${newUserId})`);
     return true;
   };
 
   // 방 떠나기 함수
   const leaveRoom = (roomIdToLeave: string, userIdToLeave: string) => {
     if (!socketRef.current) {
-      console.error('❌ Cannot leave room: socket not connected');
+      loggers.socket.error('방 떠나기 불가: 소켓이 연결되지 않음');
       return false;
     }
 
@@ -233,7 +238,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       user_id: userIdToLeave
     });
     
-    console.log(`📤 Leaving room ${roomIdToLeave} as ${userIdToLeave}`);
+    loggers.socket.info(`방 떠나기: ${roomIdToLeave} (사용자: ${userIdToLeave})`);
     return true;
   };
 
