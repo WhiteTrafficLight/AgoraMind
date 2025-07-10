@@ -258,7 +258,7 @@ export default async function handler(
             console.log('📢 파이썬 API 서버에 모더레이터 메시지 생성 요청 시작');
             
             // 파이썬 API 서버 URL (환경 변수 또는 기본값)
-            const pythonApiUrl = process.env.PYTHON_API_URL || 'http://localhost:8000';
+            const pythonApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
             
             // Pro/Con 참가자(NPC+유저) 목록 생성
             // NPC와 유저를 모두 포함하는 전체 pro/con 배열 사용
