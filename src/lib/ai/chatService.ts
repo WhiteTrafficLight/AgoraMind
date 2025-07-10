@@ -1,3 +1,5 @@
+import { loggers } from '@/utils/logger';
+
 // Types
 export interface Citation {
   id: string;       // 각주 ID (예: "1", "2")
@@ -93,7 +95,7 @@ const DEBUG = false;
 // Enhanced logging function for better debugging
 function log(...args: any[]) {
   if (process.env.NODE_ENV !== 'production') {
-    console.log('[ChatService]', ...args);
+    loggers.api.debug('[ChatService]', ...args);
   }
 }
 
@@ -102,27 +104,33 @@ async function safeParseJson(response: Response): Promise<any> {
   // Check content type before reading the response
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('text/html')) {
-    log('⚠️ WARNING: Response has HTML content type');
+    loggers.api.warn('Response has HTML content type');
     const text = await response.text();
-    console.error('Received HTML response from API:', text.substring(0, 500));
+    loggers.api.error('Received HTML response from API', { 
+      preview: text.substring(0, 500) 
+    });
     throw new Error(`API returned HTML instead of JSON. Status: ${response.status}`);
   }
   
   const text = await response.text();
   
   // Debug the raw response
-  log('Raw API response:', text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+  loggers.api.debug('Raw API response', { 
+    preview: text.substring(0, 200) + (text.length > 200 ? '...' : '') 
+  });
   
   // Check if response is HTML (indication of an error page)
   if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-    log('⚠️ WARNING: Received HTML response instead of JSON');
-    console.error('Received HTML response from API:', text.substring(0, 500));
+    loggers.api.warn('Received HTML response instead of JSON');
+    loggers.api.error('HTML response preview', { 
+      preview: text.substring(0, 500) 
+    });
     throw new Error(`API returned HTML instead of JSON. Status: ${response.status}`);
   }
   
   // If empty response
   if (!text.trim()) {
-    log('⚠️ WARNING: Received empty response');
+    loggers.api.warn('Received empty response');
     return null;
   }
   
@@ -130,9 +138,10 @@ async function safeParseJson(response: Response): Promise<any> {
   try {
     return JSON.parse(text);
   } catch (error) {
-    log('⚠️ ERROR: Failed to parse JSON response');
-    console.error('Response parsing error:', error);
-    console.error('Response text:', text.substring(0, 500));
+    loggers.api.error('Failed to parse JSON response', { error });
+    loggers.api.error('Response text preview', { 
+      preview: text.substring(0, 500) 
+    });
     throw new Error(`Invalid JSON response. Status: ${response.status}`);
   }
 }
@@ -165,7 +174,7 @@ class ChatService {
   private updateCache(room: ChatRoom): void {
     // 항상 room.id가 있는지 확인
     if (!room.id) {
-      console.error('❌ Attempted to cache room with no ID', room);
+      loggers.api.error('Attempted to cache room with no ID', { room });
       return;
     }
     
@@ -173,7 +182,11 @@ class ChatService {
     const roomId = String(room.id).trim();
     
     // 디버그 정보 추가
-    console.log(`🔄 Updating cache for room "${roomId}" (original ID: ${room.id}, type: ${typeof room.id})`);
+    loggers.api.debug('Updating cache for room', { 
+      roomId, 
+      originalId: room.id, 
+      idType: typeof room.id 
+    });
     
     // ID를 문자열로 통일
     room.id = roomId;
@@ -186,10 +199,10 @@ class ChatService {
     
     if (existingIndex >= 0) {
       this.chatRooms[existingIndex] = isolatedRoom;
-      console.log(`✅ Updated existing cache entry for room "${roomId}"`);
+      loggers.api.info('Updated existing cache entry for room', { roomId });
     } else {
       this.chatRooms.push(isolatedRoom);
-      console.log(`✅ Added new cache entry for room "${roomId}"`);
+      loggers.api.info('Added new cache entry for room', { roomId });
     }
     
     // 캐시 타임스탬프 업데이트
@@ -217,7 +230,7 @@ class ChatService {
           break; // 성공하면 루프 종료
         } catch (error) {
           retryCount++;
-          console.error(`API call failed (attempt ${retryCount}/${MAX_RETRIES}):`, error);
+          loggers.api.error(`API call failed (attempt ${retryCount}/${MAX_RETRIES})`, { error });
           
           if (retryCount >= MAX_RETRIES) {
             throw error; // 최대 재시도 횟수 초과
@@ -233,7 +246,7 @@ class ChatService {
       }
       
       const data = await response.json();
-      log(`Fetched ${data.length} chat rooms from API`);
+      loggers.api.info('Fetched chat rooms from API', { count: data.length });
       
       // 중복 ID 제거 (동일한 ID의 첫 번째 채팅방만 유지)
       const uniqueRooms = data.reduce((acc: ChatRoom[], room: ChatRoom) => {
@@ -243,14 +256,17 @@ class ChatService {
         if (!exists) {
           acc.push(room);
         } else {
-          console.warn(`중복 채팅방 ID 발견: "${roomId}", 제목: ${room.title}`);
+          loggers.api.warn('Duplicate chat room ID found', { roomId, title: room.title });
         }
         return acc;
       }, [] as ChatRoom[]);
       
       // 유니크한 채팅방 ID 로깅
       const uniqueIds = uniqueRooms.map((room: ChatRoom) => room.id);
-      console.log(`유니크한 채팅방 ID: ${uniqueIds.join(', ')}`);
+      loggers.api.info('Unique chat room IDs loaded', { 
+        count: uniqueIds.length,
+        roomIds: uniqueIds.join(', ')
+      });
       
       // API 응답으로 로컬 캐시 업데이트
       this.chatRooms = uniqueRooms;
@@ -263,7 +279,7 @@ class ChatService {
       
       return uniqueRooms;
     } catch (error) {
-      console.error('Error fetching chat rooms:', error);
+      loggers.api.error('Error fetching chat rooms', { error });
       return this.chatRooms; // 오류 시 캐싱된 데이터 반환
     }
   }
@@ -281,16 +297,14 @@ class ChatService {
   async getChatRoomById(id: string | number): Promise<ChatRoom | null> {
     const roomId = String(id).trim();
     
-    log('\n=======================================');
-    log('🔍 FETCHING CHAT ROOM');
-    log('ID:', roomId, `(원본: ${id}, 타입: ${typeof id})`);
+    loggers.api.debug('Fetching chat room by ID', { roomId, originalId: id, idType: typeof id });
     
     // 1. 먼저 캐시 확인
     const cachedRoom = this.chatRooms.find(room => String(room.id).trim() === roomId);
     
     // 유효한 캐시가 있으면 사용
     if (cachedRoom && this.isCacheValid(roomId)) {
-      log(`✅ Using valid cache for room "${roomId}"`);
+      loggers.api.info('Using valid cache for room', { roomId });
       // 깊은 복사본 반환
       const roomCopy = JSON.parse(JSON.stringify(cachedRoom));
       roomCopy.id = roomId;
@@ -299,7 +313,7 @@ class ChatService {
     
     // 2. API 요청
     try {
-      log(`🔄 Fetching room "${roomId}" from API`);
+      loggers.api.debug('Fetching room from API', { roomId });
       
       // 재시도 로직 추가
       const MAX_RETRIES = 3;
@@ -313,7 +327,7 @@ class ChatService {
       if (!response.ok) {
             // 상태 코드별 세분화된 오류 처리
             if (response.status === 404) {
-              log(`❌ Room "${roomId}" not found`);
+              loggers.api.warn('Room not found in API', { roomId });
               return null;
             }
         throw new Error(`Failed to fetch chat room: ${response.status}`);
@@ -322,7 +336,7 @@ class ChatService {
           break; // 성공하면 루프 종료
         } catch (error) {
           retryCount++;
-          console.error(`API call failed (attempt ${retryCount}/${MAX_RETRIES}):`, error);
+          loggers.api.error(`API call failed (attempt ${retryCount}/${MAX_RETRIES})`, { error });
           
           if (retryCount >= MAX_RETRIES) {
             throw error; // 최대 재시도 횟수 초과
@@ -341,34 +355,42 @@ class ChatService {
       
       // ID가 없는 경우 처리
       if (!room || !room.id) {
-        log(`❌ Invalid room data received for ID "${roomId}"`);
+        loggers.api.error('Invalid room data received for ID', { roomId });
         return null;
       }
       
       // ID 일치 여부 확인
       const responseId = String(room.id).trim();
       if (responseId !== roomId) {
-        log(`⚠️ ID 불일치 감지: 요청="${roomId}", 응답="${responseId}"`);
+        loggers.api.warn('ID mismatch detected', { 
+          requested: roomId, 
+          response: responseId 
+        });
         
         // 문자열 변환 후 비교 (ID 타입 불일치 처리)
         if (responseId !== roomId) {
-          log(`❌ ID 불일치 확인됨: 요청="${roomId}", 응답="${responseId}"`);
+          loggers.api.error('ID mismatch confirmed', { 
+            requested: roomId, 
+            response: responseId 
+          });
           return null;
         }
         
-        log(`✅ ID 일치 확인됨`);
+        loggers.api.info('ID match confirmed');
         // ID를 정규화하여 명시적으로 설정
         room.id = roomId;
       }
       
-      log('✅ Room found!');
-      log('Room ID:', room.id, `(타입: ${typeof room.id})`);
-      log('Room Title:', room.title);
-      log('Participants:', room.participants);
+      loggers.api.info('Room found', { roomId });
+      loggers.api.debug('Room details', { 
+        roomId: room.id, 
+        roomTitle: room.title, 
+        participants: room.participants 
+      });
       
       // 1. 참여자 유효성 검사
       if (!room.participants || !room.participants.npcs || room.participants.npcs.length === 0) {
-        log('❌ Room has no participants!');
+        loggers.api.error('Room has no participants');
         
         // 참여자가 없는 방은 사용할 수 없음을 명확히 함
         return {
@@ -380,7 +402,7 @@ class ChatService {
       
       // 2. 이 채팅방에 등록된 철학자 목록 (복사본 생성)
       const registeredPhilosophers = [...room.participants.npcs];
-      log('Registered philosophers:', registeredPhilosophers);
+      loggers.api.debug('Registered philosophers', { registeredPhilosophers });
       
       // 3. 메시지 초기화 (아직 없는 경우)
       if (!room.messages) {
@@ -396,18 +418,23 @@ class ChatService {
         );
         
         if (initialMessageCount !== room.messages.length) {
-          log(`🧹 Removed ${initialMessageCount - room.messages.length} system or welcome messages`);
+          loggers.api.info('Removed system or welcome messages', { 
+            initialCount: initialMessageCount, 
+            remainingCount: room.messages.length 
+          });
         }
       }
       
       // 📨 chatMessages 컬렉션에서 해당 방의 메시지들 조회
-      log('🔄 Loading messages from chatMessages collection');
+      loggers.api.debug('Loading messages from chatMessages collection');
       try {
         const messagesResponse = await fetch(`/api/messages?roomId=${encodeURIComponent(roomId)}&action=getMessages`);
         if (messagesResponse.ok) {
           const messagesData = await messagesResponse.json();
           if (messagesData.success && messagesData.messages && Array.isArray(messagesData.messages)) {
-            log(`✅ Loaded ${messagesData.messages.length} messages from chatMessages collection`);
+            loggers.api.info('Loaded messages from chatMessages collection', { 
+              count: messagesData.messages.length 
+            });
             
             // chatMessages 컬렉션의 메시지들을 ChatMessage 형태로 변환
             const loadedMessages: ChatMessage[] = messagesData.messages.map((msg: any) => ({
@@ -431,27 +458,31 @@ class ChatService {
               new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
             );
             
-            log(`✅ Total messages after merge: ${room.messages.length}`);
+            loggers.api.info('Total messages after merge', { 
+              totalCount: room.messages.length 
+            });
           } else {
-            log('⚠️ No messages found in chatMessages collection or invalid response format');
+            loggers.api.warn('No messages found in chatMessages collection or invalid response format');
           }
         } else {
-          log(`⚠️ Failed to load messages from chatMessages collection: ${messagesResponse.status}`);
+          loggers.api.warn('Failed to load messages from chatMessages collection', { 
+            status: messagesResponse.status 
+          });
         }
       } catch (error) {
-        log('⚠️ Error loading messages from chatMessages collection:', error);
+        loggers.api.error('Error loading messages from chatMessages collection', { error });
         // 메시지 로딩 실패해도 방 정보는 반환 (기존 messages 유지)
       }
       
       // 5. NPC 정보 로드
       if (!room.npcDetails || room.npcDetails.length === 0) {
-        log('🔄 Loading NPC details for participants');
+        loggers.api.debug('Loading NPC details for participants');
         room.npcDetails = await this.loadNpcDetails(registeredPhilosophers);
       }
       
       // 6. 초기 메시지 처리
       if (room.initial_message) {
-        log('📝 Processing initial message');
+        loggers.api.debug('Processing initial message');
         
         // 빈 메시지가 아닌지 확인
         if (room.initial_message.text && room.initial_message.text.trim() !== "") {
@@ -461,8 +492,8 @@ class ChatService {
               room.initial_message.isSystemMessage || 
               room.initial_message.role === 'moderator') {
             
-            log('✅ Valid moderator message found, adding to message list');
-            log('Moderator message details:', {
+            loggers.api.info('Valid moderator message found, adding to message list');
+            loggers.api.debug('Moderator message details', {
               sender: room.initial_message.sender,
               isSystemMessage: room.initial_message.isSystemMessage,
               role: room.initial_message.role,
@@ -486,17 +517,17 @@ class ChatService {
               };
               
               room.messages.push(moderatorMessage);
-              log('✅ Added moderator message to message list');
+              loggers.api.info('Added moderator message to message list');
             } else {
-              log('⚠️ Duplicate moderator message detected, not adding');
+              loggers.api.warn('Duplicate moderator message detected, not adding');
             }
           }
           // System 메시지가 아닌지, Welcome 메시지가 아닌지 확인 (일반 NPC 메시지)
           else if (room.initial_message.sender !== 'System' && 
               !room.initial_message.text.toLowerCase().startsWith("welcome to")) {
             
-            log('✅ Valid initial message found, adding to message list');
-            log('Message:', room.initial_message);
+            loggers.api.info('Valid initial message found, adding to message list');
+            loggers.api.debug('Message', { roomInitialMessage: room.initial_message });
             
             // 중복 메시지가 아닌지 확인 
             const isDuplicate = room.messages.some((msg: ChatMessage) => 
@@ -508,13 +539,13 @@ class ChatService {
             if (!isDuplicate) {
               room.messages.push(room.initial_message);
             } else {
-              log('⚠️ Duplicate initial message detected, not adding');
+              loggers.api.warn('Duplicate initial message detected, not adding');
             }
           } else {
-            log('⚠️ System or welcome initial message detected, not adding');
+            loggers.api.warn('System or welcome initial message detected, not adding');
           }
         } else {
-          log('⚠️ Empty initial message detected, not adding');
+          loggers.api.warn('Empty initial message detected, not adding');
         }
         
         // 사용 후 삭제하여 중복 방지
@@ -537,14 +568,17 @@ class ChatService {
           const afterCount = room.messages.length;
           
           if (beforeCount !== afterCount) {
-            log(`🔄 [DEBATE] Removed ${beforeCount - afterCount} temporary waiting messages (Socket.IO update)`);
-            log(`🔄 [DEBATE] Messages after cleanup: ${afterCount}`);
+            loggers.api.debug('Removed temporary waiting messages (Socket.IO update)', { 
+              beforeCount, 
+              afterCount 
+            });
+            loggers.api.debug('Messages after cleanup', { afterCount });
           }
         } else {
           // 임시 대기 메시지가 있는지 확인
           const hasTempMessage = room.messages.some((msg: ChatMessage) => msg.id.startsWith('temp-waiting-'));
           if (hasTempMessage) {
-            log(`⏳ [DEBATE] Temporary waiting message still present - no moderator message found yet`);
+            loggers.api.warn('Temporary waiting message still present - no moderator message found yet');
           }
         }
       }
@@ -555,17 +589,14 @@ class ChatService {
       // 캐시 업데이트
       this.updateCache(room);
       
-      log('✅ Room fetched successfully');
-      log('=======================================\n');
-      
-      // 복사본 반환
+      loggers.api.info('Room fetched successfully', { roomId });
       return JSON.parse(JSON.stringify(room));
     } catch (error) {
-      log('❌ Error fetching chat room:', error);
+      loggers.api.error('Error fetching chat room', { error });
       
       // 3. API 실패 시 유효하지 않더라도 캐시된 데이터 반환
       if (cachedRoom) {
-        log(`⚠️ Using stale cache for room "${roomId}" due to API error`);
+        loggers.api.warn('Using stale cache for room due to API error', { roomId });
         const roomCopy = JSON.parse(JSON.stringify(cachedRoom));
         roomCopy.id = roomId; // ID를 명시적으로 문자열로 설정
         return roomCopy;
@@ -577,19 +608,16 @@ class ChatService {
 
   // Create a new chat room
   async createChatRoom(params: ChatRoomCreationParams): Promise<ChatRoom> {
-    console.log('\n=======================================');
-    console.log('🏗️ CREATING NEW CHAT ROOM');
-    console.log('Title:', params.title);
-    console.log('NPCs:', params.npcs);
+    loggers.api.debug('Creating new chat room', { title: params.title, npcs: params.npcs });
     
     // 1. 유효성 검사 - 제목과 NPC 목록 필수
     if (!params.title || !params.title.trim()) {
-      console.error('❌ ERROR: Chat room title is required');
+      loggers.api.error('Chat room title is required');
       throw new Error('Chat room title is required');
     }
     
     if (!params.npcs || !Array.isArray(params.npcs) || params.npcs.length === 0) {
-      console.error('❌ ERROR: At least one philosopher (NPC) is required');
+      loggers.api.error('At least one philosopher (NPC) is required');
       throw new Error('At least one philosopher is required');
     }
     
@@ -601,7 +629,9 @@ class ChatService {
         generateInitialMessage: true  // 의미 있는 초기 메시지 생성 요청
       };
       
-      console.log('Request data:', JSON.stringify(requestData).substring(0, 200) + '...');
+      loggers.api.debug('Request data', { 
+        preview: JSON.stringify(requestData).substring(0, 200) + '...' 
+      });
       
       // 3. API 요청
       const MAX_RETRIES = 3;
@@ -611,7 +641,7 @@ class ChatService {
       while (retryCount < MAX_RETRIES) {
         try {
           // 건강 체크 제거 - API 요청을 직접 진행
-          console.log('🔄 Creating chat room via API...');
+          loggers.api.debug('Creating chat room via API...');
       
       // API 요청으로 채팅방 생성
           response = await fetch('/api/rooms', {
@@ -625,11 +655,16 @@ class ChatService {
       
       if (!response.ok) {
             const contentType = response.headers.get('content-type') || '';
-            console.error(`❌ API error: ${response.status}, Content-Type: ${contentType}`);
+            loggers.api.error('API error', { 
+              status: response.status, 
+              contentType: contentType 
+            });
             
             if (contentType.includes('text/html')) {
               const htmlError = await response.text();
-              console.error('HTML error response:', htmlError.substring(0, 200));
+              loggers.api.error('HTML error response', { 
+                preview: htmlError.substring(0, 200) 
+              });
               throw new Error(`Server returned HTML error page: ${response.status}`);
             }
             
@@ -639,7 +674,11 @@ class ChatService {
           break; // 성공하면 루프 종료
         } catch (error) {
           retryCount++;
-          console.error(`API call failed (attempt ${retryCount}/${MAX_RETRIES}):`, error);
+          loggers.api.error('API call failed', { 
+            attempt: retryCount, 
+            maxRetries: MAX_RETRIES, 
+            error 
+          });
           
           if (retryCount >= MAX_RETRIES) {
             throw error; // 최대 재시도 횟수 초과
@@ -658,11 +697,14 @@ class ChatService {
       let rawRoomData;
       try {
         rawRoomData = await safeParseJson(response);
-      console.log('✅ Server created room:', rawRoomData.id, rawRoomData.title);
+      loggers.api.info('Server created room', { 
+        id: rawRoomData.id, 
+        title: rawRoomData.title 
+      });
         
         // 추가 디버깅 로그 - initial_message 확인
         if (rawRoomData.initial_message) {
-          console.log('✅ Initial message received from server:', {
+          loggers.api.info('Initial message received from server', {
             id: rawRoomData.initial_message.id,
             sender: rawRoomData.initial_message.sender,
             isSystemMessage: rawRoomData.initial_message.isSystemMessage,
@@ -676,15 +718,17 @@ class ChatService {
             rawRoomData.initial_message.isSystemMessage === true ||
             rawRoomData.initial_message.role === 'moderator'
           ) {
-            console.log('🎯 Moderator message detected in initial_message!');
+            loggers.api.info('Moderator message detected in initial_message');
           } else {
-            console.log('⚠️ Initial message is not from Moderator:', rawRoomData.initial_message.sender);
+            loggers.api.warn('Initial message is not from Moderator', { 
+              sender: rawRoomData.initial_message.sender 
+            });
           }
         } else {
-          console.log('⚠️ No initial_message field in server response');
+          loggers.api.warn('No initial_message field in server response');
         }
       } catch (error) {
-        console.error('❌ Failed to parse API response:', error);
+        loggers.api.error('Failed to parse API response', { error });
         throw new Error('Unable to parse API response: ' + (error as Error).message);
       }
       
@@ -703,21 +747,22 @@ class ChatService {
       
       // 7. 초기 메시지 처리
       if (newRoom.initial_message) {
-        console.log('📝 Processing initial message from server');
-        console.log('Initial message:', newRoom.initial_message);
+        loggers.api.debug('Processing initial message from server');
+        loggers.api.debug('Initial message', { newRoomInitialMessage: newRoom.initial_message });
         
         // 진행자 메시지인지 확인 (Moderator, isSystemMessage=true, role=moderator)
         if (newRoom.initial_message.sender === 'Moderator' || 
             newRoom.initial_message.isSystemMessage || 
             newRoom.initial_message.role === 'moderator') {
           
-          console.log('✅ Found moderator message for debate, replacing temporary message');
-          console.log('✅ Moderator message details:');
-          console.log('sender:', newRoom.initial_message.sender);
-          console.log('isSystemMessage:', newRoom.initial_message.isSystemMessage);
-          console.log('role:', newRoom.initial_message.role);
-          console.log('text preview:', newRoom.initial_message.text?.substring(0, 100));
-          console.log('full message text:', newRoom.initial_message.text);
+          loggers.api.info('Found moderator message for debate, replacing temporary message');
+          loggers.api.info('Moderator message details', {
+            sender: newRoom.initial_message.sender,
+            isSystemMessage: newRoom.initial_message.isSystemMessage,
+            role: newRoom.initial_message.role,
+            textPreview: newRoom.initial_message.text?.substring(0, 100)
+          });
+          loggers.api.debug('full message text', { text: newRoom.initial_message.text });
           
           // 빈 메시지가 아닌지 확인
           if (newRoom.initial_message.text && newRoom.initial_message.text.trim() !== "") {
@@ -736,28 +781,29 @@ class ChatService {
                 role: 'moderator'
               };
               newRoom.messages.push(moderatorMsg);
-              console.log('✅ Added actual moderator message');
-              console.log('✅ Final moderator message:', moderatorMsg);
+              loggers.api.info('Added actual moderator message');
+              loggers.api.debug('Final moderator message', { moderatorMsg });
             } else {
-              console.log('⚠️ Duplicate moderator message detected, not adding');
+              loggers.api.warn('Duplicate moderator message detected, not adding');
             }
           } else {
-            console.log('⚠️ Empty moderator message from server');
+            loggers.api.warn('Empty moderator message from server');
           }
         } else {
           // 일반 NPC 메시지인 경우 - debate 타입에서는 건너뛰기
           if (newRoom.dialogueType === 'debate') {
-            console.log('⚠️ Debate 타입에서 일반 NPC fallback 메시지 감지, 건너뛰기');
-            console.log('⚠️ Fallback message sender:', newRoom.initial_message?.sender);
-            console.log('⚠️ Fallback message text:', newRoom.initial_message?.text?.substring(0, 100));
+            loggers.api.warn('Debate 타입에서 일반 NPC fallback 메시지 감지, 건너뛰기', { 
+              sender: newRoom.initial_message?.sender, 
+              textPreview: newRoom.initial_message?.text?.substring(0, 100) 
+            });
           } else {
             // System 메시지가 아닌지, Welcome 메시지가 아닌지 확인 (일반 NPC 메시지)
             if (newRoom.initial_message && 
                 newRoom.initial_message.sender !== 'System' && 
                 !newRoom.initial_message.text.toLowerCase().startsWith("welcome to")) {
               
-              console.log('✅ Valid initial message found, adding to message list');
-              console.log('Message:', newRoom.initial_message);
+              loggers.api.info('Valid initial message found, adding to message list');
+              loggers.api.debug('Message', { newRoomInitialMessage: newRoom.initial_message });
               
               // 중복 메시지가 아닌지 확인 
               const isDuplicate = newRoom.messages.some((msg: ChatMessage) => 
@@ -769,10 +815,10 @@ class ChatService {
               if (!isDuplicate) {
                 newRoom.messages.push(newRoom.initial_message);
               } else {
-                console.log('⚠️ Duplicate initial message detected, not adding');
+                loggers.api.warn('Duplicate initial message detected, not adding');
               }
             } else {
-              console.log('⚠️ System or welcome initial message detected, not adding');
+              loggers.api.warn('System or welcome initial message detected, not adding');
             }
           }
         }
@@ -780,44 +826,44 @@ class ChatService {
         // 사용 후 삭제하여 중복 방지
         delete newRoom.initial_message;
       } else {
-        console.log('⚠️ No initial message from server');
+        loggers.api.warn('No initial message from server');
         // Mock 메시지 생성 로직 제거 - 서버에서만 메시지 생성
       }
       
       // 8. NPC 상세 정보 로드
       if (!newRoom.npcDetails) {
-        console.log('🔄 Loading NPC details');
+        loggers.api.debug('Loading NPC details');
         newRoom.npcDetails = await this.loadNpcDetails(newRoom.participants.npcs);
       }
       
       // 9. 로컬 캐시 업데이트
       this.updateCache(newRoom);
       
-      console.log(`✅ New chat room created: ${newRoom.id}`);
-      console.log('Final message count:', newRoom.messages.length);
-      console.log('=======================================\n');
-      
+      loggers.api.info('New chat room created', { 
+        roomId: newRoom.id, 
+        messageCount: newRoom.messages.length 
+      });
       return newRoom;
     } catch (error) {
-      console.error('❌ Error creating chat room:', error);
+      loggers.api.error('Error creating chat room', { error });
       throw error;
     }
   }
 
   // NPC ID 리스트에서 상세 정보 로드
   async loadNpcDetails(npcIds: string[]): Promise<NpcDetail[]> {
-    console.log(`🔄 Loading details for ${npcIds.length} NPCs:`, npcIds);
+    loggers.api.debug('Loading details for NPCs', { count: npcIds.length, npcIds });
     
     const npcDetails: NpcDetail[] = [];
     
     for (const npcId of npcIds) {
       try {
-        console.log(`🔄 Fetching details for NPC ID: "${npcId}"`);
+        loggers.api.debug('Fetching details for NPC ID', { npcId });
         
         // 1. NPC ID가 24글자 ObjectID 형식인지 확인
         const isMongoId = /^[0-9a-f]{24}$/i.test(npcId);
         if (isMongoId) {
-          console.log(`🔄 MongoDB ObjectID 형식 감지: "${npcId}"`);
+          loggers.api.debug('MongoDB ObjectID format detected', { npcId });
         }
         
         // 재시도 로직 추가
@@ -828,7 +874,11 @@ class ChatService {
         while (retryCount < MAX_RETRIES) {
           try {
         // API에서 NPC 정보 가져오기
-            console.log(`🔄 API 호출 시도 (${retryCount + 1}/${MAX_RETRIES}): /api/npc/get?id=${encodeURIComponent(npcId)}`);
+            loggers.api.debug('API call attempt', { 
+              attempt: retryCount + 1, 
+              maxRetries: MAX_RETRIES, 
+              npcId 
+            });
             
             response = await fetch(`/api/npc/get?id=${encodeURIComponent(npcId)}`);
             
@@ -839,7 +889,12 @@ class ChatService {
             break; // 성공하면 루프 종료
           } catch (error) {
             retryCount++;
-            console.error(`API call failed (attempt ${retryCount}/${MAX_RETRIES}):`, error);
+            loggers.api.error('API call failed', { 
+              attempt: retryCount, 
+              maxRetries: MAX_RETRIES, 
+              npcId, 
+              error 
+            });
             
             if (retryCount >= MAX_RETRIES) {
               throw error; // 최대 재시도 횟수 초과
@@ -855,7 +910,7 @@ class ChatService {
         }
         
           const npcData = await response.json();
-        console.log(`✅ Received NPC data for ${npcId}:`, npcData);
+        loggers.api.info('Received NPC data for', { npcId, npcData });
 
         if (response.ok) {
           // 커스텀 NPC인 경우 DB에서 실제 이름과 프로필 정보 사용
@@ -874,23 +929,33 @@ class ChatService {
           };
           npcDetails.push(npcDetail);
           
-          console.log(`✅ Loaded NPC: ${npcDetail.name}, ID: ${npcId}, Custom: ${isCustomNpc}`);
+          loggers.api.info('Loaded NPC', { 
+            name: npcDetail.name, 
+            id: npcId, 
+            isCustom: isCustomNpc 
+          });
           if (npcDetail.portrait_url) {
-            console.log(`✅ Portrait URL: ${npcDetail.portrait_url}`);
+            loggers.api.info('Portrait URL', { url: npcDetail.portrait_url });
           }
         } else {
-          console.warn(`⚠️ API returned status ${response.status} for NPC ID: ${npcId}`);
+          loggers.api.warn('API returned status', { 
+            status: response.status, 
+            npcId: npcId 
+          });
           // API가 성공적으로 응답했지만 오류 상태 코드인 경우 기본 정보 생성
           npcDetails.push(this.createDefaultNpcDetail(npcId));
         }
       } catch (error) {
-        console.error(`❌ Error loading NPC details for ID: ${npcId}`, error);
+        loggers.api.error('Error loading NPC details for ID', { npcId, error });
         // 네트워크 오류 등의 경우에도 폴백 처리: 기본 정보 추가
         npcDetails.push(this.createDefaultNpcDetail(npcId));
       }
     }
     
-    console.log(`✅ Loaded ${npcDetails.length} NPC details successfully:`, npcDetails.map(npc => `${npc.id} → ${npc.name}`));
+    loggers.api.info('Loaded NPC details successfully', { 
+      count: npcDetails.length, 
+      npcIds: npcDetails.map(npc => `${npc.id} → ${npc.name}`) 
+    });
     return npcDetails;
   }
 
@@ -904,7 +969,7 @@ class ChatService {
     
     if (isMongoId || isUuid) {
       // 커스텀 NPC인 경우
-      console.log(`⚠️ Creating default detail for custom NPC: ${npcId}`);
+      loggers.api.warn('Creating default detail for custom NPC', { npcId });
       return {
         id: npcId,
         name: `Custom Philosopher`,
@@ -923,7 +988,7 @@ class ChatService {
         .replace(/^\w/, c => c.toUpperCase())
         .trim();
         
-      console.log(`⚠️ Creating default detail for standard philosopher: ${formattedName}`);  
+      loggers.api.warn('Creating default detail for standard philosopher', { formattedName });  
       return {
         id: npcId,
         name: formattedName,
@@ -935,8 +1000,8 @@ class ChatService {
 
   // Helper to generate initial prompts based on topic
   private getInitialPrompt(topic: string, context?: string): string {
-    console.log('🔄 getInitialPrompt 호출됨 - 비활성화됨');
-    console.log('📍 Topic:', topic);
+    loggers.api.debug('getInitialPrompt called - disabled');
+    loggers.api.info('Topic', { topic });
     
     // Mock 메시지 생성 완전 비활성화 - 서버에서만 메시지 생성
     return "";
@@ -944,8 +1009,8 @@ class ChatService {
 
   // Send user message to a chat room
   async sendMessage(roomId: string | number, message: string, messageData: any = {}): Promise<ChatMessage> {
-    console.log(`🔄 ChatService: Sending message to room ${roomId}`);
-    console.log(`🔄 ChatService: Message data:`, messageData);
+    loggers.api.debug('Sending message to room', { roomId });
+    loggers.api.info('Message data', { messageData });
 
     try {
       // 1. 채팅방 정보 가져오기
@@ -971,7 +1036,10 @@ class ChatService {
       }
 
       // 3. API를 통해 메시지 저장
-      console.log(`💾 ChatService: Saving message to API - ID: ${messageObj.id}, Role: ${messageObj.role || 'none'}`);
+      loggers.api.debug('Saving message to API', { 
+        messageId: messageObj.id, 
+        role: messageObj.role || 'none' 
+      });
       
       const apiUrl = '/api/messages';
       const response = await fetch(apiUrl, {
@@ -988,12 +1056,15 @@ class ChatService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ ChatService: Failed to save message: ${response.status}`, errorText);
+        loggers.api.error('Failed to save message', { 
+          status: response.status, 
+          errorText: errorText 
+        });
         throw new Error(`Failed to save message: ${response.status} ${errorText}`);
       }
 
       const result = await response.json();
-      console.log(`✅ ChatService: Message saved successfully:`, result);
+      loggers.api.info('Message saved successfully', { result });
 
       // 4. 이벤트 발생 - 소켓 통신용
       if (typeof window !== 'undefined') {
@@ -1006,14 +1077,14 @@ class ChatService {
       // 5. API 응답에서 저장된 메시지 객체 반환
       return messageObj;
     } catch (error) {
-      console.error('❌ ChatService: Error in sendMessage:', error);
+      loggers.api.error('Error in sendMessage', { error });
       throw error;
     }
   }
 
   // Get AI response for a chat room
   async getAIResponse(roomId: string | number): Promise<ChatMessage> {
-    console.log(`🔄 Getting AI response for room ${roomId}`);
+    loggers.api.debug('Getting AI response for room', { roomId });
 
     try {
       // 1. 채팅방 정보 가져오기
@@ -1024,7 +1095,7 @@ class ChatService {
 
       // 2. NPC 정보가 없는 경우 로드
       if (!room.npcDetails || room.npcDetails.length === 0) {
-        console.log('🔄 Loading NPC details for AI response');
+        loggers.api.debug('Loading NPC details for AI response');
         room.npcDetails = await this.loadNpcDetails(room.participants.npcs);
       }
 
@@ -1063,7 +1134,7 @@ class ChatService {
       }).join('\n');
 
       // 7. API 요청
-      console.log(`🔄 Requesting AI response from API`);
+      loggers.api.debug('Requesting AI response from API');
       const response = await fetch('/api/chat/generate', {
         method: 'POST',
         headers: {
@@ -1090,7 +1161,7 @@ class ChatService {
 
       // 8. API 응답 처리
       const data = await response.json();
-      console.log("📡 API 응답 전체 데이터:", JSON.stringify(data));
+      loggers.api.info('API response full data', { data: JSON.stringify(data) });
       
       // 9. 응답한 철학자 정보 찾기
       let respondingNpc = room.npcDetails?.find(npc => 
@@ -1110,9 +1181,9 @@ class ChatService {
       }
 
       // 10. 인용 정보 추출 - API 응답 구조 확인
-      console.log("📝 인용 정보 확인 - API 응답에서 citations 필드:", data.citations);
+      loggers.api.info('Checking citations - API response field', { field: 'citations' });
       const citations = data.citations || [];
-      console.log(`✅ 인용 정보 ${citations.length}개 추출됨:`, JSON.stringify(citations));
+      loggers.api.info('Extracted citations', { count: citations.length });
 
       // 11. 메시지 객체 생성 - 실제 이름 사용 및 인용 정보 포함
       const messageObj: ChatMessage = {
@@ -1125,7 +1196,7 @@ class ChatService {
         skipAnimation: false  // 새로 생성된 AI 메시지는 애니메이션 적용
       };
       
-      console.log("📝 생성된 메시지 객체(citations 포함):", JSON.stringify(messageObj));
+      loggers.api.info('Created message object (citations included)', { messageObj: JSON.stringify(messageObj) });
       
       // 12. 로컬 캐시 업데이트
       const roomIndex = this.chatRooms.findIndex(r => String(r.id).trim() === roomIdStr);
@@ -1136,10 +1207,10 @@ class ChatService {
         this.chatRooms[roomIndex].messages!.push(messageObj);
       }
 
-      console.log(`✅ AI response received successfully`);
+      loggers.api.info('AI response received successfully');
       return messageObj;
     } catch (error) {
-      console.error('❌ Error getting AI response:', error);
+      loggers.api.error('Error getting AI response', { error });
       throw error;
     }
   }
@@ -1147,20 +1218,24 @@ class ChatService {
   // Save an initial welcome message to a chat room
   async saveInitialMessage(roomId: string | number, message: ChatMessage): Promise<boolean> {
     try {
-      console.log(`🔄 Saving initial message to room ${roomId} (type: ${typeof roomId})`);
+      loggers.api.debug('Saving initial message to room', { roomId, type: typeof roomId });
       
       // Add detailed logging for the message
-      console.log(`Message details: id=${message.id}, sender=${message.sender}, isUser=${message.isUser}`);
-      console.log(`Message text: "${message.text}"`);
+      loggers.api.debug('Message details', { 
+        id: message.id, 
+        sender: message.sender, 
+        isUser: message.isUser 
+      });
+      loggers.api.info('Message text', { text: message.text });
 
       // 빈 메시지 또는 System 메시지인지 확인
       if (!message.text || message.text.trim() === "") {
-        console.error('❌ Attempted to save empty message, aborting');
+        loggers.api.warn('Attempted to save empty message, aborting');
         return false;
       }
       
       if (message.sender === 'System' || message.text.toLowerCase().startsWith("welcome to")) {
-        console.error('❌ Attempted to save System or Welcome message, aborting');
+        loggers.api.warn('Attempted to save System or Welcome message, aborting');
         return false;
       }
 
@@ -1170,9 +1245,12 @@ class ChatService {
       // First, verify if the room exists in our local cache
       const cachedRoom = this.chatRooms.find(room => String(room.id).trim() === roomIdStr);
       if (cachedRoom) {
-        console.log(`✅ Room ${roomIdStr} exists in local cache (title: ${cachedRoom.title})`);
+        loggers.api.info('Room exists in local cache', { 
+          roomId: roomIdStr, 
+          title: cachedRoom.title 
+        });
       } else {
-        console.log(`⚠️ Room ${roomIdStr} not found in local cache - will depend on DB lookup`);
+        loggers.api.warn('Room not found in local cache - will depend on DB lookup', { roomId: roomIdStr });
       }
 
       // Prepare the request body for debugging
@@ -1187,7 +1265,7 @@ class ChatService {
         isInitial: true
       };
       
-      console.log('Request body:', JSON.stringify(requestBody));
+      loggers.api.debug('Request body', { requestBody });
 
       // 재시도 로직 추가
       const MAX_RETRIES = 3;
@@ -1198,7 +1276,11 @@ class ChatService {
         try {
           // In the frontend, we use 'id', but in the DB schema, it's 'roomId'
           // API request uses the parameter name 'roomId' as expected by the API
-          console.log(`🔄 API 요청 시도 (${retryCount + 1}/${MAX_RETRIES}): /api/messages`);
+          loggers.api.debug('API request attempt', { 
+            attempt: retryCount + 1, 
+            maxRetries: MAX_RETRIES, 
+            roomId: roomIdStr 
+          });
           
           apiResponse = await fetch('/api/messages', {
             method: 'POST',
@@ -1219,14 +1301,21 @@ class ChatService {
           
           if (!apiResponse.ok) {
             const errorText = await apiResponse.text();
-            console.error(`❌ API error: ${apiResponse.status}, Response text: ${errorText.substring(0, 200)}`);
+            loggers.api.error('API error', { 
+              status: apiResponse.status, 
+              responseText: errorText.substring(0, 200) 
+            });
             throw new Error(`Failed to save initial message: ${apiResponse.status} ${errorText}`);
           }
           
           break; // 성공하면 루프 종료
         } catch (error) {
           retryCount++;
-          console.error(`API call failed (attempt ${retryCount}/${MAX_RETRIES}):`, error);
+          loggers.api.error('API call failed', { 
+            attempt: retryCount, 
+            maxRetries: MAX_RETRIES, 
+            error 
+          });
           
           if (retryCount >= MAX_RETRIES) {
             throw error; // 최대 재시도 횟수 초과
@@ -1242,11 +1331,11 @@ class ChatService {
       }
       
       const result = await apiResponse.json();
-      console.log(`✅ API 응답 성공:`, result);
+      loggers.api.info('API response successful', { result });
       
       return true;
     } catch (error) {
-      console.error('❌ Error saving initial message:', error);
+      loggers.api.error('Error saving initial message', { error });
       return false;
     }
   }
