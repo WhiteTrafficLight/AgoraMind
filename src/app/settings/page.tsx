@@ -24,6 +24,7 @@ export default function SettingsPage() {
   const [editedUsername, setEditedUsername] = useState('');
   const [editedBio, setEditedBio] = useState('');
   const [showCropModal, setShowCropModal] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string>(''); // 선택된 이미지 저장
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -99,11 +100,13 @@ export default function SettingsPage() {
   
   const handleCancelCrop = () => {
     setShowCropModal(false);
+    setSelectedImageSrc(''); // 선택된 이미지도 초기화
   };
   
   const handleSaveCroppedImage = async (croppedImageBase64: string) => {
     setIsUploadingImage(true);
     setShowCropModal(false);
+    setSelectedImageSrc(''); // 선택된 이미지 초기화
     
     try {
       const response = await fetch('/api/user/profile-image', {
@@ -334,6 +337,7 @@ export default function SettingsPage() {
             const reader = new FileReader();
             reader.onload = (event) => {
               const imageSrc = event.target?.result as string;
+              setSelectedImageSrc(imageSrc); // 선택된 이미지 상태 업데이트
               setShowCropModal(true);
             };
             reader.readAsDataURL(file);
@@ -346,6 +350,7 @@ export default function SettingsPage() {
         isOpen={showCropModal}
         onClose={handleCancelCrop}
         onSave={handleSaveCroppedImage}
+        imageSrc={selectedImageSrc} // 선택된 이미지 소스 전달
       />
     </div>
   );

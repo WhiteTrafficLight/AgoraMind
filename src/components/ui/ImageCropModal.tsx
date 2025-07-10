@@ -8,9 +8,10 @@ interface ImageCropModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (croppedImageBase64: string) => void;
+  imageSrc?: string; // 외부에서 전달받는 이미지
 }
 
-export default function ImageCropModal({ isOpen, onClose, onSave }: ImageCropModalProps) {
+export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: externalImageSrc }: ImageCropModalProps) {
   const [imgSrc, setImgSrc] = useState<string>('');
   const [crop, setCrop] = useState<Crop>({
     unit: '%',
@@ -27,6 +28,10 @@ export default function ImageCropModal({ isOpen, onClose, onSave }: ImageCropMod
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      // 외부에서 이미지가 전달되면 바로 설정
+      if (externalImageSrc) {
+        setImgSrc(externalImageSrc);
+      }
     } else {
       document.body.style.overflow = '';
       setImgSrc('');
@@ -36,7 +41,7 @@ export default function ImageCropModal({ isOpen, onClose, onSave }: ImageCropMod
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, externalImageSrc]);
 
   const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {

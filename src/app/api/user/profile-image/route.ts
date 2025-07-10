@@ -100,31 +100,53 @@ export async function POST(req: NextRequest) {
       // 메타데이터 제거 (보안)
       const cleanBuffer = removeMetadata(buffer);
       
-      // 파일 확장자 결정
-      const fileExtension = SUPPORTED_FORMATS[format] || 'jpg';
-      const fileName = `users/profiles/user_${user._id}_${Date.now()}.${fileExtension}`;
+      // 원본 포맷 감지 및 확장자 결정
+      let detectedFormat = 'jpg'; // 기본값
+      let contentType = 'image/jpeg'; // 기본값
       
-      // S3 업로드
+      // 매직 바이트로 실제 포맷 감지
+      if (buffer.subarray(0, 3).equals(Buffer.from([0xFF, 0xD8, 0xFF]))) {
+        detectedFormat = 'jpg';
+        contentType = 'image/jpeg';
+      } else if (buffer.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4E, 0x47]))) {
+        detectedFormat = 'png';
+        contentType = 'image/png';
+      } else if (buffer.subarray(0, 4).equals(Buffer.from('RIFF', 'ascii')) && 
+                 buffer.subarray(8, 12).equals(Buffer.from('WEBP', 'ascii'))) {
+        detectedFormat = 'webp';
+        contentType = 'image/webp';
+      } else if (buffer.subarray(4, 12).equals(Buffer.from('ftypheic', 'ascii'))) {
+        detectedFormat = 'heic';
+        contentType = 'image/heic';
+      } else if (buffer.subarray(4, 12).equals(Buffer.from('ftypheif', 'ascii'))) {
+        detectedFormat = 'heif';
+        contentType = 'image/heif';
+      }
+      
+      const fileName = `users/profiles/user_${user._id}_${Date.now()}.${detectedFormat}`;
+      
+      // S3 업로드 (환경변수명 수정: AWS_S3_BUCKET 사용)
       const uploadParams = {
-        Bucket: process.env.AWS_S3_BUCKET_NAME!,
+        Bucket: process.env.AWS_S3_BUCKET!,
         Key: fileName,
         Body: cleanBuffer,
-        ContentType: format || 'image/jpeg',
+        ContentType: contentType,
         ACL: 'public-read' as const,
         // 추가 보안 헤더
         Metadata: {
           'user-id': user._id.toString(),
-          'upload-time': new Date().toISOString()
+          'upload-time': new Date().toISOString(),
+          'original-format': detectedFormat
         }
       };
       
       const command = new PutObjectCommand(uploadParams);
       await s3Client.send(command);
       
-      // S3 URL 생성
-      const imageUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-northeast-2'}.amazonaws.com/${fileName}`;
+      // S3 URL 생성 (환경변수명 수정)
+      const imageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'ap-northeast-2'}.amazonaws.com/${fileName}`;
       
-      // Update the user profile in the database
+      // Update the user profile in the database (MONGODB_URI 환경변수는 connectDB()에서 사용)
       const updatedUser = await User.findOneAndUpdate(
         { email: session.user.email },
         { profileImage: imageUrl },
@@ -139,7 +161,14 @@ export async function POST(req: NextRequest) {
       
       return NextResponse.json({
         message: 'Profile image updated successfully',
-        profileImageUrl: imageUrl
+        profileImageUrl: imageUrl,
+        user: {
+          id: updatedUser._id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          profileImage: updatedUser.profileImage,
+          bio: updatedUser.bio
+        }
       });
     } catch (error) {
       console.error('Error processing image:', error);
