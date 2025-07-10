@@ -197,7 +197,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
         value={messageText}
         onChange={(e) => setMessageText(e.target.value)}
         onKeyDown={handleKeyPress}
-        placeholder={isUserTurn ? "지금은 당신의 차례입니다. 메시지를 입력하세요." : "다음 버튼을 눌러 대화를 계속하세요."}
+        placeholder={isUserTurn ? "It's your turn. Please enter your message." : "Click the Next button to continue the conversation."}
         className={`w-full resize-none outline-none p-2 ${
           isUserTurn 
             ? "bg-white border-2 border-blue-500 animate-pulse focus:animate-none" 
@@ -1430,7 +1430,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
             color: '#6b7280',
             marginTop: '8px'
           }}>
-            현재 다른 참가자의 발언 차례입니다. 당신의 차례가 되면 알려드립니다.
+            This is not your turn. You will be notified when it's your turn.
         </div>
       )}
       </div>

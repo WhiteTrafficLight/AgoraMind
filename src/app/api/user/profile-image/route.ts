@@ -186,7 +186,6 @@ export async function POST(req: NextRequest) {
         Key: fileName,
         Body: cleanBuffer,
         ContentType: contentType,
-        ACL: 'public-read' as const,
         // 추가 보안 헤더
         Metadata: {
           'user-id': user._id.toString(),
