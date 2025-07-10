@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
+import { loggers } from '@/utils/logger';
 import chatService, { ChatRoom as ServiceChatRoom } from '@/lib/ai/chatService';
 import { 
   ChatRoom, 
@@ -63,7 +64,7 @@ export function useOpenChatState() {
         isLoading: false 
       });
     } catch (error) {
-      console.error('Failed to load chat rooms:', error);
+      loggers.ui.error('Failed to load chat rooms', { error });
       updateState({ isLoading: false });
     }
   };
@@ -78,7 +79,7 @@ export function useOpenChatState() {
         if (profileData.username) {
           updateState({ username: profileData.username });
           sessionStorage.setItem('chat_username', profileData.username);
-          console.log(`✅ DB에서 사용자 이름 가져옴: ${profileData.username}`);
+          loggers.ui.info('Retrieved username from database', { username: profileData.username });
         } else {
           const storedUsername = sessionStorage.getItem('chat_username');
           const username = storedUsername || `User_${Math.floor(Math.random() * 10000)}`;
@@ -87,7 +88,7 @@ export function useOpenChatState() {
         }
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      loggers.ui.error('Error fetching user profile', { error });
       const storedUsername = sessionStorage.getItem('chat_username');
       const username = storedUsername || `User_${Math.floor(Math.random() * 10000)}`;
       updateState({ username });
@@ -104,7 +105,7 @@ export function useOpenChatState() {
         const data = await response.json();
         updateState({ philosophers: data.philosophers || [] });
       } else {
-        console.error('Failed to fetch philosophers from static file');
+        loggers.ui.warn('Failed to fetch philosophers from static file');
         // Fallback to basic list
         const basicPhilosophers = [
           'Socrates', 'Plato', 'Aristotle', 'Kant', 'Nietzsche', 
@@ -113,7 +114,7 @@ export function useOpenChatState() {
         updateState({ philosophers: basicPhilosophers });
       }
     } catch (error) {
-      console.error('Error fetching philosophers:', error);
+      loggers.ui.error('Error fetching philosophers', { error });
       // Fallback to basic list
       const basicPhilosophers = [
         'Socrates', 'Plato', 'Aristotle', 'Kant', 'Nietzsche', 
@@ -127,10 +128,10 @@ export function useOpenChatState() {
   const fetchCustomNpcs = async () => {
     try {
       // Disabled custom NPCs backend API - using empty array for now
-      console.log('Custom NPCs backend API disabled - using static philosopher data only');
+      loggers.ui.info('Custom NPCs backend API disabled - using static philosopher data only');
       updateState({ customNpcs: [] });
     } catch (error) {
-      console.error('Error fetching custom NPCs:', error);
+      loggers.ui.error('Error fetching custom NPCs', { error });
       updateState({ customNpcs: [] });
     }
   };
@@ -147,18 +148,18 @@ export function useOpenChatState() {
         username: state.username || sessionStorage.getItem('chat_username') || 'Anonymous'
       };
       
-      console.log('Creating chat with params:', paramsWithUser);
-      console.log('📢 사용자명 전달:', paramsWithUser.username);
+      loggers.ui.info('Creating chat with params', { paramsWithUser });
+      loggers.ui.debug('Username passed to chat creation', { username: paramsWithUser.username });
       
       const newChat = await chatService.createChatRoom(paramsWithUser);
-      console.log('Chat creation response:', newChat);
+      loggers.ui.info('Chat creation response received', { chatId: newChat.id });
       
       // Redirect to main chat page (v2 content is now main)
       router.push(`/chat?id=${newChat.id}`);
       
       updateState({ showCreateChatModal: false });
     } catch (error) {
-      console.error('Failed to create chat:', error);
+      loggers.ui.error('Failed to create chat', { error });
       toast.error('Failed to create chat room. Please try again.');
     } finally {
       setIsCreating(false);
@@ -167,7 +168,7 @@ export function useOpenChatState() {
 
   // Join chat
   const handleJoinChat = (chatId: string) => {
-    console.log('Joining chat with ID:', chatId);
+    loggers.ui.info('Joining chat', { chatId });
     router.push(`/chat?id=${chatId}`);
   };
 
