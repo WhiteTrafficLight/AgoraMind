@@ -5,6 +5,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 import { ChatRoom, ChatRoomCreationParams } from '@/lib/ai/chatService';
 import chatRoomDB from '@/lib/db/chatRoomDB';
 import mongoose from 'mongoose';
+import { loggers } from '@/utils/logger';
 
 // Socket 서버 관련 타입 정의
 interface SocketServer extends HttpServer {
@@ -25,7 +26,7 @@ const DEBUG = false;
 // 로그 출력 함수 - 디버그 모드에서만 출력
 function log(...args: any[]) {
   if (DEBUG) {
-    console.log(...args);
+    loggers.api.debug('Rooms API debug', args);
   }
 }
 
@@ -33,7 +34,7 @@ function log(...args: any[]) {
 let isConnected = false;
 const connectDB = async () => {
   if (isConnected) {
-    console.log('MongoDB already connected');
+    loggers.api.debug('MongoDB already connected');
     return;
   }
 
@@ -41,9 +42,9 @@ const connectDB = async () => {
     const mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017/agoramind';
     await mongoose.connect(mongoUrl);
     isConnected = true;
-    console.log('MongoDB connected successfully');
+    loggers.api.debug('MongoDB connected successfully');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    loggers.api.error('MongoDB connection error', error);
     throw error;
   }
 };
@@ -57,9 +58,9 @@ export default async function handler(
 ) {
   // 중요한 로그만 유지하고 나머지는 디버그 모드로 제어
   if (req.method === 'POST') {
-    console.log('API 요청 받음:', req.method, req.url);
+    loggers.api.info('API request received', { method: req.method, url: req.url });
   } else {
-    log('API 요청 받음:', req.method, req.url);
+    log('API request received:', req.method, req.url);
   }
 
   // CORS 헤더 설정
@@ -75,12 +76,12 @@ export default async function handler(
   // GET 요청 - 모든 채팅룸 반환
   if (req.method === 'GET') {
     try {
-      console.log('GET 요청 처리 - 쿼리:', req.query);
+      loggers.api.debug('Processing GET request', { query: req.query });
       
       // ID로 특정 채팅룸 필터링
       const { id } = req.query;
       if (id) {
-        console.log(`ID ${id}로 채팅룸 검색 중`);
+        loggers.api.debug('Searching for chat room by ID', { id });
         // 배열인 경우 첫 번째 값만 사용
         const roomId = Array.isArray(id) ? id[0] : id;
         
@@ -89,16 +90,20 @@ export default async function handler(
         
         // 데이터베이스에서 채팅룸 조회
         const room = await chatRoomDB.getChatRoomById(normalizedRoomId);
-        console.log('검색 결과:', room ? '찾음' : '없음');
+        loggers.api.debug('Search result', { found: !!room, roomId: id });
         
         // 아이디 일치 여부 확인
         if (room && String(room.id) !== String(normalizedRoomId)) {
-          console.error(`❌ 잘못된 방 ID: 요청=${normalizedRoomId}, 반환=${room.id}`);
+          loggers.api.error('Invalid room ID mismatch', { 
+            requested: normalizedRoomId, 
+            returned: room.id 
+          });
           return res.status(200).json(null);
         }
         
         if (room) {
-          console.log(`채팅룸 ${roomId} 정보:`, {
+          loggers.api.debug('Chat room info', {
+            roomId,
             title: room.title,
             messagesCount: room.messages?.length || 0,
             lastMessageFrom: room.messages && room.messages.length > 0 
@@ -119,7 +124,7 @@ export default async function handler(
         if (!exists) {
           acc.push(room);
         } else {
-          console.warn(`중복 채팅룸 ID 발견: ${room.id}, ${room.title}`);
+          loggers.api.warn('Duplicate chat room ID found', { id: room.id, title: room.title });
         }
         return acc;
       }, [] as ChatRoom[]);
@@ -135,7 +140,7 @@ export default async function handler(
 
       return res.status(200).json(filteredRooms);
     } catch (error) {
-      console.error('Error getting chat rooms:', error);
+      loggers.api.error('Error getting chat rooms', error);
       return res.status(500).json({ error: 'Failed to get chat rooms' });
     }
   }
@@ -143,26 +148,30 @@ export default async function handler(
   // POST 요청 - 새 채팅룸 생성
   if (req.method === 'POST') {
     try {
-      console.log('POST 요청 처리 - 채팅룸 생성');
+      loggers.api.info('Processing POST request - creating chat room');
       
       const params = req.body as ChatRoomCreationParams;
-      console.log('📢 요청 본문:', JSON.stringify(params, null, 2));
-      console.log('📢 대화 타입:', params.dialogueType);
+      loggers.api.debug('Request body', { 
+        title: params.title,
+        dialogueType: params.dialogueType,
+        npcCount: params.npcs?.length || 0
+      });
+      loggers.api.debug('Dialogue type', { dialogueType: params.dialogueType });
       
       if (params.dialogueType === 'debate') {
-        console.log('📢 찬반토론 모드 감지됨');
-        console.log('📢 npcPositions:', JSON.stringify(params.npcPositions));
-        console.log('📢 사용자 역할:', params.userDebateRole);
+        loggers.api.info('Debate mode detected');
+        loggers.api.debug('NPC positions', params.npcPositions);
+        loggers.api.debug('User debate role', { userDebateRole: params.userDebateRole });
       }
 
       // 유효성 검사
       if (!params.title || !params.title.trim()) {
-        console.log('오류: 제목 없음');
+        loggers.api.error('Title missing in request');
         return res.status(400).json({ error: 'Chat room title is required' });
       }
 
       if (!params.npcs || !Array.isArray(params.npcs) || params.npcs.length === 0) {
-        console.log('오류: NPC 없음');
+        loggers.api.error('NPCs missing in request');
         return res.status(400).json({ error: 'At least one philosopher (NPC) is required' });
       }
 
@@ -176,17 +185,17 @@ export default async function handler(
           if (userResponse.ok) {
             const userData = await userResponse.json();
             currentUser = userData.username || userData.name || `User_${Math.floor(Math.random() * 10000)}`;
-            console.log('✅ 사용자 프로필에서 username 가져옴:', currentUser);
+            loggers.api.info('Retrieved username from user profile', { username: currentUser });
           } else {
             throw new Error('User profile not found');
           }
         } catch (error) {
-          console.warn('⚠️ 사용자 프로필 가져오기 실패, 랜덤 이름 생성:', error);
+          loggers.api.warn('Failed to get user profile, generating random name', error);
           currentUser = `User_${Math.floor(Math.random() * 10000)}`;
         }
       }
       
-      console.log('📢 최종 사용자명:', currentUser);
+      loggers.api.debug('Final username', { username: currentUser });
 
       // 새 채팅룸 객체 생성
       const newRoom: ChatRoom = {
@@ -207,7 +216,7 @@ export default async function handler(
       
       // 찬반토론 모드인 경우 pro, con, neutral 필드 설정
       if (params.dialogueType === 'debate' && params.npcPositions) {
-        console.log('📢 찬반토론 정보 설정 중');
+        loggers.api.debug('Setting up debate information');
         
         // pro, con, neutral 초기화
         newRoom.pro = [];
@@ -219,43 +228,45 @@ export default async function handler(
           const position = params.npcPositions[npcId];
           if (position === 'pro') {
             newRoom.pro.push(npcId);
-            console.log(`📢 NPC를 PRO에 추가: ${npcId}`);
+            loggers.api.debug('Added NPC to PRO side', { npcId });
           } else if (position === 'con') {
             newRoom.con.push(npcId);
-            console.log(`📢 NPC를 CON에 추가: ${npcId}`);
+            loggers.api.debug('Added NPC to CON side', { npcId });
           } else {
             newRoom.neutral.push(npcId);
-            console.log(`📢 NPC를 NEUTRAL에 추가: ${npcId}`);
+            loggers.api.debug('Added NPC to NEUTRAL side', { npcId });
           }
         }
         
         // 사용자 위치 설정
         if (params.userDebateRole) {
-          console.log(`📢 사용자 역할: ${params.userDebateRole}`);
+          loggers.api.debug('User role assignment', { userDebateRole: params.userDebateRole });
           if (params.userDebateRole === 'pro') {
             newRoom.pro.push(currentUser);
-            console.log(`📢 사용자를 PRO에 추가: ${currentUser}`);
+            loggers.api.debug('Added user to PRO side', { user: currentUser });
           } else if (params.userDebateRole === 'con') {
             newRoom.con.push(currentUser);
-            console.log(`📢 사용자를 CON에 추가: ${currentUser}`);
+            loggers.api.debug('Added user to CON side', { user: currentUser });
           } else { // neutral
             newRoom.neutral.push(currentUser);
-            console.log(`📢 사용자를 NEUTRAL에 추가: ${currentUser}`);
+            loggers.api.debug('Added user to NEUTRAL side', { user: currentUser });
           }
         } else {
           // 기본값은 neutral
           newRoom.neutral.push(currentUser);
-          console.log(`📢 역할이 지정되지 않아 사용자를 NEUTRAL에 추가: ${currentUser}`);
+          loggers.api.debug('User role not specified, added to NEUTRAL', { user: currentUser });
         }
         
-        console.log(`📢 최종 Pro 목록: ${newRoom.pro.join(', ')}`);
-        console.log(`📢 최종 Con 목록: ${newRoom.con.join(', ')}`);
-        console.log(`📢 최종 Neutral 목록: ${newRoom.neutral.join(', ')}`);
+        loggers.api.debug('Final participant assignments', {
+          pro: newRoom.pro,
+          con: newRoom.con,
+          neutral: newRoom.neutral
+        });
 
         // 디베이트 모드에서는 파이썬 API 서버에 모더레이터 메시지 생성 요청
         if (params.dialogueType === 'debate' && params.generateInitialMessage) {
           try {
-            console.log('📢 파이썬 API 서버에 모더레이터 메시지 생성 요청 시작');
+            loggers.api.info('Starting moderator message generation request to Python API');
             
             // 파이썬 API 서버 URL (환경 변수 또는 기본값)
             const pythonApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -265,8 +276,12 @@ export default async function handler(
             const proNpcIds = newRoom.pro || [];
             const conNpcIds = newRoom.con || [];
 
-            console.log(`📢 모더레이터 메시지 위한 proNpcIds: ${proNpcIds.join(', ')} (${proNpcIds.length}개)`);
-            console.log(`📢 모더레이터 메시지 위한 conNpcIds: ${conNpcIds.join(', ')} (${conNpcIds.length}개)`);
+            loggers.api.debug('Moderator message NPCs', {
+              proNpcIds: proNpcIds,
+              proCount: proNpcIds.length,
+              conNpcIds: conNpcIds,
+              conCount: conNpcIds.length
+            });
             
             // 유저 이름 매핑 객체 (User123 -> WhiteTrafficLight 등)
             const userData: Record<string, string> = {};
@@ -276,14 +291,17 @@ export default async function handler(
               // 사용자 ID가 사용자 이름과 다른 경우에만 매핑에 추가
               if (currentUser !== params.username) {
                 userData[currentUser] = params.username;
-                console.log(`📢 유저 이름 매핑 추가: ${currentUser} -> ${params.username}`);
+                loggers.api.debug('Added user name mapping', { 
+                  from: currentUser, 
+                  to: params.username 
+                });
               }
-              console.log(`📢 실제 사용자 이름(username)을 사용: ${params.username}`);
+              loggers.api.debug('Using actual username', { username: params.username });
             }
             
             // NPC 이름 정보 조회 및 매핑 생성
-            console.log('📢 NPC 이름 정보 조회 시작');
-            console.log(`📢 NPC 포지션 정보: ${JSON.stringify(params.npcPositions)}`);
+            loggers.api.info('Starting NPC name information retrieval');
+            loggers.api.debug('NPC position information', params.npcPositions);
             
             // NPC ID -> 이름 매핑 객체
             const npcNames: Record<string, string> = {};
@@ -293,7 +311,7 @@ export default async function handler(
             
             // 각 NPC에 대해 이름 조회
             for (const npcId of allNpcIds) {
-              console.log(`🔍 Fetching NPC details for ID: ${npcId}`);
+              loggers.api.debug('Fetching NPC details', { npcId });
               
               try {
                 // 먼저 UUID 형태인지 확인
@@ -302,7 +320,7 @@ export default async function handler(
                   // UUID 형식인지 확인
                   if (npcId.length > 30 && npcId.includes('-')) {
                     isUuid = true;
-                    console.log(`🔍 Searching by backend_id (UUID): ${npcId}`);
+                    loggers.api.debug('Searching by backend_id (UUID)', { npcId });
                   }
                 } catch (e) {
                   // UUID 형식이 아니면 무시
@@ -319,39 +337,53 @@ export default async function handler(
                     const customNpc = await npcCollection.findOne({ backend_id: npcId });
                     
                     if (customNpc) {
-                      console.log(`✅ Found custom NPC: ${customNpc.name}`);
-                      console.log(`   _id: ${customNpc._id}, backend_id: ${npcId}`);
+                      loggers.api.info('Found custom NPC', { 
+                        name: customNpc.name,
+                        id: customNpc._id,
+                        backendId: npcId
+                      });
                       
                       // 매핑에 추가
                       npcNames[npcId] = customNpc.name;
                       continue; // 찾았으므로 다음 NPC로
                     } else {
-                      console.log(`⚠️ Custom NPC not found with backend_id: ${npcId}`);
+                      loggers.api.warn('Custom NPC not found with backend_id', { npcId });
                     }
                   } catch (dbError) {
-                    console.error(`❌ MongoDB error: ${dbError}`);
+                    loggers.api.error('MongoDB error during NPC lookup', dbError);
                   }
                 }
                 
                 // 2. API를 통해 조회
                 const apiUrl = `${pythonApiUrl}/api/npc/get?id=${npcId}`;
-                console.log(`🔄 Trying backend API at ${apiUrl}`);
+                loggers.api.debug('Trying backend API', { apiUrl });
                 
                 const response = await fetch(apiUrl);
                 if (response.ok) {
                   const npcData = await response.json();
                   if (npcData && npcData.name) {
-                    console.log(`✅ Got NPC details from backend: ${npcData.name}`);
-                    console.log(`📢 NPC 이름 매핑 추가: ${npcId} -> ${npcData.name}`);
-                    console.log(`📢 NPC 정보 조회 결과: ${JSON.stringify(npcData).substring(0, 100)}...`);
+                    loggers.api.info('Retrieved NPC details from backend', { 
+                      name: npcData.name,
+                      npcId
+                    });
+                    loggers.api.debug('NPC name mapping added', { 
+                      from: npcId, 
+                      to: npcData.name 
+                    });
+                    loggers.api.debug('NPC info retrieval result', { 
+                      data: JSON.stringify(npcData).substring(0, 100) + '...' 
+                    });
                     
                     // 매핑에 추가
                     npcNames[npcId] = npcData.name;
                   } else {
-                    console.log(`⚠️ API returned data without name for NPC: ${npcId}`);
+                    loggers.api.warn('API returned data without name for NPC', { npcId });
                   }
                 } else {
-                  console.log(`⚠️ Failed to get NPC details: ${response.status}`);
+                  loggers.api.warn('Failed to get NPC details from API', { 
+                    npcId,
+                    status: response.status 
+                  });
                   
                   // 기본 철학자 이름 하드코딩
                   const defaultNames: Record<string, string> = {
@@ -372,23 +404,32 @@ export default async function handler(
                   
                   if (npcId.toLowerCase() in defaultNames) {
                     const defaultName = defaultNames[npcId.toLowerCase()];
-                    console.log(`📢 기본 철학자 이름 사용: ${npcId} -> ${defaultName}`);
+                    loggers.api.debug('Using default philosopher name', { 
+                      from: npcId, 
+                      to: defaultName 
+                    });
                     npcNames[npcId] = defaultName;
                   } else if (isUuid) {
-                    console.log(`❌ 심각: 커스텀 NPC(${npcId})의 실제 이름을 찾지 못했습니다!`);
-                    console.log(`📢 기본 이름 사용: ${npcId} -> Unknown Philosopher`);
+                    loggers.api.error('Critical: Could not find actual name for custom NPC', { npcId });
+                    loggers.api.debug('Using default name for unknown custom NPC', { 
+                      from: npcId, 
+                      to: 'Unknown Philosopher' 
+                    });
                     npcNames[npcId] = "Unknown Philosopher";
                   } else {
-                    console.log(`📢 기본 이름 사용: ${npcId} -> ${npcId}`);
+                    loggers.api.debug('Using default capitalized name', { 
+                      from: npcId, 
+                      to: npcId.charAt(0).toUpperCase() + npcId.slice(1) 
+                    });
                     npcNames[npcId] = npcId.charAt(0).toUpperCase() + npcId.slice(1);
                   }
                 }
               } catch (error) {
-                console.error(`❌ Error fetching NPC details: ${error}`);
+                loggers.api.error('Error fetching NPC details', { npcId, error });
               }
             }
             
-            console.log(`📢 최종 NPC 이름 정보: ${JSON.stringify(npcNames)}`);
+            loggers.api.debug('Final NPC name information', npcNames);
             
             // API 요청 데이터 구성 - 새로운 create-debate-room 엔드포인트용
             const requestData: {
@@ -414,7 +455,7 @@ export default async function handler(
               // stance_statements 제거 - 백엔드에서 자동 생성
             };
             
-            console.log(`📢 Python API 요청 데이터 (새 방식): ${JSON.stringify(requestData, null, 2)}`);
+            loggers.api.debug('Python API request data (new method)', requestData);
             
             // 새로운 create-debate-room 엔드포인트 호출
             const apiResponse = await fetch(`${pythonApiUrl}/api/chat/create-debate-room`, {
@@ -428,61 +469,79 @@ export default async function handler(
             // 응답 처리
             if (apiResponse.ok) {
               const responseData = await apiResponse.json();
-              console.log(`📢 Python API 응답 성공 (새 방식): ${JSON.stringify(responseData)}`);
+              loggers.api.info('Python API response success (new method)', responseData);
               
               // 성공 응답 확인
               if (responseData.status === 'success') {
-                console.log(`📢 DebateDialogue 인스턴스 생성 및 자동 진행 시작됨`);
-                console.log(`📢 현재 단계: ${responseData.debate_info?.current_stage}`);
-                console.log(`📢 Pro 참가자: ${responseData.debate_info?.pro_participants?.join(', ')}`);
-                console.log(`📢 Con 참가자: ${responseData.debate_info?.con_participants?.join(', ')}`);
+                loggers.api.info('DebateDialogue instance created and auto-progression started');
+                loggers.api.debug('Current stage', { stage: responseData.debate_info?.current_stage });
+                loggers.api.debug('Pro participants', { 
+                  participants: responseData.debate_info?.pro_participants 
+                });
+                loggers.api.debug('Con participants', { 
+                  participants: responseData.debate_info?.con_participants 
+                });
                 
                 // 파이썬 백엔드에서 확인된 실제 room_id 사용
                 newRoom.id = responseData.room_id;
-                console.log(`📢 파이썬 백엔드 확인된 room_id 사용: ${responseData.room_id}`);
+                loggers.api.debug('Using Python backend confirmed room_id', { 
+                  roomId: responseData.room_id 
+                });
                 
                 // 토론방 정보를 newRoom에 추가 (필요시 프론트엔드에서 참조 가능)
                 newRoom.debate_info = responseData.debate_info;
                 
-                console.log(`📢 토론방 생성 완료 - 백그라운드에서 자동 진행 중`);
+                loggers.api.info('Debate room creation completed - auto-progression running in background');
               } else {
-                console.error(`❌ Python API 응답 오류: ${responseData.message || 'Unknown error'}`);
-                throw new Error(`Python API 응답 오류: ${responseData.message || 'Unknown error'}`);
+                loggers.api.error('Python API response error', { 
+                  message: responseData.message || 'Unknown error' 
+                });
+                throw new Error(`Python API response error: ${responseData.message || 'Unknown error'}`);
               }
             } else {
               const errorText = await apiResponse.text();
-              console.error(`❌ Python API 요청 실패: ${apiResponse.status} ${apiResponse.statusText}`);
-              console.error(`❌ Python API 오류 메시지: ${errorText}`);
-              throw new Error(`Python API 요청 실패: ${apiResponse.status} ${apiResponse.statusText}`);
+              loggers.api.error('Python API request failed', {
+                status: apiResponse.status,
+                statusText: apiResponse.statusText,
+                errorMessage: errorText
+              });
+              throw new Error(`Python API request failed: ${apiResponse.status} ${apiResponse.statusText}`);
             }
           } catch (error) {
-            console.error(`❌ moderator opening 메시지 생성 중 오류: ${error}`);
+            loggers.api.error('Error during moderator opening message generation', error);
           }
         }
       }
 
       // 채팅룸 데이터베이스에 저장
-      console.log('📢 채팅룸 저장 전 최종 객체:', JSON.stringify(newRoom, null, 2));
+      loggers.api.debug('Final chat room object before saving', { 
+        id: newRoom.id,
+        title: newRoom.title,
+        participantCount: newRoom.totalParticipants
+      });
       const createdRoom = await chatRoomDB.createChatRoom(newRoom);
 
-      console.log(`✅ Chat room created with ID: ${createdRoom.id}, title: "${createdRoom.title}"`);
-      console.log(`✅ dialogueType: ${createdRoom.dialogueType || 'not set'}`);
+      loggers.api.info('Chat room created', {
+        id: createdRoom.id,
+        title: createdRoom.title,
+        dialogueType: createdRoom.dialogueType || 'not set'
+      });
       
-      if (createdRoom.pro) console.log(`✅ Pro: ${createdRoom.pro.join(', ')}`);
-      if (createdRoom.con) console.log(`✅ Con: ${createdRoom.con.join(', ')}`);
-      if (createdRoom.neutral) console.log(`✅ Neutral: ${createdRoom.neutral.join(', ')}`);
+      if (createdRoom.pro) loggers.api.debug('Pro participants', { pro: createdRoom.pro });
+      if (createdRoom.con) loggers.api.debug('Con participants', { con: createdRoom.con });
+      if (createdRoom.neutral) loggers.api.debug('Neutral participants', { neutral: createdRoom.neutral });
       
       // Socket.IO 이벤트 발생 (서버에 Socket.IO 인스턴스가 있는 경우)
       if (res.socket.server.io) {
-        console.log('Broadcasting room-created event');
+        loggers.api.debug('Broadcasting room-created event');
         res.socket.server.io.emit('room-created', createdRoom);
       } else {
-        console.warn('Socket.IO server not available, could not broadcast room-created event');
+        loggers.api.warn('Socket.IO server not available, could not broadcast room-created event');
       }
 
       return res.status(201).json(createdRoom);
     } catch (error) {
-      console.error('Error creating chat room:', error);
+      loggers.api.error('Error creating chat room', error);
       return res.status(500).json({ error: 'Failed to create chat room' });
     }
   }
@@ -490,7 +549,7 @@ export default async function handler(
   // PUT 요청 - 채팅룸 업데이트 (메시지 추가 등)
   if (req.method === 'PUT') {
     try {
-      console.log('PUT 요청 처리 - 채팅룸 업데이트');
+      loggers.api.info('Processing PUT request - updating chat room');
       
       // id 또는 roomId 파라미터 중 하나를 사용
       const roomId = req.query.id || req.query.roomId;
@@ -500,65 +559,78 @@ export default async function handler(
       }
       
       const roomIdStr = Array.isArray(roomId) ? roomId[0] : roomId;
-      console.log(`룸 업데이트 요청: ID ${roomIdStr}`);
+      loggers.api.debug('Room update request', { roomId: roomIdStr });
       
       // 채팅룸 존재 여부 확인
       const room = await chatRoomDB.getChatRoomById(roomIdStr);
       if (!room) {
-        console.log(`방을 찾을 수 없음: ${roomIdStr}`);
+        loggers.api.warn('Room not found for update', { roomId: roomIdStr });
         return res.status(404).json({ error: 'Chat room not found' });
       }
       
       const updates = req.body;
-      console.log(`Updating room ${roomIdStr} with:`, updates);
+      loggers.api.debug('Updating room with data', { roomId: roomIdStr, updates });
       
       // 메시지 추가 처리
       if (updates.message) {
         const { message } = updates;
-        console.log(`새 메시지 추가: ${message.sender}의 메시지, ID: ${message.id}`);
-        console.log(`📋 메시지 전체 데이터: ${JSON.stringify(message)}`);
+        loggers.api.debug('Adding new message', {
+          sender: message.sender,
+          messageId: message.id,
+          hasText: !!message.text
+        });
+        loggers.api.debug('Complete message data', message);
         
         // 디버깅: citations 필드 확인
         if (message.citations) {
-          console.log(`📚 인용 정보 포함됨: ${JSON.stringify(message.citations)}`);
+          loggers.api.debug('Citations included', { citations: message.citations });
         } else {
-          console.log(`⚠️ 인용 정보 없음 (citations 필드: ${message.citations})`);
+          loggers.api.debug('No citations information', { 
+            citationsField: message.citations 
+          });
         }
         
         // 클라이언트에서 오는 메시지 객체가 citations 필드를 가지고 있지만 
         // undefined로 설정된 경우를 처리
         if (message.hasOwnProperty('citations') && message.citations === undefined) {
-          console.log(`⚠️ citations 필드가 undefined로 설정됨, 삭제 중...`);
+          loggers.api.debug('Citations field is undefined, removing from message');
           delete message.citations;
         }
         
         // 클라이언트 상태에서 citations가 빈 배열이나 null인 경우도 처리
         if (message.citations && Array.isArray(message.citations) && message.citations.length === 0) {
-          console.log(`⚠️ citations가 빈 배열임, 삭제 중...`);
+          loggers.api.debug('Citations is empty array, removing from message');
           delete message.citations;
         }
         
         const success = await chatRoomDB.addMessage(roomIdStr, message);
         
         if (success) {
-          console.log(`룸 ${roomIdStr}에 ${message.sender}의 새 메시지 추가됨`);
+          loggers.api.debug('Added new message to room', {
+            roomId: roomIdStr,
+            sender: message.sender,
+            messageCount: room.messages?.length + 1 || 1
+          });
           
           // Socket.IO 이벤트 발생 (서버에 Socket.IO 인스턴스가 있는 경우)
           if (res.socket.server.io) {
-            console.log('Broadcasting message-added event');
+            loggers.api.debug('Broadcasting message-added event');
             // 메시지와 함께 roomId도 전송하여 클라이언트에서 올바르게 처리할 수 있도록 함
             const socketData = {
               roomId: roomIdStr,
               message: message
             };
-            console.log(`🔄 Socket.IO 브로드캐스트 데이터: ${JSON.stringify(socketData)}`);
+            loggers.api.debug('Socket.IO broadcast data', socketData);
             res.socket.server.io.to(roomIdStr).emit('new-message', socketData);
-            console.log(`✅ 브로드캐스트 완료 - 방 ID: ${roomIdStr}, 메시지 ID: ${message.id}`);
+            loggers.api.info('Broadcast completed', {
+              roomId: roomIdStr,
+              messageId: message.id
+            });
           } else {
-            console.warn(`❌ Socket.IO 서버가 초기화되지 않아 브로드캐스트할 수 없음`);
+            loggers.api.warn('Socket.IO server not initialized, cannot broadcast');
           }
         } else {
-          console.log(`중복 메시지 건너뜀, ID: ${message.id}`);
+          loggers.api.debug('Duplicate message skipped', { messageId: message.id });
         }
       }
       
@@ -589,7 +661,7 @@ export default async function handler(
         room: updatedRoom
       });
     } catch (error) {
-      console.error('Error updating chat room:', error);
+      loggers.api.error('Error updating chat room', error);
       return res.status(500).json({ 
         success: false,
         error: 'Failed to update chat room' 

@@ -6,6 +6,7 @@ import { ChatMessage, ChatRoom, NpcDetail } from '@/lib/ai/chatService';
 import { formatTimestamp } from '@/lib/utils/dateUtils';
 import { useRouter } from 'next/router';
 import TypingMessage from './TypingMessage';
+import { loggers } from '@/utils/logger';
 
 interface DebateChatUIProps {
   room: ChatRoom;
@@ -124,25 +125,25 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
   // Fetch user profile to get profile picture
   const fetchUserProfile = async (username: string) => {
     try {
-      console.log('Fetching user profile for:', username);
+      loggers.ui.debug('Fetching user profile for:', username);
       const response = await fetch('/api/user/profile');
       if (response.ok) {
         const profileData = await response.json();
-        console.log('Profile data received:', profileData);
+        loggers.ui.debug('Profile data received:', profileData);
         if (profileData && profileData.profileImage) {
-          console.log('Setting profile image:', profileData.profileImage);
+          loggers.ui.debug('Setting profile image:', profileData.profileImage);
           setUserProfilePicture(profileData.profileImage);
         } else if (profileData && profileData.profilePicture) {
-          console.log('Setting profile picture:', profileData.profilePicture);
+          loggers.ui.debug('Setting profile picture:', profileData.profilePicture);
           setUserProfilePicture(profileData.profilePicture);
         } else {
-          console.log('No profile image found in profileData:', profileData);
+          loggers.ui.warn('No profile image found in profileData:', profileData);
         }
       } else {
-        console.error('Error response from profile API:', response.status);
+        loggers.ui.error('Error response from profile API:', response.status);
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      loggers.ui.error('Error fetching user profile:', error);
     }
   };
   
@@ -164,7 +165,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
     
     // Only allow submission when it's the user's turn and there's text
     if (messageText.trim() && isUserTurn) {
-      console.log('💬 User is submitting message:', messageText);
+      loggers.chat.info('💬 User is submitting message:', messageText);
       
       // Disable input field immediately to prevent double submissions
       setInputDisabled(true);
@@ -268,7 +269,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
   useEffect(() => {
     const handleNextSpeakerUpdate = (event: CustomEvent) => {
       if (event.detail && event.detail.is_user === true) {
-        console.log('🎤 User turn detected from event!', event.detail);
+        loggers.ui.debug('🎤 User turn detected from event!', event.detail);
         setIsUserTurn(true);
         setTurnIndicatorVisible(true);
         
@@ -279,7 +280,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
           }
         }, 100);
       } else {
-        console.log('🎤 Non-user turn detected from event', event.detail);
+        loggers.ui.debug('🎤 Non-user turn detected from event', event.detail);
         setIsUserTurn(false);
         setTurnIndicatorVisible(false);
       }
@@ -307,7 +308,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
     if (isGeneratingNext) return;
     
     setIsGeneratingNext(true);
-    console.log(`🎯 Next 버튼 클릭 - 방 ${room.id}에 대한 다음 메시지 요청`);
+    loggers.ui.info(`🎯 Next 버튼 클릭 - 방 ${room.id}에 대한 다음 메시지 요청`);
     
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -320,19 +321,19 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ Next 메시지 요청 실패:', errorData);
+        loggers.ui.error('❌ Next 메시지 요청 실패:', errorData);
         throw new Error(errorData.detail || 'Next 메시지 요청 실패');
       }
       
       const data = await response.json();
-      console.log('✅ Next 메시지 요청 성공:', data);
+      loggers.ui.info('✅ Next 메시지 요청 성공:', data);
       
       if (data.status === 'completed') {
-        console.log('🏁 토론 완료');
+        loggers.ui.info('🏁 토론 완료');
       }
       
     } catch (error) {
-      console.error('❌ Next 메시지 요청 중 오류:', error);
+      loggers.ui.error('❌ Next 메시지 요청 중 오류:', error);
     } finally {
       setIsGeneratingNext(false);
     }
@@ -547,16 +548,16 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
       const storedUsername = sessionStorage.getItem('chat_username') || username;
       const roomId = String(room.id);
       
-      console.log(`🔀 Route change: Disconnecting socket for room ${roomId}`);
+      loggers.socket.info(`🔀 Route change: Disconnecting socket for room ${roomId}`);
       
       try {
         const { default: socketClient } = await import('@/lib/socket/socketClient');
         socketClient.off('npc-selected');
         socketClient.leaveRoom(roomId, storedUsername);
         socketClient.disconnect();
-        console.log(`✅ Route change cleanup completed for room ${roomId}`);
+        loggers.socket.info(`✅ Route change cleanup completed for room ${roomId}`);
       } catch (error) {
-        console.error('❌ Error during route change cleanup:', error);
+        loggers.socket.error('❌ Error during route change cleanup:', error);
       }
     };
     
@@ -579,7 +580,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
       const storedUsername = sessionStorage.getItem('chat_username') || username;
       const roomId = String(room.id);
       
-      console.log(`🔌 Page unload: Disconnecting socket for room ${roomId}`);
+      loggers.socket.info(`🔌 Page unload: Disconnecting socket for room ${roomId}`);
       
       // Socket.IO 연결 강제 해제
       try {
@@ -587,10 +588,10 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
           socketClient.off('npc-selected');
           socketClient.leaveRoom(roomId, storedUsername);
           socketClient.disconnect();
-          console.log(`✅ Force disconnected socket for room ${roomId}`);
+          loggers.socket.info(`✅ Force disconnected socket for room ${roomId}`);
         });
       } catch (error) {
-        console.error('❌ Error during force disconnect:', error);
+        loggers.socket.error('❌ Error during force disconnect:', error);
       }
     };
     
@@ -634,12 +635,12 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
         
         // Join the room - use roomId directly as string (String conversion removed)
         const roomId = String(room.id); // 문자열로 정규화
-        console.log(`DebateChatUI: Joining room ${roomId} (${typeof roomId})`);
+        loggers.socket.info(`DebateChatUI: Joining room ${roomId} (${typeof roomId})`);
         socketClient.joinRoom(roomId, storedUsername);
         
         // Add event handler for npc-selected
         socketClient.on('npc-selected', (data: { npc_id: string }) => {
-          console.log('NPC selected for response:', data.npc_id);
+          loggers.socket.debug('NPC selected for response:', data.npc_id);
           setSelectedNpcId(data.npc_id);
           
           // Auto-clear after 3 seconds
@@ -648,7 +649,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
           }, 3000);
         });
       } catch (error) {
-        console.error('Error initializing socket for debate UI:', error);
+        loggers.socket.error('Error initializing socket for debate UI:', error);
       }
     };
     
@@ -660,7 +661,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
       const storedUsername = sessionStorage.getItem('chat_username') || username;
       const roomId = String(room.id);
       
-      console.log(`🔌 DebateChatUI: Cleaning up socket connection for room ${roomId}`);
+      loggers.socket.info(`🔌 DebateChatUI: Cleaning up socket connection for room ${roomId}`);
       
       try {
         // 1. 이벤트 리스너 제거
@@ -678,9 +679,9 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
           socketClient.socket.close();
         }
         
-        console.log(`✅ Socket disconnected for room ${roomId}`);
+        loggers.socket.info(`✅ Socket disconnected for room ${roomId}`);
       } catch (error) {
-        console.error('❌ Error during socket cleanup:', error);
+        loggers.socket.error('❌ Error during socket cleanup:', error);
       }
     };
     
@@ -826,12 +827,12 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
   useEffect(() => {
     // 초기 메시지 디버깅
     if (messages && messages.length > 0) {
-      console.log(`DebateChatUI: Received ${messages.length} initial messages`);
-      console.log(`First message from: ${messages[0].sender}, isUser: ${messages[0].isUser}`);
-      console.log(`isSystemMessage: ${messages[0].isSystemMessage}, role: ${messages[0].role}`);
-      console.log(`Message text: ${messages[0].text.substring(0, 100)}...`);
-      console.log(`Full first message:`, messages[0]);
-      console.log(`Message contains 초기메시지에용: ${messages[0].text.includes('초기메시지에용')}`);
+      loggers.chat.debug(`DebateChatUI: Received ${messages.length} initial messages`);
+      loggers.chat.debug(`First message from: ${messages[0].sender}, isUser: ${messages[0].isUser}`);
+      loggers.chat.debug(`isSystemMessage: ${messages[0].isSystemMessage}, role: ${messages[0].role}`);
+      loggers.chat.debug(`Message text: ${messages[0].text.substring(0, 100)}...`);
+      loggers.chat.debug(`Full first message:`, messages[0]);
+      loggers.chat.debug(`Message contains 초기메시지에용: ${messages[0].text.includes('초기메시지에용')}`);
       
       // Moderator 메시지가 있는지 확인
       const moderatorMsg = messages.find(msg => 
@@ -841,44 +842,44 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
       );
       
       if (moderatorMsg) {
-        console.log(`✅ Moderator message found: ${moderatorMsg.text.substring(0, 100)}...`);
-        console.log(`Moderator message details:`, {
+        loggers.chat.info(`✅ Moderator message found: ${moderatorMsg.text.substring(0, 100)}...`);
+        loggers.chat.debug(`Moderator message details:`, {
           sender: moderatorMsg.sender,
           isSystemMessage: moderatorMsg.isSystemMessage,
           role: moderatorMsg.role,
           text: moderatorMsg.text
         });
       } else {
-        console.log(`❌ No moderator message found in messages array`);
+        loggers.chat.warn(`❌ No moderator message found in messages array`);
       }
     } else {
-      console.log(`DebateChatUI: No initial messages`);
+      loggers.chat.debug(`DebateChatUI: No initial messages`);
     }
   }, [messages]);
   
   // 메시지 답장 핸들러 함수
   const handleReplyToMessage = (message: ChatMessage) => {
     // 현재 구현에서는 실제로 답장 기능은 없으므로 로그만 남김
-    console.log("Reply to message:", message);
+    loggers.chat.debug("Reply to message:", message);
   };
   
   // 모더레이터 정보 가져오기
   const getModeratorInfo = () => {
-    console.log('🎭 [DebateChatUI] getModeratorInfo called');
-    console.log('🎭 [DebateChatUI] room object:', room);
-    console.log('🎭 [DebateChatUI] room.moderator:', (room as any).moderator);
+    loggers.ui.debug('🎭 [DebateChatUI] getModeratorInfo called');
+    loggers.ui.debug('🎭 [DebateChatUI] room object:', room);
+    loggers.ui.debug('🎭 [DebateChatUI] room.moderator:', (room as any).moderator);
     
     const moderatorConfig = (room as any).moderator;
     if (moderatorConfig && moderatorConfig.style_id) {
-      console.log('🎭 [DebateChatUI] Found moderator config:', moderatorConfig);
+      loggers.ui.debug('🎭 [DebateChatUI] Found moderator config:', moderatorConfig);
       const style = moderatorStyles.find(s => s.id === moderatorConfig.style_id);
-      console.log('🎭 [DebateChatUI] Found style:', style);
+      loggers.ui.debug('🎭 [DebateChatUI] Found style:', style);
       return {
         name: style?.name || 'Jamie the Host',
         profileImage: `/moderator_portraits/Moderator${moderatorConfig.style_id}.png`
       };
     }
-    console.log('🎭 [DebateChatUI] No moderator config found, using default');
+    loggers.ui.debug('🎭 [DebateChatUI] No moderator config found, using default');
     return {
       name: 'Jamie the Host',
       profileImage: '/moderator_portraits/Moderator0.png'
