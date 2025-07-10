@@ -27,7 +27,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   
   // Enter 키 처리
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey && !isInputDisabled) {
+    if (e.key === 'Enter' && !e.shiftKey && !isInputDisabled && messageText.trim() && isUserTurn) {
       e.preventDefault();
       onSubmit(e as unknown as React.FormEvent);
     }

@@ -1333,7 +1333,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
                 fontSize: '16px',
                 marginTop: '40px'
               }}>
-                토론이 곧 시작됩니다...
+                토론 시작을 위해 next 버튼을 누르세요.
                       </div>
                     )}
             <div ref={messagesEndRef} />
@@ -1411,7 +1411,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite'
                 }} />
-                생성중...
+                Generating...
               </>
             ) : (
               <>

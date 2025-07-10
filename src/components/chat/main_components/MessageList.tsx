@@ -335,7 +335,7 @@ const MessageList: React.FC<MessageListProps> = ({
         messages.map((message, index) => renderMessage(message, index))
       ) : (
         <div className="debate-no-messages">
-          토론이 곧 시작됩니다...
+          토론 시작을 위해 next 버튼을 누르세요.
         </div>
       )}
       
@@ -350,7 +350,7 @@ const MessageList: React.FC<MessageListProps> = ({
             {isGeneratingNext ? (
               <>
                 <div className="loading-spinner" />
-                생성중...
+                Generating...
               </>
             ) : (
               <>
