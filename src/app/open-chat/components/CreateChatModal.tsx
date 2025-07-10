@@ -343,6 +343,69 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
 
   return (
     <>
+      {/* CSS Styles */}
+      <style jsx>{`
+        .context-section {
+          margin-bottom: 24px;
+        }
+        
+        .context-tab-container {
+          display: flex;
+          border-bottom: 2px solid #e5e7eb;
+          margin-bottom: 16px;
+        }
+        
+        .context-tab {
+          padding: 12px 16px;
+          background: none;
+          border: none;
+          font-weight: 500;
+          font-size: 14px;
+          color: #6b7280;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border-bottom: 2px solid transparent;
+          position: relative;
+          bottom: -2px;
+        }
+        
+        .context-tab:hover {
+          color: #374151;
+        }
+        
+        .context-tab-active {
+          color: #111827 !important;
+          border-bottom-color: #111827 !important;
+        }
+        
+        .file-upload-button {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          background: white;
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+          font-size: 14px;
+          color: #374151;
+        }
+        
+        .file-upload-button:hover {
+          background-color: #f9fafb;
+        }
+        
+        .file-upload-icon {
+          height: 20px;
+          width: 20px;
+        }
+        
+        .hidden {
+          display: none;
+        }
+      `}</style>
+      
       {/* Background overlay */}
       <div className="create-chat-modal-overlay" onClick={handleClose}></div>
       
@@ -610,41 +673,29 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                   </div>
                 </div>
 
-                <div className="mb-6">
+                <div className="context-section">
                   <label className="create-chat-label">Context</label>
                   
                   {/* Context type selection */}
-                  <div className="flex border-b border-gray-200 mb-4">
+                  <div className="context-tab-container">
                     <button
                       type="button"
                       onClick={() => setContextType('none')}
-                      className={`px-4 py-2 font-medium ${
-                        contextType === 'none'
-                          ? 'border-b-2 border-black text-black'
-                          : 'text-gray-500 hover:text-black'
-                      }`}
+                      className={`context-tab ${contextType === 'none' ? 'context-tab-active' : ''}`}
                     >
                       None
                     </button>
                     <button
                       type="button"
                       onClick={() => setContextType('url')}
-                      className={`px-4 py-2 font-medium ${
-                        contextType === 'url'
-                          ? 'border-b-2 border-black text-black'
-                          : 'text-gray-500 hover:text-black'
-                      }`}
+                      className={`context-tab ${contextType === 'url' ? 'context-tab-active' : ''}`}
                     >
                       URL
                     </button>
                     <button
                       type="button"
                       onClick={() => setContextType('file')}
-                      className={`px-4 py-2 font-medium ${
-                        contextType === 'file'
-                          ? 'border-b-2 border-black text-black'
-                          : 'text-gray-500 hover:text-black'
-                      }`}
+                      className={`context-tab ${contextType === 'file' ? 'context-tab-active' : ''}`}
                     >
                       File
                     </button>
@@ -674,51 +725,13 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                        className="file-upload-button"
                       >
-                        <DocumentArrowUpIcon className="h-5 w-5" />
+                        <DocumentArrowUpIcon className="file-upload-icon" />
                         {formData.context || 'Choose file (txt, md, pdf)'}
                       </button>
                     </div>
                   )}
-                </div>
-
-                <div className="mb-6">
-                  <label className="create-chat-label">Maximum Participants:</label>
-                  <input
-                    type="number"
-                    value={formData.maxParticipants}
-                    onChange={(e) => handleChange('maxParticipants', parseInt(e.target.value))}
-                    min="2"
-                    max="10"
-                    className="create-chat-input"
-                  />
-                </div>
-
-                <div className="mb-6">
-                  <label className="block mb-3 font-medium text-lg">Chat Visibility</label>
-                  <div className="flex gap-6">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="visibility"
-                        checked={formData.isPublic}
-                        onChange={() => handleChange('isPublic', true)}
-                        className="mr-2 h-5 w-5"
-                      />
-                      <span className="text-lg">Public (anyone can join)</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="visibility"
-                        checked={!formData.isPublic}
-                        onChange={() => handleChange('isPublic', false)}
-                        className="mr-2 h-5 w-5"
-                      />
-                      <span className="text-lg">Private (invite only)</span>
-                    </label>
-                  </div>
                 </div>
               </div>
             )}
