@@ -77,6 +77,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose }) 
           
           <Link 
             href="/settings/custom-npc" 
+            prefetch={false}
             onClick={onClose}
             className="navigation-drawer-link"
           >
@@ -86,6 +87,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose }) 
           
           <Link 
             href="/podcast" 
+            prefetch={false}
             onClick={onClose}
             className="navigation-drawer-link"
           >

@@ -609,7 +609,7 @@ export default async function handler(
           loggers.api.debug('Added new message to room', {
             roomId: roomIdStr,
             sender: message.sender,
-            messageCount: room.messages?.length + 1 || 1
+            messageCount: (room.messages?.length ?? 0) + 1
           });
           
           // Socket.IO 이벤트 발생 (서버에 Socket.IO 인스턴스가 있는 경우)
