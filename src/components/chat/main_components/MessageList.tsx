@@ -336,7 +336,7 @@ const MessageList: React.FC<MessageListProps> = ({
         messages.map((message, index) => renderMessage(message, index))
       ) : (
         <div className="debate-no-messages">
-          토론 시작을 위해 next 버튼을 누르세요.
+          Please click the "Next" button to begin the debate.
         </div>
       )}
       

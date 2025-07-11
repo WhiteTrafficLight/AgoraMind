@@ -742,7 +742,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
   };
   
   const bannerStyle = {
-    backgroundImage: 'linear-gradient(to right, #dbeafe, white, #fee2e2)',
+    backgroundImage: 'linear-gradient(to right, #f0fdf4, white, #fef2f2)',
     padding: '8px 16px',
     textAlign: 'center' as const,
     borderBottom: '1px solid #e5e7eb'
@@ -1194,9 +1194,9 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
       {/* Topic Banner */}
       <div style={bannerStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ width: '33%', textAlign: 'left', color: '#1d4ed8', fontWeight: 500 }}>Pro</div>
+          <div style={{ width: '33%', textAlign: 'left', color: '#166534', fontWeight: 500 }}>Pro</div>
           <div style={{ width: '33%', color: '#4b5563', fontWeight: 500 }}>Neutral</div>
-          <div style={{ width: '33%', textAlign: 'right', color: '#dc2626', fontWeight: 500 }}>Con</div>
+          <div style={{ width: '33%', textAlign: 'right', color: '#991b1b', fontWeight: 500 }}>Con</div>
         </div>
       </div>
       
@@ -1334,7 +1334,7 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
                 fontSize: '16px',
                 marginTop: '40px'
               }}>
-                토론 시작을 위해 next 버튼을 누르세요.
+                Please click the "Next" button to begin the debate.
                       </div>
                     )}
             <div ref={messagesEndRef} />
