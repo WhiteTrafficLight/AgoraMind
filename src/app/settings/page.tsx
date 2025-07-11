@@ -1,11 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import ImageCropModal from '@/components/ui/ImageCropModal';
+import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
+
+// Dynamically import ImageCropModal so its heavy CSS is only loaded when the component is actually rendered (Settings page)
+const ImageCropModal = dynamic(() => import('@/components/ui/ImageCropModal'), {
+  ssr: false,
+  loading: () => null
+});
 
 interface UserProfile {
   id?: string;
