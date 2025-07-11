@@ -46,6 +46,7 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
         <div className="profile-drawer-content">
           <Link 
             href="/settings/custom-npc" 
+            prefetch={false}
             onClick={onClose}
             className="profile-drawer-link"
           >
@@ -54,6 +55,7 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
           
           <Link 
             href="/settings#account" 
+            prefetch={false}
             onClick={onClose}
             className="profile-drawer-link"
           >
