@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { XMarkIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
 import { CreateChatModalProps, ChatRoomCreationParams, Philosopher } from '../types/openChat.types';
 import PhilosopherDetailsModal from './PhilosopherDetailsModal';
+import { loggers } from '@/utils/logger';
 
 const CreateChatModal: React.FC<CreateChatModalProps> = ({
   isOpen,
@@ -193,13 +194,13 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
           setSelectedPhilosopherDetails(philosopher);
           setShowPhilosopherDetails(true);
         } else {
-          console.error(`Philosopher '${philosopherId}' not found in data`);
+          loggers.ui.error(`Philosopher '${philosopherId}' not found in data`);
         }
       } else {
-        console.error(`Failed to load philosopher data from static file`);
+        loggers.ui.error(`Failed to load philosopher data from static file`);
       }
     } catch (error) {
-      console.error('Error fetching philosopher details:', error);
+      loggers.ui.error('Error fetching philosopher details:', error);
     }
   };
 
@@ -240,7 +241,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     try {
       await onCreateChat(finalFormData);
     } catch (error) {
-      console.error('Error creating chat:', error);
+      loggers.ui.error('Error creating chat:', error);
     }
   };
 

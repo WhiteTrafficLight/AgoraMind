@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowPathIcon, LinkIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { getDebateCategories, categoryDisplayConfig, DebateTopic } from '../utils/debateTopics';
 import DebateTopicModal from './DebateTopicModal';
+import { loggers } from '@/utils/logger';
 
 interface Philosopher {
   id: string;
@@ -47,7 +48,7 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
     onSelectTopic(categoryKey, topicIndex, topic);
     
     // TODO: Pass userPosition to the debate creation logic
-    console.log('Starting debate with position:', userPosition);
+    loggers.ui.debug('Starting debate with position:', userPosition);
   };
 
   const renderContextIcon = (contextType: string) => {

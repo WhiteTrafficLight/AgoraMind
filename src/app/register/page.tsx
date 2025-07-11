@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { loggers } from '@/utils/logger';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -17,14 +18,14 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 유효성 검사
+    // Validation
     if (password !== confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
+      setError('Passwords do not match.');
       return;
     }
     
     if (password.length < 6) {
-      setError('비밀번호는 최소 6자 이상이어야 합니다.');
+      setError('Password must be at least 6 characters long.');
       return;
     }
     
@@ -32,7 +33,9 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      // API로 회원가입 요청
+      loggers.auth.info('Attempting registration for user:', username, email);
+      
+      // API registration request
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: {
@@ -48,20 +51,30 @@ export default function RegisterPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || '회원가입에 실패했습니다.');
+        throw new Error(data.message || 'Registration failed. Please try again.');
       }
       
-      // 성공하면 로그인 페이지로 리다이렉트
+      loggers.auth.info('Registration successful, redirecting to login');
+      // Success - redirect to login page
       router.push('/login?registered=true');
     } catch (error: Error | unknown) {
       setIsLoading(false);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
+      loggers.auth.error('Registration error:', errorMessage);
       setError(errorMessage);
     }
   };
 
   const handleGoogleLogin = () => {
+    // Only allow Google login in production or when explicitly enabled
+    if (process.env.NODE_ENV === 'development') {
+      alert('Google sign up is only available in production environment.');
+      loggers.auth.info('Google sign up attempted in development mode - blocked');
+      return;
+    }
+    
     setIsLoading(true);
+    loggers.auth.info('Attempting Google registration/login');
     signIn('google', { callbackUrl: '/open-chat' });
   };
 
@@ -80,7 +93,7 @@ export default function RegisterPage() {
             </div>
           )}
           
-          <form className="space-y-4 flex flex-col items-center" onSubmit={handleSubmit}>
+          <form className="space-y-4 flex flex-col" onSubmit={handleSubmit}>
             <div className="w-full">
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
                 Username
@@ -94,6 +107,7 @@ export default function RegisterPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="form-input w-full"
+                style={{ boxSizing: 'border-box' }}
                 placeholder="username"
               />
             </div>
@@ -111,6 +125,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="form-input w-full"
+                style={{ boxSizing: 'border-box' }}
                 placeholder="your@email.com"
               />
             </div>
@@ -128,9 +143,17 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="form-input w-full"
+                style={{ boxSizing: 'border-box', marginBottom: '2px' }}
                 placeholder="********"
               />
-              <p className="mt-1 text-xs text-gray-500">Password must be at least 6 characters long.</p>
+              <p style={{ 
+                fontSize: '10px', 
+                color: '#9ca3af', 
+                margin: '0', 
+                lineHeight: '1.2' 
+              }}>
+                Password must be at least 6 characters long.
+              </p>
             </div>
             
             <div className="w-full">
@@ -146,6 +169,7 @@ export default function RegisterPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="form-input w-full"
+                style={{ boxSizing: 'border-box' }}
                 placeholder="********"
               />
             </div>
@@ -177,52 +201,25 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Social Login Section */}
-          <div className="mb-6">
-            <div className="grid grid-cols-3 gap-8 w-full">
-              <div className="flex justify-center">
-                <button 
-                  onClick={handleGoogleLogin}
-                  className="flex items-center justify-center w-14 h-14 rounded-full border-0 hover:shadow-md transition-all bg-white" 
-                  aria-label="Continue with Google"
-                >
-                  <svg viewBox="0 0 48 48" width="28" height="28">
-                    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
-                    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
-                    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-                  </svg>
-                </button>
-              </div>
-
-              <div className="flex justify-center">
-                <button 
-                  className="flex items-center justify-center w-14 h-14 rounded-full border-0 hover:shadow-md transition-all bg-white" 
-                  aria-label="Continue with Apple"
-                  disabled
-                >
-                  <svg viewBox="0 0 24 24" width="28" height="28" fill="black">
-                    <path d="M17.05 20.28c-.98.95-2.05.86-3.09.43-1.09-.46-2.09-.48-3.23 0-1.44.62-2.2.44-3.05-.42C2.18 14.55 3.16 7.6 8.9 7.31c1.4.11 2.37.94 3.25.83.89-.12 2.02-.96 3.56-.84 1.71.14 3 .99 3.81 2.53-3.43 2.02-2.85 6.78.49 8.41-.7 1.36-1.44 2.7-2.96 2.04zm-6.96-13.63c.08-2.81 2.39-4.54 4.76-4.66.45 2.63-2.34 5.57-4.76 4.66z"></path>
-                  </svg>
-                </button>
-              </div>
-
-              <div className="flex justify-center">
-                <button 
-                  className="flex items-center justify-center w-14 h-14 rounded-full border-0 hover:shadow-md transition-all bg-[#1877F2]" 
-                  aria-label="Continue with Facebook"
-                  disabled
-                >
-                  <svg viewBox="0 0 24 24" width="28" height="28" fill="white">
-                    <path d="M12.001 2.002c-5.522 0-9.999 4.477-9.999 9.999 0 4.99 3.656 9.126 8.437 9.879v-6.988h-2.54v-2.891h2.54V9.798c0-2.508 1.493-3.891 3.776-3.891 1.094 0 2.24.195 2.24.195v2.459h-1.264c-1.24 0-1.628.772-1.628 1.563v1.875h2.771l-.443 2.891h-2.328v6.988C18.344 21.129 22 16.992 22 12.001c0-5.522-4.477-9.999-9.999-9.999z"></path>
-                  </svg>
-                </button>
-              </div>
-            </div>
+          {/* Google Login Section */}
+          <div className="mb-8">
+            <button 
+              onClick={handleGoogleLogin}
+              className="btn-secondary w-full flex justify-center items-center py-2 text-sm gap-2" 
+              disabled={isLoading}
+            >
+              <svg viewBox="0 0 48 48" width="20" height="20">
+                <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>
+                <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>
+                <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>
+                <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
+              </svg>
+              Continue with Google
+            </button>
           </div>
           
           {/* Login Section */}
-          <div className="border-t border-gray-200 pt-4">
+          <div className="border-t border-gray-200 pt-6">
             <p className="text-sm text-gray-600 text-center">
               Already have an account?{' '}
               <Link href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
