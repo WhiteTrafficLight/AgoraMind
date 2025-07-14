@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import clientPromise from './mongodb';
 import { ChatRoom, ChatMessage } from '@/lib/ai/chatService';
+import { loggers } from '@/utils/logger';
 
 // DB에 저장되는 채팅룸 타입 (MongoDB 호환)
 export interface DBChatRoom {
@@ -75,9 +76,16 @@ class ChatRoomDB {
         }
       }
       
+      const uniqueRoomIds = Array.from(uniqueIdMap.values()).map(room => room.id);
+      loggers.db.debug('Retrieved unique chat room IDs from database', {
+        totalRooms: rooms.length,
+        uniqueRooms: uniqueRoomIds.length,
+        roomIds: uniqueRoomIds
+      });
+      
       return Array.from(uniqueIdMap.values());
     } catch (error) {
-      console.error('Database error in getAllChatRooms:', error);
+      loggers.db.error('Database error in getAllChatRooms', error);
       throw error;
     }
   }
@@ -86,7 +94,7 @@ class ChatRoomDB {
   async getChatRoomById(id: string): Promise<ChatRoom | null> {
     try {
       if (!id) {
-        console.error('getChatRoomById: Null or undefined ID provided');
+        loggers.db.error('getChatRoomById called with null or undefined ID');
         return null;
       }
       
@@ -95,24 +103,28 @@ class ChatRoomDB {
       
       // ID를 문자열로 변환 (공백 제거)
       const roomId = String(id).trim();
-      console.log(`DB 조회: ID ${id} (${typeof id})를 문자열 "${roomId}"로 변환하여 쿼리`);
+      loggers.db.debug('Database query - converting ID to string', { 
+        originalId: id, 
+        originalType: typeof id, 
+        normalizedId: roomId 
+      });
       
       // 빈 문자열 검증
       if (!roomId) {
-        console.error(`DB 조회: 빈 ID 문자열 "${roomId}"`);
+        loggers.db.error('Database query failed - empty ID string', { roomId });
         return null;
       }
       
       // DB에서 쿼리 수행
-      console.log(`DB 쿼리: { roomId: "${roomId}" }`);
+      loggers.db.debug('Executing database query', { query: { roomId } });
       const room = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId });
       
       if (!room) {
-        console.log(`검색 결과: 없음 (ID "${roomId}")`);
+        loggers.db.debug('No room found in database', { roomId });
         return null;
       }
       
-      console.log(`DB에서 룸 찾음: ID "${room.roomId}" (타입: 문자열)`);
+      loggers.db.info('Retrieved username from database', { username: room.roomId });
       
       // 이 채팅룸의 메시지들 가져오기
       const messages = await db.collection<DBChatMessage>('chatMessages')
@@ -124,11 +136,15 @@ class ChatRoomDB {
       
       // ID가 문자열임을 보장
       transformedRoom.id = String(transformedRoom.id);
-      console.log(`DB 조회 결과: 룸 변환 완료, ID "${transformedRoom.id}" (${typeof transformedRoom.id})`);
+      loggers.db.debug('Database query completed - room transformation finished', {
+        roomId: transformedRoom.id,
+        roomIdType: typeof transformedRoom.id,
+        messageCount: messages.length
+      });
       
       return transformedRoom;
     } catch (error) {
-      console.error(`Database error in getChatRoomById(${id}):`, error);
+      loggers.db.error('Database error in getChatRoomById', { id, error });
       throw error;
     }
   }
@@ -145,7 +161,7 @@ class ChatRoomDB {
       if (room.id) {
         // 파이썬 백엔드에서 제공된 room_id 사용
         roomId = String(room.id).trim();
-        console.log(`제공된 room_id 사용: "${roomId}"`);
+        loggers.db.debug('Using provided room_id', { roomId });
       } else {
         // 자동 증가 ID 구현 - 문자열 타입으로 변경
         let nextNumber = 1;
@@ -165,9 +181,9 @@ class ChatRoomDB {
           
           if (numericIds.length > 0) {
             nextNumber = Math.max(...numericIds) + 1;
-            console.log(`최대 숫자 ID 기반으로 새 ID 생성: ${nextNumber}`);
+            loggers.db.debug('Generated new ID based on maximum numeric ID', { nextNumber });
           } else {
-            console.log(`숫자 ID가 없어 첫 ID 생성: ${nextNumber}`);
+            loggers.db.debug('No numeric IDs found, generating first ID', { nextNumber });
           }
           
           roomId = String(nextNumber);
@@ -186,21 +202,21 @@ class ChatRoomDB {
               { $set: { seq: nextNumber } },
               { upsert: true }
               );
-            console.log(`카운터를 안전하게 업데이트/생성: ${nextNumber}`);
+            loggers.db.debug('Counter safely updated/created', { nextNumber });
         } catch (counterError) {
             // 카운터 오류는 무시 - ID 생성 로직은 이미 완료됨
-            console.warn('카운터 업데이트 중 오류 (무시됨):', counterError);
+            loggers.db.warn('Counter update error (ignored)', counterError);
           }
         } catch (idGenerationError) {
-          console.error('ID 생성 오류:', idGenerationError);
+          loggers.db.error('ID generation error', idGenerationError);
           
           // 극단적인 오류 상황에서는 타임스탬프 기반 ID 사용
           roomId = `ROOM_${Date.now()}`;
-          console.log(`타임스탬프 기반 대체 ID 생성: "${roomId}"`);
+          loggers.db.debug('Generated timestamp-based fallback ID', { roomId });
         }
       }
       
-      console.log(`새 채팅방에 할당된 ID: "${roomId}"`);
+      loggers.db.debug('Assigned ID to new chat room', { roomId });
       
       // DB에 저장할 채팅룸 객체 변환
       const dbRoom: DBChatRoom = {
@@ -224,25 +240,34 @@ class ChatRoomDB {
       // 모더레이터 정보 추가 (있는 경우만)
       if (room.moderator) dbRoom.moderator = room.moderator;
       
-      console.log(`💾 DB 저장 전 채팅방 데이터: ${JSON.stringify({ roomId, title: room.title, dialogueType: room.dialogueType })}`);
+      loggers.db.debug('Chat room data before database save', {
+        roomId,
+        title: room.title,
+        dialogueType: room.dialogueType,
+        participantCount: room.totalParticipants
+      });
       
       if (room.dialogueType === 'debate') {
-        console.log(`💾 찬반토론 모드 감지: dialogueType=${room.dialogueType}`);
-        console.log(`💾 기존 pro, con, neutral 필드 사용`);
-        if (room.pro) console.log(`💾 Pro: ${room.pro.join(', ')}`);
-        if (room.con) console.log(`💾 Con: ${room.con.join(', ')}`);
-        if (room.neutral) console.log(`💾 Neutral: ${room.neutral.join(', ')}`);
+        loggers.db.info('Debate mode detected during save', { dialogueType: room.dialogueType });
+        loggers.db.debug('Using existing pro, con, neutral fields');
+        if (room.pro) loggers.db.debug('Pro participants', { pro: room.pro });
+        if (room.con) loggers.db.debug('Con participants', { con: room.con });
+        if (room.neutral) loggers.db.debug('Neutral participants', { neutral: room.neutral });
       }
 
       // 중복 체크를 위해 먼저 해당 roomId로 기존 방이 있는지 확인
       const existingRoom = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId });
       if (existingRoom) {
-        console.warn(`경고: roomId "${roomId}"가 이미 존재합니다. 기존 방을 반환합니다.`);
+        loggers.db.warn('Room ID already exists, returning existing room', { roomId });
         return this.transformRoomFromDB(existingRoom, []);
       }
 
       const result = await db.collection<DBChatRoom>('chatRooms').insertOne(dbRoom);
-      console.log(`💾 채팅룸이 ID "${roomId}"로 저장됨, dialogueType: ${room.dialogueType}`);
+      loggers.db.info('Chat room saved to database', {
+        roomId,
+        dialogueType: room.dialogueType,
+        insertedId: result.insertedId
+      });
 
       // 방금 생성된 채팅룸 반환
       const createdRoom = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId });
@@ -252,7 +277,7 @@ class ChatRoomDB {
 
       return this.transformRoomFromDB(createdRoom, []);
     } catch (error) {
-      console.error('Database error in createChatRoom:', error);
+      loggers.db.error('Database error in createChatRoom', error);
       throw error;
     }
   }
@@ -265,11 +290,16 @@ class ChatRoomDB {
       
       // ID를 문자열로 변환
       const normalizedRoomId = String(roomId).trim();
-      console.log(`메시지 저장: ID ${roomId}를 문자열 "${normalizedRoomId}"로 변환`);
+      loggers.db.debug('Adding message to room', {
+        originalRoomId: roomId,
+        normalizedRoomId,
+        messageId: message.id,
+        sender: message.sender
+      });
       
       // 빈 문자열 검증
       if (!normalizedRoomId) {
-        console.error(`메시지 저장: 유효하지 않은 채팅방 ID: ${roomId}`);
+        loggers.db.error('Invalid chat room ID for message save', { roomId });
         return false;
       }
       
@@ -277,7 +307,7 @@ class ChatRoomDB {
       const room = await db.collection<DBChatRoom>('chatRooms').findOne({ roomId: normalizedRoomId });
       
       if (!room) {
-        console.error(`채팅룸 "${normalizedRoomId}" 메시지 추가 실패: 룸 없음`);
+        loggers.db.error('Failed to add message - room not found', { roomId: normalizedRoomId });
         return false;
       }
       
@@ -309,7 +339,7 @@ class ChatRoomDB {
       
       return true;
     } catch (error) {
-      console.error(`메시지 추가 실패 (room ${roomId}):`, error);
+      loggers.db.error('Failed to add message', { roomId, messageId: message.id, error });
       return false;
     }
   }
@@ -341,7 +371,7 @@ class ChatRoomDB {
       
       return result.matchedCount > 0;
     } catch (error) {
-      console.error(`채팅룸 업데이트 실패 (room ${roomId}):`, error);
+      loggers.db.error('Failed to update chat room', { roomId, error });
       return false;
     }
   }
