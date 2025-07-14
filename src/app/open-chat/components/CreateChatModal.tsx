@@ -19,7 +19,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     npcs: [],
     isPublic: true,
     generateInitialMessage: true,
-    dialogueType: 'free',
+    dialogueType: 'debate',
     context: '',
     contextUrl: '',
     contextFileContent: ''
@@ -253,7 +253,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
       npcs: [],
       isPublic: true,
       generateInitialMessage: true,
-      dialogueType: 'free',
+      dialogueType: 'debate',
       context: '',
       contextUrl: '',
       contextFileContent: ''
@@ -405,6 +405,91 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
         .hidden {
           display: none;
         }
+
+        .dialogue-pattern-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 24px;
+          margin-top: 16px;
+        }
+        
+        .dialogue-pattern-card {
+          position: relative;
+          padding: 24px 16px;
+          border: 2px solid #e5e7eb;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          background: white;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .dialogue-pattern-card:hover {
+          border-color: #d1d5db;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dialogue-pattern-card.selected {
+          border-color: #111827;
+          background: #f9fafb;
+        }
+        
+        .dialogue-pattern-card.disabled {
+          background: #f3f4f6;
+          border-color: #e5e7eb;
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
+        
+        .dialogue-pattern-card.disabled:hover {
+          border-color: #e5e7eb;
+          box-shadow: none;
+        }
+        
+        .dialogue-pattern-image {
+          width: 80px;
+          height: 80px;
+          object-fit: cover;
+          border-radius: 8px;
+        }
+        
+        .dialogue-pattern-title {
+          font-weight: 600;
+          font-size: 16px;
+          color: #111827;
+        }
+        
+        .dialogue-pattern-card.disabled .dialogue-pattern-title {
+          color: #9ca3af;
+        }
+        
+        .dialogue-pattern-tooltip {
+          font-size: 14px;
+          color: #6b7280;
+          line-height: 1.4;
+        }
+        
+        .dialogue-pattern-card.disabled .dialogue-pattern-tooltip {
+          color: #d1d5db;
+        }
+        
+        .coming-soon-text {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          background: #6b7280;
+          color: white;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
       `}</style>
       
       {/* Background overlay */}
@@ -433,9 +518,9 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                 <label className="create-chat-label">Dialogue Pattern</label>
                 <div className="dialogue-pattern-grid">
                   <div 
-                    className={`dialogue-pattern-card ${formData.dialogueType === 'free' ? 'selected' : ''}`}
-                    onClick={() => handleDialogueTypeChange('free')}
+                    className={`dialogue-pattern-card disabled`}
                   >
+                    <div className="coming-soon-text">Coming Soon</div>
                     <img src="/Free.png" alt="Free Discussion" className="dialogue-pattern-image" />
                     <div className="dialogue-pattern-title">Free Discussion</div>
                     <div className="dialogue-pattern-tooltip">
@@ -455,9 +540,9 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                   </div>
                   
                   <div 
-                    className={`dialogue-pattern-card ${formData.dialogueType === 'socratic' ? 'selected' : ''}`}
-                    onClick={() => handleDialogueTypeChange('socratic')}
+                    className={`dialogue-pattern-card disabled`}
                   >
+                    <div className="coming-soon-text">Coming Soon</div>
                     <img src="/Socratic.png" alt="Socratic Dialogue" className="dialogue-pattern-image" />
                     <div className="dialogue-pattern-title">Socratic Dialogue</div>
                     <div className="dialogue-pattern-tooltip">
@@ -466,9 +551,9 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                   </div>
                   
                   <div 
-                    className={`dialogue-pattern-card ${formData.dialogueType === 'dialectical' ? 'selected' : ''}`}
-                    onClick={() => handleDialogueTypeChange('dialectical')}
+                    className={`dialogue-pattern-card disabled`}
                   >
+                    <div className="coming-soon-text">Coming Soon</div>
                     <img src="/Dialectical.png" alt="Dialectical Discussion" className="dialogue-pattern-image" />
                     <div className="dialogue-pattern-title">Dialectical Discussion</div>
                     <div className="dialogue-pattern-tooltip">
