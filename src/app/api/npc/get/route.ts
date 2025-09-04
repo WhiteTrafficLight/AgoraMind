@@ -91,28 +91,19 @@ export async function GET(req: NextRequest) {
     // 기본 철학자 정보 확인
     try {
       // Python 백엔드 API 호출 시도
-      console.log(`🔄 Trying backend API at ${BACKEND_API_URL}/api/npc/get?id=${id}`);
-      const backendResponse = await fetch(`${BACKEND_API_URL}/api/npc/get?id=${id}`, {
-        cache: 'no-store'
-      });
+      // API 호출 제거 - 기본 NPC 정보 반환
+      console.log(`🔄 Returning basic NPC data for: ${id}`);
       
-      if (backendResponse.ok) {
-        const npcData = await backendResponse.json();
-        console.log(`✅ Got NPC details from backend: ${npcData.name}`);
-        
-        return NextResponse.json({
-          id: npcData.id,
-          name: npcData.name,
-          description: npcData.description,
-          key_concepts: npcData.key_concepts,
-          portrait_url: npcData.portrait_url,
-          is_custom: false
-        });
-      } else {
-        console.log(`❌ Backend API error: ${backendResponse.status}`);
-      }
+      const basicNpcData = {
+        id: id,
+        name: id.charAt(0).toUpperCase() + id.slice(1),
+        description: `${id.charAt(0).toUpperCase() + id.slice(1)} is a philosopher with unique perspectives.`,
+        is_custom: false
+      };
+      
+      return NextResponse.json(basicNpcData);
     } catch (apiError) {
-      console.error('❌ Backend API 호출 오류:', apiError);
+      console.error('❌ Error generating basic NPC data:', apiError);
     }
     
     // 로컬 철학자 프로필에서 확인

@@ -30,11 +30,11 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
   const renderChatCard = (chat: ChatRoom) => (
     <div 
       key={`chat-${chat.id}`} 
-      className="chat-room-card"
+      className="cursor-pointer border border-gray-200 rounded-md p-3 hover:shadow-sm transition bg-white mb-2"
       onClick={() => handleChatClick(chat)}
     >
       <div className="flex items-center justify-between">
-        <h4 className="chat-room-card-title flex-1">{chat.title}</h4>
+        <h4 className="font-semibold text-base text-gray-900 flex-1 truncate">{chat.title}</h4>
         
         <button 
           onClick={(e) => {
@@ -42,7 +42,7 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
             const chatIdNum = typeof chat.id === 'string' ? parseInt(chat.id) : chat.id;
             setShowParticipants(showParticipants === chatIdNum ? null : chatIdNum);
           }}
-          className="chat-room-card-details-btn"
+          className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
         >
           Details
         </button>
@@ -50,9 +50,9 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
       
       {/* Participants dropdown */}
       {showParticipants === (typeof chat.id === 'string' ? parseInt(chat.id) : chat.id) && (
-        <div className="chat-room-card-dropdown">
+        <div className="mt-2 border-t border-gray-200 pt-2 rounded-md bg-gray-50 p-2">
           <div className="flex justify-between items-center mb-1">
-            <span className="font-medium">Participants</span>
+            <span className="font-medium text-sm text-gray-800">Participants</span>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
@@ -63,17 +63,17 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
               ✕
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <div className="font-medium text-gray-700">Users</div>
+              <div className="font-medium text-xs text-gray-700 mb-1">Users</div>
               {chat.participants.users.map(user => (
-                <div key={user} className="text-gray-600">{user}</div>
+                <div key={user} className="text-xs text-gray-600">{user}</div>
               ))}
             </div>
             <div>
-              <div className="font-medium text-gray-700">NPCs</div>
+              <div className="font-medium text-xs text-gray-700 mb-1">NPCs</div>
               {chat.participants.npcs.map(npc => (
-                <div key={npc} className="text-gray-600">{npc}</div>
+                <div key={npc} className="text-xs text-gray-600">{npc}</div>
               ))}
             </div>
           </div>
@@ -85,7 +85,7 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
   if (isLoading && chatRooms.length === 0) {
     return (
       <div className="py-20">
-        <div className="spinner-large mx-auto"></div>
+        <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-transparent"></div>
         <p className="text-center mt-4 text-gray-500">Loading chats...</p>
       </div>
     );

@@ -1,6 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
-// import { Inter } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import Header from '@/components/ui/Header';
 import { Providers } from './providers';
 // import Footer from '@/components/ui/Footer';
@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'AI-powered chat application',
 };
 
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
+
 export default function RootLayout({
   children,
 }: {
@@ -17,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-sans flex flex-col min-h-screen">
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
         <Providers>
         <Header />
         <main className="flex-grow">{children}</main>

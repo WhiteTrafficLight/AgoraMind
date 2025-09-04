@@ -40,25 +40,20 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
   };
 
   const handleStartDebate = (categoryKey: string, topicIndex: number, topic: DebateTopic, userPosition: 'pro' | 'con' | 'neutral') => {
-    // Close modal first
     setShowModal(false);
     setSelectedTopic(null);
-    
-    // Call the original onSelectTopic with additional userPosition info
     onSelectTopic(categoryKey, topicIndex, topic);
-    
-    // TODO: Pass userPosition to the debate creation logic
     loggers.ui.debug('Starting debate with position:', userPosition);
   };
 
   const renderContextIcon = (contextType: string) => {
     switch (contextType) {
       case 'url':
-        return <LinkIcon style={{ width: '16px', height: '16px', color: '#3b82f6' }} />;
+        return <LinkIcon className="h-4 w-4 text-blue-500" />;
       case 'pdf':
-        return <DocumentTextIcon style={{ width: '16px', height: '16px', color: '#ef4444' }} />;
+        return <DocumentTextIcon className="h-4 w-4 text-red-500" />;
       case 'text':
-        return <DocumentTextIcon style={{ width: '16px', height: '16px', color: '#6b7280' }} />;
+        return <DocumentTextIcon className="h-4 w-4 text-gray-500" />;
       default:
         return null;
     }
@@ -69,32 +64,13 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
 
     return (
       <div 
-        key={topicId} 
-        className="chat-room-card"
-        style={{ 
-          cursor: 'pointer',
-          transition: 'box-shadow 0.2s ease'
-        }}
+        key={topicId}
+        className="relative z-10 cursor-pointer border border-gray-200 rounded-md p-3 bg-white hover:shadow-md transition-shadow"
         onClick={() => handleTopicClick(categoryKey, topicIndex, topic)}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = '';
-        }}
       >
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between' 
-        }}>
-          <h4 className="chat-room-card-title" style={{ flex: '1' }}>{topic.title}</h4>
-          
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem' 
-          }}>
+        <div className="flex items-center justify-between">
+          <h4 className="font-semibold text-sm text-gray-900 flex-1 truncate">{topic.title}</h4>
+          <div className="flex items-center gap-2">
             {topic.context.type && renderContextIcon(topic.context.type)}
           </div>
         </div>
@@ -104,117 +80,49 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
 
   return (
     <>
-      <div style={{ 
-        height: 'calc(100vh - 80px)', // Adjust for header height
-        display: 'flex', 
-        flexDirection: 'column', 
-        overflow: 'hidden' 
-      }}>
+      <div className="relative z-0 h-[calc(100vh-80px)] flex flex-col overflow-hidden">
         {/* 4개 섹션 그리드 - 정확히 4등분 */}
-        <div style={{ 
-          flex: '1', 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr', 
-          gridTemplateRows: '1fr 1fr', 
-          gap: '1rem', 
-          padding: '1rem', 
-          overflow: 'hidden',
-          minHeight: '0' // Important for grid overflow
-        }}>
+        <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-4 p-4 overflow-hidden min-h-0">
           {debateCategories.map(({ key: categoryKey, category }) => {
             const displayConfig = categoryDisplayConfig[categoryKey as keyof typeof categoryDisplayConfig];
             
             return (
               <div 
                 key={categoryKey}
-                style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  backgroundColor: 'white', 
-                  border: '1px solid #e5e7eb', 
-                  borderRadius: '0.5rem', 
-                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', 
-                  overflow: 'hidden', 
-                  height: '100%',
-                  minHeight: '0' // Important for flex item overflow
-                }}
+                className="flex flex-col bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden h-full min-h-0"
               >
                 {/* 섹션 타이틀 */}
                 <div 
-                  className={displayConfig?.color || ''}
-                  style={{ 
-                    flexShrink: '0', 
-                    padding: '1rem', // Increased padding for more height
-                    borderBottom: '1px solid #e5e7eb', 
-                    borderTopLeftRadius: '0.5rem', 
-                    borderTopRightRadius: '0.5rem',
-                    backgroundColor: !displayConfig?.color ? '#f9fafb' : undefined
-                  }}
+                  className={`${displayConfig?.color || 'bg-gray-50'} flex-shrink-0 p-4 border-b border-gray-200 rounded-t-lg`}
                 >
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.75rem', // Increased gap for larger image
-                    height: '100%' // Ensure full height usage
-                  }}>
+                  <div className="flex items-center gap-3 h-full">
                     {displayConfig?.image && (
                       <img 
                         src={displayConfig.image}
                         alt={displayConfig.title || category.name}
-                        style={{
-                          width: '72px', // 3x larger (24px -> 72px)
-                          height: '72px',
-                          objectFit: 'contain',
-                          flexShrink: '0' // Prevent image from shrinking
-                        }}
+                        className="w-18 h-18 object-contain flex-shrink-0"
                       />
                     )}
-                    <div style={{ 
-                      flex: '1',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center' // Vertically center the text content
-                    }}>
-                      <h3 style={{ 
-                        fontWeight: 'bold', 
-                        fontSize: '0.875rem', 
-                        color: '#1f2937',
-                        marginBottom: '0.25rem', // Slightly increased margin for better spacing
-                        margin: '0 0 0.25rem 0' // Reset margin and set only bottom
-                      }}>
+                    <div className="flex-1 flex flex-col justify-center">
+                      <h3 className="font-bold text-sm text-gray-800 mb-1">
                         {displayConfig?.title || category.name}
                       </h3>
                       {displayConfig?.description && (
-                        <p style={{ 
-                          fontSize: '0.75rem', 
-                          color: '#6b7280',
-                          margin: '0', // Remove default margin
-                          lineHeight: '1.2' // Tighter line height for better appearance
-                        }}>{displayConfig.description}</p>
+                        <p className="text-xs text-gray-500 leading-tight m-0">
+                          {displayConfig.description}
+                        </p>
                       )}
                     </div>
                   </div>
                 </div>
                 
                 {/* 스크롤 가능한 주제 목록 */}
-                <div style={{ 
-                  flex: '1', 
-                  overflowY: 'auto', 
-                  padding: '0.5rem',
-                  minHeight: '0' // Important for scroll container
-                }}>
+                <div className="flex-1 overflow-y-auto p-2 min-h-0">
                   {category.topics.length > 0 ? (
                     category.topics.map((topic, index) => renderTopicCard(topic, categoryKey, index))
                   ) : (
-                    <div style={{ 
-                      textAlign: 'center', 
-                      paddingTop: '2rem', 
-                      paddingBottom: '2rem' 
-                    }}>
-                      <p style={{ 
-                        fontSize: '0.75rem', 
-                        color: '#9ca3af' 
-                      }}>
+                    <div className="text-center py-8">
+                      <p className="text-xs text-gray-400">
                         No topics available for {displayConfig?.title || category.name}
                       </p>
                     </div>

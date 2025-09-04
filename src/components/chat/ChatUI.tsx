@@ -1271,19 +1271,16 @@ Namespace: ${rawSocket.nsp || '/'}
     }
   };
 
-  // fetchNpcDetails 함수 추가 - NPC 정보를 가져오는 유틸리티 함수
+  // fetchNpcDetails 함수 수정 - 정적 기본 정보만 사용
   const fetchNpcDetails = async (npcId: string): Promise<NpcDetail> => {
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/npc/get?id=${npcId}`;
-    console.log(`🔍 NPC 정보 조회 중: ${apiUrl}`);
+    console.log(`🔍 NPC 정보 생성 중 (정적): ${npcId}`);
     
-    const response = await fetch(apiUrl);
-    
-    if (!response.ok) {
-      throw new Error(`NPC 정보 조회 실패: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
+    // API 호출 제거 - 기본 정보 반환
+    return {
+      id: npcId,
+      name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
+      is_custom: false
+    };
   };
 
   // NPC 정보 변경 시 메시지 업데이트를 위한 useEffect 추가
@@ -1352,14 +1349,14 @@ Namespace: ${rawSocket.nsp || '/'}
       
       for (const npcId of participants.npcs) {
         try {
-          const response = await fetch(`/api/npc/get?id=${encodeURIComponent(npcId)}`);
-          if (response.ok) {
-            const npcDetail = await response.json();
-            details[npcId] = npcDetail;
-            console.log(`✅ Loaded NPC details for ${npcId}:`, npcDetail.name);
-          } else {
-            console.error(`❌ Failed to load NPC details for ${npcId}`);
-          }
+          // API 호출 제거 - 기본 NPC 정보 생성
+          const npcDetail = {
+            id: npcId,
+            name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
+            is_custom: false
+          };
+          details[npcId] = npcDetail;
+          console.log(`✅ Loaded NPC details for ${npcId}:`, npcDetail.name);
         } catch (error) {
           console.error(`❌ Error loading NPC details for ${npcId}:`, error);
         }

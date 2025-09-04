@@ -92,21 +92,18 @@ const DebateChatUI: React.FC<DebateChatUIProps> = ({
         return;
       }
       
-      // 기존 프롭스에 NPC 정보가 없는 경우 API에서 가져오기
+      // API 호출 제거 - 기본 NPC 정보로만 처리
       const npcIds = [...(room.pro || []), ...(room.con || []), ...(room.neutral || [])].filter(id => 
         !room.participants.users.includes(id)
       );
       
       for (const npcId of npcIds) {
-        try {
-          const response = await fetch(`/api/npc/get?id=${encodeURIComponent(npcId)}`);
-          if (response.ok) {
-            const npcDetail = await response.json();
-            details[npcId] = npcDetail;
-          }
-        } catch (error) {
-          console.error(`Error loading NPC details for ${npcId}:`, error);
-        }
+        // 기본 NPC 정보 생성
+        details[npcId] = {
+          id: npcId,
+          name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
+          is_custom: false
+        };
       }
       
       setNpcDetails(details);

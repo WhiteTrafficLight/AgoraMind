@@ -18,34 +18,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const npcId = Array.isArray(id) ? id[0] : id;
       console.log(`🔍 NPC ID 조회: ${npcId}`);
       
-      // 통합된 /api/npc/get 엔드포인트로 내부 리디렉션
-      console.log(`🔄 Redirecting to unified endpoint: /api/npc/get?id=${npcId}`);
+      // API 호출 제거 - 기본 NPC 정보 직접 반환
+      console.log(`🔄 Returning basic NPC data for: ${npcId}`);
       
-      try {
-        // 내부적으로 새 엔드포인트 호출
-        const baseUrl = process.env.NEXTJS_API_URL || `http://${req.headers.host}`;
-        const apiUrl = `${baseUrl}/api/npc/get?id=${npcId}`;
-        console.log(`🔗 Calling internal API: ${apiUrl}`);
-        
-        const apiResponse = await fetch(apiUrl, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        const data = await apiResponse.json();
-        
-        if (apiResponse.ok) {
-          console.log(`✅ Forwarded response successful from unified endpoint`);
-          return res.status(apiResponse.status).json(data);
-        } else {
-          // API가 실패하면 원래 로직으로 폴백
-          console.log(`⚠️ Unified endpoint failed, falling back to original logic`);
-        }
-      } catch (redirectError) {
-        console.error(`❌ Error in internal redirection: ${redirectError}`);
-        console.log(`⚠️ Falling back to original logic`);
-      }
+      const basicNpcData = {
+        id: npcId,
+        name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
+        description: `${npcId.charAt(0).toUpperCase() + npcId.slice(1)} is a philosopher with unique perspectives.`,
+        is_custom: false
+      };
+      
+      return res.status(200).json(basicNpcData);
       
       // 리디렉션 실패 시 원래 로직으로 폴백
       // MongoDB에 연결

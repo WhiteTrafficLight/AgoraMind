@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { ChatRoomListProps, ChatRoom } from '../types/openChat.types';
+import { ChatRoomListProps, ChatRoom } from '../../types/openChat.types';
 
 const ChatRoomList: React.FC<ChatRoomListProps> = ({
   chatRooms,
@@ -19,8 +19,8 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
   ];
 
   // 타입별로 채팅방 필터링
-  const getChatsByType = (type: string) => {
-    return chatRooms.filter(chat => chat.dialogueType === type);
+  const getChatsByType = (type: string): ChatRoom[] => {
+    return chatRooms.filter((chat: ChatRoom) => chat.dialogueType === type);
   };
 
   const handleChatClick = (chat: ChatRoom) => {
@@ -34,7 +34,7 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
       onClick={() => handleChatClick(chat)}
     >
       <div className="flex items-center justify-between">
-        <h4 className="chat-room-card-title flex-1">{chat.title}</h4>
+        <h4 className="chat-room-card-title flex-1 text-base">{chat.title}</h4>
         
         <button 
           onClick={(e) => {
@@ -114,7 +114,7 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
               {/* 스크롤 가능한 채팅방 목록 */}
               <div className="flex-1 overflow-y-auto p-2">
                 {chatsForType.length > 0 ? (
-                  chatsForType.map(chat => renderChatCard(chat))
+                  chatsForType.map((chat: ChatRoom) => renderChatCard(chat))
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-xs text-gray-500">

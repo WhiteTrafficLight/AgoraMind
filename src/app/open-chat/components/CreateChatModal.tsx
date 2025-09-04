@@ -39,6 +39,15 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   // 추천 주제 표시 상태
   const [showRecommendedTopics, setShowRecommendedTopics] = useState(false);
   
+  // Free discussion settings
+  const [freeDiscussionSettings, setFreeDiscussionSettings] = useState({
+    autoPlay: true,
+    playbackSpeed: 1.0,
+    turnInterval: 3.0,
+    maxTurns: 50,
+    allowInterruption: true,
+  });
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const moderatorStyles = [
@@ -238,6 +247,17 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
       };
     }
 
+    // Add free discussion settings
+    if (formData.dialogueType === 'free') {
+      finalFormData.freeDiscussionConfig = {
+        auto_play: freeDiscussionSettings.autoPlay,
+        playback_speed: freeDiscussionSettings.playbackSpeed,
+        turn_interval: freeDiscussionSettings.turnInterval,
+        max_turns: freeDiscussionSettings.maxTurns,
+        allow_user_interruption: freeDiscussionSettings.allowInterruption,
+      };
+    }
+
     try {
       await onCreateChat(finalFormData);
     } catch (error) {
@@ -344,221 +364,77 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
 
   return (
     <>
-      {/* CSS Styles */}
-      <style jsx>{`
-        .context-section {
-          margin-bottom: 24px;
-        }
-        
-        .context-tab-container {
-          display: flex;
-          border-bottom: 2px solid #e5e7eb;
-          margin-bottom: 16px;
-        }
-        
-        .context-tab {
-          padding: 12px 16px;
-          background: none;
-          border: none;
-          font-weight: 500;
-          font-size: 14px;
-          color: #6b7280;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          border-bottom: 2px solid transparent;
-          position: relative;
-          bottom: -2px;
-        }
-        
-        .context-tab:hover {
-          color: #374151;
-        }
-        
-        .context-tab-active {
-          color: #111827 !important;
-          border-bottom-color: #111827 !important;
-        }
-        
-        .file-upload-button {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          background: white;
-          cursor: pointer;
-          transition: background-color 0.2s ease;
-          font-size: 14px;
-          color: #374151;
-        }
-        
-        .file-upload-button:hover {
-          background-color: #f9fafb;
-        }
-        
-        .file-upload-icon {
-          height: 20px;
-          width: 20px;
-        }
-        
-        .hidden {
-          display: none;
-        }
-
-        .dialogue-pattern-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 24px;
-          margin-top: 16px;
-        }
-        
-        .dialogue-pattern-card {
-          position: relative;
-          padding: 24px 16px;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          background: white;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-        }
-        
-        .dialogue-pattern-card:hover {
-          border-color: #d1d5db;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .dialogue-pattern-card.selected {
-          border-color: #111827;
-          background: #f9fafb;
-        }
-        
-        .dialogue-pattern-card.disabled {
-          background: #f3f4f6;
-          border-color: #e5e7eb;
-          cursor: not-allowed;
-          opacity: 0.6;
-        }
-        
-        .dialogue-pattern-card.disabled:hover {
-          border-color: #e5e7eb;
-          box-shadow: none;
-        }
-        
-        .dialogue-pattern-image {
-          width: 80px;
-          height: 80px;
-          object-fit: cover;
-          border-radius: 8px;
-        }
-        
-        .dialogue-pattern-title {
-          font-weight: 600;
-          font-size: 16px;
-          color: #111827;
-        }
-        
-        .dialogue-pattern-card.disabled .dialogue-pattern-title {
-          color: #9ca3af;
-        }
-        
-        .dialogue-pattern-tooltip {
-          font-size: 14px;
-          color: #6b7280;
-          line-height: 1.4;
-        }
-        
-        .dialogue-pattern-card.disabled .dialogue-pattern-tooltip {
-          color: #d1d5db;
-        }
-        
-        .coming-soon-text {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          background: #6b7280;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 10px;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-      `}</style>
-      
       {/* Background overlay */}
-      <div className="create-chat-modal-overlay" onClick={handleClose}></div>
-      
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={handleClose}></div>
+
       {/* Modal container */}
-      <div className="create-chat-modal-container" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-5xl max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl z-50 border border-gray-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="create-chat-modal-header">
-          <h2 className="text-2xl font-bold">Create New Chat</h2>
-          <button 
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="text-2xl font-bold text-gray-900">Create New Chat</h2>
+          <button
             onClick={handleClose}
-            className="create-chat-modal-close"
+            className="inline-flex items-center justify-center rounded-full p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             disabled={isCreating}
+            aria-label="Close"
           >
-            ✕
+            <XMarkIcon className="h-5 w-5" />
           </button>
         </div>
         
         {/* Content */}
-        <div className="create-chat-modal-content">
+        <div className="px-6 py-4">
           <form onSubmit={handleSubmit}>
             {/* Step 1: Dialogue Pattern */}
             {step === 1 && (
-              <div className="create-chat-step-container">
-                <label className="create-chat-label">Dialogue Pattern</label>
-                <div className="dialogue-pattern-grid">
-                  <div 
-                    className={`dialogue-pattern-card disabled`}
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Dialogue Pattern</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+                  <div
+                    className={`relative p-6 border-2 rounded-xl cursor-pointer transition bg-white text-center flex flex-col items-center gap-3 ${
+                      formData.dialogueType === 'free'
+                        ? 'border-gray-900 bg-gray-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                    }`}
+                    onClick={() => handleDialogueTypeChange('free')}
                   >
-                    <div className="coming-soon-text">Coming Soon</div>
-                    <img src="/Free.png" alt="Free Discussion" className="dialogue-pattern-image" />
-                    <div className="dialogue-pattern-title">Free Discussion</div>
-                    <div className="dialogue-pattern-tooltip">
+                    <img src="/Free.png" alt="Free Discussion" className="w-20 h-20 object-cover rounded-md" />
+                    <div className="font-semibold text-base text-gray-900">Free Discussion</div>
+                    <div className="text-sm text-gray-600 leading-tight">
                       Open-format dialogue<br/>with no specific structure
                     </div>
                   </div>
-                  
-                  <div 
-                    className={`dialogue-pattern-card ${formData.dialogueType === 'debate' ? 'selected' : ''}`}
+
+                  <div
+                    className={`relative p-6 border-2 rounded-xl cursor-pointer transition bg-white text-center flex flex-col items-center gap-3 ${
+                      formData.dialogueType === 'debate'
+                        ? 'border-gray-900 bg-gray-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                    }`}
                     onClick={() => handleDialogueTypeChange('debate')}
                   >
-                    <img src="/ProCon.png" alt="Pro-Con Debate" className="dialogue-pattern-image" />
-                    <div className="dialogue-pattern-title">Pro-Con Debate</div>
-                    <div className="dialogue-pattern-tooltip">
+                    <img src="/ProCon.png" alt="Pro-Con Debate" className="w-20 h-20 object-cover rounded-md" />
+                    <div className="font-semibold text-base text-gray-900">Pro-Con Debate</div>
+                    <div className="text-sm text-gray-600 leading-tight">
                       Structured debate<br/>with opposing positions
                     </div>
                   </div>
-                  
-                  <div 
-                    className={`dialogue-pattern-card disabled`}
-                  >
-                    <div className="coming-soon-text">Coming Soon</div>
-                    <img src="/Socratic.png" alt="Socratic Dialogue" className="dialogue-pattern-image" />
-                    <div className="dialogue-pattern-title">Socratic Dialogue</div>
-                    <div className="dialogue-pattern-tooltip">
-                      Question-based approach<br/>to explore a topic
-                    </div>
+
+                  <div className="relative p-6 border-2 rounded-xl bg-gray-100 border-gray-200 cursor-not-allowed opacity-60 text-center flex flex-col items-center gap-3">
+                    <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wide">Coming Soon</div>
+                    <img src="/Socratic.png" alt="Socratic Dialogue" className="w-20 h-20 object-cover rounded-md" />
+                    <div className="font-semibold text-base text-gray-400">Socratic Dialogue</div>
+                    <div className="text-sm text-gray-300 leading-tight">Question-based approach<br/>to explore a topic</div>
                   </div>
-                  
-                  <div 
-                    className={`dialogue-pattern-card disabled`}
-                  >
-                    <div className="coming-soon-text">Coming Soon</div>
-                    <img src="/Dialectical.png" alt="Dialectical Discussion" className="dialogue-pattern-image" />
-                    <div className="dialogue-pattern-title">Dialectical Discussion</div>
-                    <div className="dialogue-pattern-tooltip">
-                      Thesis-Antithesis-Synthesis<br/>format
-                    </div>
+
+                  <div className="relative p-6 border-2 rounded-xl bg-gray-100 border-gray-200 cursor-not-allowed opacity-60 text-center flex flex-col items-center gap-3">
+                    <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wide">Coming Soon</div>
+                    <img src="/Dialectical.png" alt="Dialectical Discussion" className="w-20 h-20 object-cover rounded-md" />
+                    <div className="font-semibold text-base text-gray-400">Dialectical Discussion</div>
+                    <div className="text-sm text-gray-300 leading-tight">Thesis-Antithesis-Synthesis<br/>format</div>
                   </div>
                 </div>
               </div>
@@ -566,34 +442,34 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
 
             {/* Step 2: Chat Title and Context */}
             {step === 2 && (
-              <div className="create-chat-step-container">
-                <div className="mb-8">
-                  <label className="create-chat-label">Chat Title:</label>
+              <div className="space-y-8">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Chat Title:</label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => handleChange('title', e.target.value)}
                     placeholder="What would you like to discuss today?"
-                    className="create-chat-input"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
                     required
                   />
                 </div>
 
                 {/* Recommended Topics Section */}
-                <div className="recommended-topics-section">
-                  <div 
-                    className="recommended-topics-header"
+                <div>
+                  <div
+                    className="flex items-center justify-between py-2 cursor-pointer select-none border-b-2 border-gray-200 mb-2"
                     onClick={() => setShowRecommendedTopics(!showRecommendedTopics)}
                   >
-                    <div className="recommended-topics-label">
-                      <svg 
-                        className="recommended-topics-icon" 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2" 
-                        strokeLinecap="round" 
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                      <svg
+                        className="h-5 w-5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
                         strokeLinejoin="round"
                       >
                         <circle cx="12" cy="12" r="10"></circle>
@@ -608,10 +484,10 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       }
                     </div>
                   </div>
-                  
-                  <div className={`recommended-topics-content ${showRecommendedTopics ? '' : 'hidden'}`}>
+
+                  <div className={showRecommendedTopics ? 'mt-3' : 'hidden'}>
                     {formData.dialogueType === 'free' && (
-                      <ul className="recommended-topics-list">
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                         <li>&quot;The meaning of happiness in different philosophical traditions&quot;</li>
                         <li>&quot;How does technology shape human experience in the modern world?&quot;</li>
                         <li>&quot;The relationship between art and moral values&quot;</li>
@@ -619,9 +495,9 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                         <li>&quot;The nature of consciousness and self-awareness&quot;</li>
                       </ul>
                     )}
-                    
+
                     {formData.dialogueType === 'debate' && (
-                      <ul className="recommended-topics-list">
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                         <li>&quot;Is artificial intelligence beneficial or harmful to humanity?&quot;</li>
                         <li>&quot;Should we prioritize individual liberty over collective welfare?&quot;</li>
                         <li>&quot;Is objective morality possible without religion?&quot;</li>
@@ -629,9 +505,9 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                         <li>&quot;Is human nature fundamentally good or self-interested?&quot;</li>
                       </ul>
                     )}
-                    
+
                     {formData.dialogueType === 'socratic' && (
-                      <ul className="recommended-topics-list">
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                         <li>&quot;What is justice? How can we recognize a just society?&quot;</li>
                         <li>&quot;What constitutes knowledge versus mere opinion?&quot;</li>
                         <li>&quot;What is the nature of virtue? Can it be taught?&quot;</li>
@@ -639,9 +515,9 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                         <li>&quot;How should we understand the relationship between mind and body?&quot;</li>
                       </ul>
                     )}
-                    
+
                     {formData.dialogueType === 'dialectical' && (
-                      <ul className="recommended-topics-list">
+                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
                         <li>&quot;Thesis: Reason is the primary source of knowledge | Antithesis: Experience is the primary source of knowledge&quot;</li>
                         <li>&quot;Thesis: Morality is objective | Antithesis: Morality is culturally relative&quot;</li>
                         <li>&quot;Thesis: Human technology enhances our humanity | Antithesis: Technology alienates us from our true nature&quot;</li>
@@ -650,107 +526,107 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       </ul>
                     )}
                   </div>
-                  
+
                   {/* Quick topic buttons */}
-                  <div className="topic-quick-buttons">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {formData.dialogueType === 'free' && (
                       <>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "The meaning of happiness in different philosophical traditions")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Happiness
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "The nature of consciousness and self-awareness")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Consciousness
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "How does technology shape human experience?")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Technology & Humanity
                         </button>
                       </>
                     )}
-                    
+
                     {formData.dialogueType === 'debate' && (
                       <>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "Is artificial intelligence beneficial or harmful to humanity?")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           AI Ethics
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "Individual liberty vs. collective welfare")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Liberty vs. Community
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "Is human nature fundamentally good or self-interested?")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Human Nature
                         </button>
                       </>
                     )}
-                    
+
                     {formData.dialogueType === 'socratic' && (
                       <>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "What is justice? How can we recognize a just society?")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           On Justice
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "What constitutes knowledge versus mere opinion?")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Knowledge vs. Opinion
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "What makes a life worth living?")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           The Good Life
                         </button>
                       </>
                     )}
-                    
+
                     {formData.dialogueType === 'dialectical' && (
                       <>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "Reason vs. Experience as the source of knowledge")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Reason vs. Experience
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "Is morality objective or culturally relative?")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Moral Objectivity
                         </button>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           onClick={() => handleChange('title', "Mind-body relationship: dualism or physicalism?")}
-                          className="topic-quick-button"
+                          className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Mind-Body Problem
                         </button>
@@ -759,29 +635,41 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                   </div>
                 </div>
 
-                <div className="context-section">
-                  <label className="create-chat-label">Context</label>
-                  
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Context</label>
+
                   {/* Context type selection */}
-                  <div className="context-tab-container">
+                  <div className="flex border-b-2 border-gray-200 mb-4">
                     <button
                       type="button"
                       onClick={() => setContextType('none')}
-                      className={`context-tab ${contextType === 'none' ? 'context-tab-active' : ''}`}
+                      className={`px-4 py-3 text-sm font-medium -mb-[2px] border-b-2 ${
+                        contextType === 'none'
+                          ? 'text-gray-900 border-gray-900'
+                          : 'text-gray-600 border-transparent hover:text-gray-700'
+                      }`}
                     >
                       None
                     </button>
                     <button
                       type="button"
                       onClick={() => setContextType('url')}
-                      className={`context-tab ${contextType === 'url' ? 'context-tab-active' : ''}`}
+                      className={`px-4 py-3 text-sm font-medium -mb-[2px] border-b-2 ${
+                        contextType === 'url'
+                          ? 'text-gray-900 border-gray-900'
+                          : 'text-gray-600 border-transparent hover:text-gray-700'
+                      }`}
                     >
                       URL
                     </button>
                     <button
                       type="button"
                       onClick={() => setContextType('file')}
-                      className={`context-tab ${contextType === 'file' ? 'context-tab-active' : ''}`}
+                      className={`px-4 py-3 text-sm font-medium -mb-[2px] border-b-2 ${
+                        contextType === 'file'
+                          ? 'text-gray-900 border-gray-900'
+                          : 'text-gray-600 border-transparent hover:text-gray-700'
+                      }`}
                     >
                       File
                     </button>
@@ -794,13 +682,13 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       value={formData.contextUrl}
                       onChange={(e) => handleChange('contextUrl', e.target.value)}
                       placeholder="https://example.com/article"
-                      className="create-chat-input"
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
                     />
                   )}
 
                   {/* File upload */}
                   {contextType === 'file' && (
-                    <div>
+                    <div className="space-y-2">
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -811,9 +699,9 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="file-upload-button"
+                        className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
                       >
-                        <DocumentArrowUpIcon className="file-upload-icon" />
+                        <DocumentArrowUpIcon className="h-5 w-5" />
                         {formData.context || 'Choose file (txt, md, pdf)'}
                       </button>
                     </div>
@@ -824,42 +712,48 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
 
             {/* Step 3: Participants */}
             {step === 3 && (
-              <div className="create-chat-step-container">
-                <label className="block mb-4 font-medium text-lg">Select Participants</label>
-                
+              <div className="space-y-6">
+                <label className="block mb-2 font-medium text-lg">Select Participants</label>
+
                 {/* User debate role for debate type */}
                 {formData.dialogueType === 'debate' && (
-                  <div className="debate-role-selection-container">
-                    <h3 className="debate-role-selection-title">Select Your Role in the Debate</h3>
-                    <div className="debate-role-cards-container">
-                      <div 
+                  <div className="space-y-3">
+                    <h3 className="text-base font-medium">Select Your Role in the Debate</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div
                         onClick={() => setUserDebateRole('pro')}
-                        className={`debate-role-card ${userDebateRole === 'pro' ? 'pro' : ''}`}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition ${
+                          userDebateRole === 'pro'
+                            ? 'border-emerald-600 bg-emerald-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
                       >
-                        <div className="debate-role-card-title">
-                          Pro (Affirmative)
-                        </div>
-                        <div className="debate-role-card-description">Support the proposition</div>
+                        <div className="font-semibold text-gray-900">Pro (Affirmative)</div>
+                        <div className="text-sm text-gray-500">Support the proposition</div>
                       </div>
-                      
-                      <div 
+
+                      <div
                         onClick={() => setUserDebateRole('con')}
-                        className={`debate-role-card ${userDebateRole === 'con' ? 'con' : ''}`}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition ${
+                          userDebateRole === 'con'
+                            ? 'border-rose-600 bg-rose-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
                       >
-                        <div className="debate-role-card-title">
-                          Con (Negative)
-                        </div>
-                        <div className="debate-role-card-description">Oppose the proposition</div>
+                        <div className="font-semibold text-gray-900">Con (Negative)</div>
+                        <div className="text-sm text-gray-500">Oppose the proposition</div>
                       </div>
-                      
-                      <div 
+
+                      <div
                         onClick={() => setUserDebateRole('neutral')}
-                        className={`debate-role-card ${userDebateRole === 'neutral' ? 'neutral' : ''}`}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition ${
+                          userDebateRole === 'neutral'
+                            ? 'border-indigo-600 bg-indigo-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                        }`}
                       >
-                        <div className="debate-role-card-title">
-                          Observer
-                        </div>
-                        <div className="debate-role-card-description">Watch the debate neutrally</div>
+                        <div className="font-semibold text-gray-900">Observer</div>
+                        <div className="text-sm text-gray-500">Watch the debate neutrally</div>
                       </div>
                     </div>
                   </div>
@@ -871,26 +765,121 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                     <h3 className="text-base font-medium mb-3">Select Moderator Style</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {moderatorStyles.map(style => (
-                        <div 
+                        <div
                           key={style.id}
                           onClick={() => setModeratorStyleId(style.id)}
-                          className={`moderator-selection-card ${
-                            moderatorStyleId === style.id ? 'selected' : ''
+                          className={`rounded-lg border-2 transition cursor-pointer ${
+                            moderatorStyleId === style.id
+                              ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-600'
+                              : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                           }`}
                         >
-                          <div className="moderator-card-content">
+                          <div className="flex items-center gap-3 p-3">
                             <img
                               src={`/moderator_portraits/Moderator${style.id}.png`}
                               alt={style.name}
-                              className="moderator-image"
+                              className="w-12 h-12 rounded-md object-cover"
                             />
-                            <div className="moderator-info">
-                              <div className="moderator-name">{style.name}</div>
-                              <div className="moderator-description">{style.description}</div>
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">{style.name}</div>
+                              <div className="text-sm text-gray-500">{style.description}</div>
                             </div>
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Free Discussion Settings (disabled; handled in EnhancedCircularChatUI) */}
+                {false && (
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-base font-medium mb-4">Free Discussion Settings</h3>
+
+                    {/* Auto-play toggle */}
+                    <div className="mb-4">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={freeDiscussionSettings.autoPlay}
+                          onChange={(e) => setFreeDiscussionSettings(prev => ({
+                            ...prev,
+                            autoPlay: e.target.checked
+                          }))}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Auto-play conversation</span>
+                          <p className="text-xs text-gray-500">Philosophers will speak automatically in sequence</p>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Playback speed */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Playback Speed
+                      </label>
+                      <div className="flex gap-2">
+                        {[0.5, 1.0, 1.5, 2.0].map(speed => (
+                          <button
+                            key={speed}
+                            type="button"
+                            onClick={() => setFreeDiscussionSettings(prev => ({
+                              ...prev,
+                              playbackSpeed: speed
+                            }))}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                              freeDiscussionSettings.playbackSpeed === speed
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            {speed}x
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Turn interval */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Turn Interval (seconds)
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="0.5"
+                        value={freeDiscussionSettings.turnInterval}
+                        onChange={(e) => setFreeDiscussionSettings(prev => ({
+                          ...prev,
+                          turnInterval: parseFloat(e.target.value)
+                        }))}
+                        className="w-full"
+                      />
+                      <div className="text-xs text-gray-500 mt-1">
+                        {freeDiscussionSettings.turnInterval} seconds between turns
+                      </div>
+                    </div>
+
+                    {/* User interruption */}
+                    <div>
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={freeDiscussionSettings.allowInterruption}
+                          onChange={(e) => setFreeDiscussionSettings(prev => ({
+                            ...prev,
+                            allowInterruption: e.target.checked
+                          }))}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Allow interruptions</span>
+                          <p className="text-xs text-gray-500">You can interrupt the discussion at any time</p>
+                        </div>
+                      </label>
                     </div>
                   </div>
                 )}
@@ -905,14 +894,14 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       {[...selectedPhilosophers, ...selectedCustomNpcs].map(npcId => {
                         const npc = [...philosophers, ...customNpcs].find(p => p.id === npcId);
                         if (!npc) return null;
-                        
+
                         return (
-                          <div key={npcId} className="selected-philosopher-container">
-                            <div className="selected-philosopher-image-wrapper">
+                          <div key={npcId} className="flex flex-col items-center">
+                            <div className="relative">
                               <img
                                 src={npc.portrait_url || getPhilosopherPortraitPath(npc.name)}
                                 alt={npc.name}
-                                className="philosopher-image-medium"
+                                className="w-16 h-16 rounded-full object-cover ring-1 ring-gray-200"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=64`;
                                 }}
@@ -925,20 +914,22 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                                     toggleCustomNpc(npcId);
                                   }
                                 }}
-                                className="selected-philosopher-remove"
+                                className="absolute -top-1 -right-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 shadow"
                                 aria-label="Remove philosopher"
                               >
                                 ×
                               </button>
-                              
+
                               {/* Debate positions */}
                               {formData.dialogueType === 'debate' && (
-                                <div className="debate-position-buttons">
+                                <div className="mt-2 flex gap-1 justify-center">
                                   <button
                                     type="button"
                                     onClick={() => setNpcPosition(npcId, 'pro')}
-                                    className={`debate-position-button ${
-                                      npcPositions[npcId] === 'pro' ? 'pro' : 'neutral'
+                                    className={`px-2 py-0.5 rounded text-xs border ${
+                                      npcPositions[npcId] === 'pro'
+                                        ? 'bg-emerald-600 text-white border-transparent'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                                     }`}
                                   >
                                     Pro
@@ -946,8 +937,10 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => setNpcPosition(npcId, 'con')}
-                                    className={`debate-position-button ${
-                                      npcPositions[npcId] === 'con' ? 'con' : 'neutral'
+                                    className={`px-2 py-0.5 rounded text-xs border ${
+                                      npcPositions[npcId] === 'con'
+                                        ? 'bg-rose-600 text-white border-transparent'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                                     }`}
                                   >
                                     Con
@@ -955,9 +948,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                                 </div>
                               )}
                             </div>
-                            <span className="selected-philosopher-name">
-                              {npc.name}
-                            </span>
+                            <span className="text-xs text-gray-700 mt-1">{npc.name}</span>
                           </div>
                         );
                       })}
@@ -971,25 +962,27 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                     <h3 className="text-base font-medium mb-2">My Custom Philosophers</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {customNpcs.map(npc => (
-                        <div 
+                        <div
                           key={npc.id}
-                          className={`philosopher-selection-card ${
-                            selectedCustomNpcs.includes(npc.id) ? 'selected' : ''
+                          className={`border rounded-lg p-3 transition select-none ${
+                            selectedCustomNpcs.includes(npc.id)
+                              ? 'ring-2 ring-blue-600 border-blue-600 bg-blue-50'
+                              : 'hover:shadow-sm'
                           }`}
                         >
-                          <div 
-                            className="philosopher-card-content"
+                          <div
+                            className="flex items-center gap-2 cursor-pointer"
                             onClick={() => toggleCustomNpc(npc.id)}
                           >
                             <img
                               src={npc.portrait_url || getPhilosopherPortraitPath(npc.name)}
                               alt={npc.name}
-                              className="philosopher-image-small"
+                              className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=32`;
                               }}
                             />
-                            <span className="philosopher-card-name">{npc.name}</span>
+                            <span className="text-sm text-gray-800">{npc.name}</span>
                           </div>
                           <button
                             onClick={(e) => {
@@ -998,7 +991,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                               loadPhilosopherDetails(npc.id);
                               return false;
                             }}
-                            className="view-details-button"
+                            className="mt-2 text-xs text-black hover:underline"
                           >
                             View details
                           </button>
@@ -1013,25 +1006,27 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                   <h3 className="text-base font-medium mb-2">Classic Philosophers</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {philosophers.map(philosopher => (
-                      <div 
+                      <div
                         key={philosopher.id}
-                        className={`philosopher-selection-card ${
-                          selectedPhilosophers.includes(philosopher.id) ? 'selected' : ''
+                        className={`border rounded-lg p-3 transition select-none ${
+                          selectedPhilosophers.includes(philosopher.id)
+                            ? 'ring-2 ring-blue-600 border-blue-600 bg-blue-50'
+                            : 'hover:shadow-sm'
                         }`}
                       >
-                        <div 
-                          className="philosopher-card-content"
+                        <div
+                          className="flex items-center gap-2 cursor-pointer"
                           onClick={() => togglePhilosopher(philosopher.id)}
                         >
                           <img
                             src={philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)}
                             alt={philosopher.name}
-                            className="philosopher-image-small"
+                            className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
                             }}
                           />
-                          <span className="philosopher-card-name">{philosopher.name}</span>
+                          <span className="text-sm text-gray-800">{philosopher.name}</span>
                         </div>
                         <button
                           onClick={(e) => {
@@ -1040,7 +1035,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                             loadPhilosopherDetails(philosopher.id);
                             return false;
                           }}
-                          className="view-details-button"
+                          className="mt-2 text-xs text-black hover:underline"
                         >
                           View details
                         </button>
@@ -1054,26 +1049,24 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
         </div>
 
         {/* Footer Navigation */}
-        <div className="create-chat-footer">
-          <div className="create-chat-navigation">
+        <div className="px-6 py-4 border-t">
+          <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={goToPreviousStep}
-              className="create-chat-nav-button"
+              className="rounded-md border border-gray-300 bg-white px-3 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               disabled={step <= 1}
               style={{ visibility: step > 1 ? 'visible' : 'hidden' }}
             >
               &lt;
             </button>
-            
-            <div className="create-chat-step-indicator">
-              {step}/3
-            </div>
-            
+
+            <div className="text-sm text-gray-500">{step}/3</div>
+
             <button
               type="button"
               onClick={goToNextStep}
-              className="create-chat-nav-button"
+              className="rounded-md border border-gray-300 bg-white px-3 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               disabled={step >= 3 || (step === 1 && !formData.dialogueType)}
               style={{ visibility: step < 3 ? 'visible' : 'hidden' }}
             >
@@ -1084,16 +1077,16 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
 
         {/* Submit Button */}
         {step === 3 && (
-          <div className="create-chat-actions">
+          <div className="px-6 py-4 border-t flex justify-end">
             <button
               type="button"
               onClick={handleSubmit}
-              className="create-chat-submit"
+              className="inline-flex items-center gap-2 rounded-md bg-blue-600 text-white px-4 py-2 text-sm font-medium shadow hover:bg-blue-700 disabled:opacity-50"
               disabled={!formData.title.trim() || (selectedPhilosophers.length + selectedCustomNpcs.length) === 0 || isCreating}
             >
               {isCreating ? (
                 <>
-                  <span className="loading-spinner"></span>
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                   Creating...
                 </>
               ) : (

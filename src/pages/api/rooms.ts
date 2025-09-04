@@ -355,75 +355,45 @@ export default async function handler(
                 }
                 
                 // 2. API를 통해 조회
-                const apiUrl = `${pythonApiUrl}/api/npc/get?id=${npcId}`;
-                loggers.api.debug('Trying backend API', { apiUrl });
+                // API 호출 제거 - 기본 NPC 정보 사용
+                const basicNpcData = {
+                  id: npcId,
+                  name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
+                  is_custom: false
+                };
+                // API 호출 제거됨 - 기본 정보 사용
+                loggers.api.debug('Using basic NPC data (no API call)', { basicNpcData });
                 
-                const response = await fetch(apiUrl);
-                if (response.ok) {
-                  const npcData = await response.json();
-                  if (npcData && npcData.name) {
-                    loggers.api.info('Retrieved NPC details from backend', { 
-                      name: npcData.name,
-                      npcId
-                    });
-                    loggers.api.debug('NPC name mapping added', { 
-                      from: npcId, 
-                      to: npcData.name 
-                    });
-                    loggers.api.debug('NPC info retrieval result', { 
-                      data: JSON.stringify(npcData).substring(0, 100) + '...' 
-                    });
-                    
-                    // 매핑에 추가
-                    npcNames[npcId] = npcData.name;
-                  } else {
-                    loggers.api.warn('API returned data without name for NPC', { npcId });
-                  }
-                } else {
-                  loggers.api.warn('Failed to get NPC details from API', { 
-                    npcId,
-                    status: response.status 
+                // 기본 철학자 이름 하드코딩
+                const defaultNames: Record<string, string> = {
+                  "socrates": "Socrates",
+                  "plato": "Plato",
+                  "aristotle": "Aristotle",
+                  "kant": "Immanuel Kant",
+                  "hegel": "Georg Wilhelm Friedrich Hegel",
+                  "nietzsche": "Friedrich Nietzsche",
+                  "marx": "Karl Marx",
+                  "sartre": "Jean-Paul Sartre",
+                  "camus": "Albert Camus", 
+                  "beauvoir": "Simone de Beauvoir",
+                  "confucius": "Confucius",
+                  "heidegger": "Martin Heidegger",
+                  "wittgenstein": "Ludwig Wittgenstein"
+                };
+                
+                if (npcId.toLowerCase() in defaultNames) {
+                  const defaultName = defaultNames[npcId.toLowerCase()];
+                  loggers.api.debug('Using default philosopher name', { 
+                    from: npcId, 
+                    to: defaultName 
                   });
-                  
-                  // 기본 철학자 이름 하드코딩
-                  const defaultNames: Record<string, string> = {
-                    "socrates": "Socrates",
-                    "plato": "Plato",
-                    "aristotle": "Aristotle",
-                    "kant": "Immanuel Kant",
-                    "hegel": "Georg Wilhelm Friedrich Hegel",
-                    "nietzsche": "Friedrich Nietzsche",
-                    "marx": "Karl Marx",
-                    "sartre": "Jean-Paul Sartre",
-                    "camus": "Albert Camus", 
-                    "beauvoir": "Simone de Beauvoir",
-                    "confucius": "Confucius",
-                    "heidegger": "Martin Heidegger",
-                    "wittgenstein": "Ludwig Wittgenstein"
-                  };
-                  
-                  if (npcId.toLowerCase() in defaultNames) {
-                    const defaultName = defaultNames[npcId.toLowerCase()];
-                    loggers.api.debug('Using default philosopher name', { 
-                      from: npcId, 
-                      to: defaultName 
-                    });
-                    npcNames[npcId] = defaultName;
-                  } else if (isUuid) {
-                    loggers.api.error('Critical: Could not find actual name for custom NPC', { npcId });
-                    loggers.api.debug('Using default name for unknown custom NPC', { 
-                      from: npcId, 
-                      to: 'Unknown Philosopher' 
-                    });
-                    npcNames[npcId] = "Unknown Philosopher";
-                  } else {
-                    loggers.api.debug('Using default capitalized name', { 
-                      from: npcId, 
-                      to: npcId.charAt(0).toUpperCase() + npcId.slice(1) 
-                    });
-                    npcNames[npcId] = npcId.charAt(0).toUpperCase() + npcId.slice(1);
-                  }
+                  npcNames[npcId] = defaultName;
+                } else {
+                  loggers.api.debug('Using capitalized NPC ID as name', { npcId });
+                  npcNames[npcId] = basicNpcData.name;
                 }
+                
+
               } catch (error) {
                 loggers.api.error('Error fetching NPC details', { npcId, error });
               }

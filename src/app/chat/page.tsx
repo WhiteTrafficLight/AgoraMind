@@ -3,6 +3,8 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DebateChatContainer from '@/components/chat/main_components/DebateChatContainer';
+import CircularChatUI from '@/components/chat/CircularChatUI';
+import EnhancedCircularChatUI from '@/components/chat/EnhancedCircularChatUI';
 import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 import { useSocket } from '@/hooks/useSocket';
 import { loggers } from '@/utils/logger';
@@ -580,12 +582,12 @@ function ChatContent() {
     );
   }
 
-  // V2 구조에서는 debate 타입만 지원 (점진적 확장 예정)
-  if (chatData.dialogueType !== 'debate') {
+  // V2 구조에서는 debate와 free 타입 지원
+  if (chatData.dialogueType !== 'debate' && chatData.dialogueType !== 'free') {
     return (
       <div className="fixed inset-0 z-50 w-screen h-screen bg-white flex justify-center items-center flex-col">
         <p className="text-xl text-gray-500 mb-4">
-          V2 구조는 현재 토론(debate) 채팅만 지원합니다.
+          V2 구조는 현재 토론(debate)과 자유 토론(free) 채팅만 지원합니다.
         </p>
         <div className="text-sm text-blue-600 mb-4">
           현재 채팅 타입: {chatData.dialogueType}
@@ -608,34 +610,47 @@ function ChatContent() {
 
   return (
     <div className="fixed inset-0 z-50 w-screen h-screen bg-white">
-      {/* 메인 채팅 컨테이너 */}
+      {/* 메인 채팅 컨테이너 - dialogueType에 따라 다른 UI 로드 */}
       <div className="h-full">
-        <DebateChatContainer
-          room={{
-            ...chatData,
-            id: String(chatData.id),
-            dialogueType: chatData.dialogueType || 'debate'
-          }}
-          messages={chatData.messages || []}
-          npcDetails={chatData.npcDetails || []}
-          onSendMessage={handleSendMessage}
-          onRefresh={handleRefreshChat}
-          isLoading={loading}
-          isGeneratingResponse={isGeneratingResponse}
-          username={username || 'You'}
-          onEndChat={() => router.push('/open-chat')}
-          userRole={
-            chatData.pro?.includes(username) || chatData.pro?.includes('You') ? 'pro' :
-            chatData.con?.includes(username) || chatData.con?.includes('You') ? 'con' :
-            'neutral'
-          }
-          onRequestNextMessage={handleRequestNextMessage}
-          typingMessageIds={typingMessageIds}
-          onTypingComplete={handleTypingComplete}
-          waitingForUserInput={waitingForUserInput}
-          currentUserTurn={currentUserTurn}
-          onProcessUserMessage={handleProcessUserMessage}
-        />
+        {chatData.dialogueType === 'free' ? (
+          <EnhancedCircularChatUI
+            chatId={chatData.id}
+            chatTitle={chatData.title}
+            participants={chatData.participants}
+            initialMessages={chatData.messages || []}
+            onBack={handleBackToOpenChat}
+            dialogueType="free"
+            context={chatData.context}
+            freeDiscussionConfig={chatData.freeDiscussionConfig}
+          />
+        ) : (
+          <DebateChatContainer
+            room={{
+              ...chatData,
+              id: String(chatData.id),
+              dialogueType: chatData.dialogueType || 'debate'
+            }}
+            messages={chatData.messages || []}
+            npcDetails={chatData.npcDetails || []}
+            onSendMessage={handleSendMessage}
+            onRefresh={handleRefreshChat}
+            isLoading={loading}
+            isGeneratingResponse={isGeneratingResponse}
+            username={username || 'You'}
+            onEndChat={() => router.push('/open-chat')}
+            userRole={
+              chatData.pro?.includes(username) || chatData.pro?.includes('You') ? 'pro' :
+              chatData.con?.includes(username) || chatData.con?.includes('You') ? 'con' :
+              'neutral'
+            }
+            onRequestNextMessage={handleRequestNextMessage}
+            typingMessageIds={typingMessageIds}
+            onTypingComplete={handleTypingComplete}
+            waitingForUserInput={waitingForUserInput}
+            currentUserTurn={currentUserTurn}
+            onProcessUserMessage={handleProcessUserMessage}
+          />
+        )}
       </div>
       
       {/* 글로벌 스타일 */}

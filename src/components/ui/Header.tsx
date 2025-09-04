@@ -51,10 +51,11 @@ const Header = () => {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b-2 border-gray-200 bg-white shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <div className="container mx-auto px-4 h-24 flex items-center">
-          <div className="flex items-center w-32">
+        <div className="relative w-full px-4 h-24 flex items-center justify-center">
+          {/* Left: Hamburger flush to edge */}
+          <div className="absolute left-2 top-1/2 -translate-y-1/2">
             <button 
-              className="border-0 bg-transparent p-0 header-nav-button"
+              className="inline-flex items-center justify-center p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               onClick={() => setIsNavDrawerOpen(true)}
               aria-label="Open navigation menu"
             >
@@ -63,65 +64,34 @@ const Header = () => {
                 fill="none" 
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
-                className="header-nav-icon"
+                className="h-7 w-7 text-gray-900"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
           </div>
-          
-          <div className="flex-1 flex justify-center">
-            <Link href="/" className="text-center">
-              <span 
-                style={{ 
-                  fontSize: '3rem',
-                  fontWeight: 900, 
-                  color: '#000000',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-                }}
-              >
-                AgoraMind
-              </span>
-            </Link>
-          </div>
 
-          <div className="w-32 flex justify-end">
+          {/* Center: Title */}
+          <Link href="/" className="text-center">
+            <span className="text-black font-black tracking-tight text-5xl md:text-6xl">
+              AgoraMind
+            </span>
+          </Link>
+
+          {/* Right: Login/Profile flush to edge */}
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
             {session ? (
               <button
-                className="border-0 bg-transparent p-0"
+                className="relative p-0 cursor-pointer"
                 onClick={() => setIsProfileDrawerOpen(true)}
                 aria-label="Open profile menu"
-                style={{ 
-                  width: '52px',
-                  height: '52px',
-                  position: 'relative',
-                  padding: 0,
-                  overflow: 'visible'
-                }}
               >
-                <div
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    border: '2px solid black',
-                    boxSizing: 'border-box',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center'
-                  }}
-                >
+                <div className="w-[52px] h-[52px] rounded-full overflow-hidden border-2 border-black box-border flex items-center justify-center">
                   {userProfile?.profileImage ? (
                     <img 
                       src={userProfile.profileImage}
                       alt="Profile"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        objectPosition: 'center'
-                      }}
+                      className="w-full h-full object-cover object-center"
                     />
                   ) : (
                     <Image
@@ -130,8 +100,7 @@ const Header = () => {
                       width={48}
                       height={48}
                       priority
-                      className="rounded-full"
-                      style={{ objectFit: 'cover' }}
+                      className="rounded-full object-cover"
                     />
                   )}
                 </div>
@@ -139,7 +108,7 @@ const Header = () => {
             ) : (
               <Link
                 href="/login"
-                className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors text-lg"
+                className="flex items-center px-6 py-3 bg-black text-white hover:text-white focus:text-white visited:text-white active:text-white rounded-full hover:bg-gray-900 transition-colors text-lg cursor-pointer"
               >
                 Login
               </Link>
@@ -148,11 +117,20 @@ const Header = () => {
         </div>
       </header>
       
-      <ProfileDrawer isOpen={isProfileDrawerOpen} onClose={() => setIsProfileDrawerOpen(false)} />
+      <ProfileDrawer
+        isOpen={isProfileDrawerOpen}
+        onClose={() => setIsProfileDrawerOpen(false)}
+        anchor={{ top: 72, right: 16 }}
+      />
       
       <NavigationDrawer 
         isOpen={isNavDrawerOpen} 
         onClose={() => setIsNavDrawerOpen(false)} 
+        onToggleBody={(pushed: boolean) => {
+          if (typeof document !== 'undefined') {
+            document.body.classList.toggle('app-pushed', pushed);
+          }
+        }}
       />
     </>
   );

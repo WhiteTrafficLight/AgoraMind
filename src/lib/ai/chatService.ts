@@ -51,6 +51,15 @@ export interface ChatRoom {
     con_participants?: string[];
     total_turns?: number;
   }; // 토론 진행 정보
+  // Free Discussion 필드 추가
+  freeDiscussionSessionId?: string;
+  freeDiscussionConfig?: {
+    auto_play: boolean;
+    playback_speed: number;
+    turn_interval: number;
+    max_turns: number;
+    allow_user_interruption: boolean;
+  };
 }
 
 // NPC 상세 정보 인터페이스 추가
@@ -299,7 +308,53 @@ class ChatService {
     
     loggers.api.debug('Fetching chat room by ID', { roomId, originalId: id, idType: typeof id });
     
-    // 1. 먼저 캐시 확인
+    // Check if this is a Free Discussion session (starts with "free-")
+    if (roomId.startsWith('free-')) {
+      loggers.api.debug('Detected Free Discussion session, using freeDiscussionService');
+      
+      try {
+        // Import the service dynamically to avoid circular dependencies
+        const { freeDiscussionService } = await import('@/lib/api/freeDiscussionService');
+        const sessionStatus = await freeDiscussionService.getSessionStatus(roomId);
+        
+        if (!sessionStatus) {
+          loggers.api.warn('Free Discussion session not found', { roomId });
+          return null;
+        }
+        
+        // Convert Free Discussion session to ChatRoom format
+        const chatRoom: ChatRoom = {
+          id: sessionStatus.session_id,
+          title: sessionStatus.topic,
+          context: sessionStatus.context || undefined,
+          participants: {
+            users: sessionStatus.user_name ? [sessionStatus.user_name] : [],
+            npcs: sessionStatus.participants,
+          },
+          totalParticipants: sessionStatus.participants.length + (sessionStatus.user_name ? 1 : 0),
+          lastActivity: sessionStatus.last_activity,
+          messages: [], // Messages will be handled by EnhancedCircularChatUI
+          isPublic: false,
+          dialogueType: 'free',
+          freeDiscussionSessionId: sessionStatus.session_id,
+          freeDiscussionConfig: {
+            auto_play: true,
+            playback_speed: 1.0,
+            turn_interval: 3.0,
+            max_turns: 50,
+            allow_user_interruption: true,
+          },
+        };
+        
+        loggers.api.info('Free Discussion session found and converted to ChatRoom', { roomId });
+        return chatRoom;
+      } catch (error) {
+        loggers.api.error('Error fetching Free Discussion session', { roomId, error });
+        return null;
+      }
+    }
+    
+    // 1. 먼저 캐시 확인 (regular chat rooms)
     const cachedRoom = this.chatRooms.find(room => String(room.id).trim() === roomId);
     
     // 유효한 캐시가 있으면 사용
@@ -850,109 +905,19 @@ class ChatService {
     }
   }
 
-  // NPC ID 리스트에서 상세 정보 로드
+  // NPC ID 리스트에서 상세 정보 로드 - 정적 파일만 사용
   async loadNpcDetails(npcIds: string[]): Promise<NpcDetail[]> {
-    loggers.api.debug('Loading details for NPCs', { count: npcIds.length, npcIds });
+    loggers.api.debug('Loading details for NPCs using static data only', { count: npcIds.length, npcIds });
     
     const npcDetails: NpcDetail[] = [];
     
     for (const npcId of npcIds) {
-      try {
-        loggers.api.debug('Fetching details for NPC ID', { npcId });
-        
-        // 1. NPC ID가 24글자 ObjectID 형식인지 확인
-        const isMongoId = /^[0-9a-f]{24}$/i.test(npcId);
-        if (isMongoId) {
-          loggers.api.debug('MongoDB ObjectID format detected', { npcId });
-        }
-        
-        // 재시도 로직 추가
-        const MAX_RETRIES = 3;
-        let retryCount = 0;
-        let response: Response | undefined;
-        
-        while (retryCount < MAX_RETRIES) {
-          try {
-        // API에서 NPC 정보 가져오기
-            loggers.api.debug('API call attempt', { 
-              attempt: retryCount + 1, 
-              maxRetries: MAX_RETRIES, 
-              npcId 
-            });
-            
-            response = await fetch(`/api/npc/get?id=${encodeURIComponent(npcId)}`);
-            
-            if (!response.ok) {
-              throw new Error(`API returned status ${response.status}`);
-            }
-            
-            break; // 성공하면 루프 종료
-          } catch (error) {
-            retryCount++;
-            loggers.api.error('API call failed', { 
-              attempt: retryCount, 
-              maxRetries: MAX_RETRIES, 
-              npcId, 
-              error 
-            });
-            
-            if (retryCount >= MAX_RETRIES) {
-              throw error; // 최대 재시도 횟수 초과
-            }
-            
-            // 지수 백오프 (1초, 2초, 4초...)
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)));
-          }
-        }
-        
-        if (!response) {
-          throw new Error('No response received from API after maximum retries');
-        }
-        
-          const npcData = await response.json();
-        loggers.api.info('Received NPC data for', { npcId, npcData });
-
-        if (response.ok) {
-          // 커스텀 NPC인 경우 DB에서 실제 이름과 프로필 정보 사용
-          const isCustomNpc = npcId.length > 30 && npcId.split('-').length === 5;
-          const npcDetail: NpcDetail = {
-            id: npcId, // 항상 원래 ID 유지 (변환 금지)
-            name: npcData.name || (isCustomNpc ? `Custom Philosopher` : npcId),
-            description: npcData.description,
-            communication_style: npcData.communication_style,
-            debate_approach: npcData.debate_approach,
-            voice_style: npcData.voice_style,
-            portrait_url: npcData.portrait_url,
-            reference_philosophers: npcData.reference_philosophers,
-            is_custom: npcData.is_custom || isCustomNpc,
-            created_by: npcData.created_by
-          };
-          npcDetails.push(npcDetail);
-          
-          loggers.api.info('Loaded NPC', { 
-            name: npcDetail.name, 
-            id: npcId, 
-            isCustom: isCustomNpc 
-          });
-          if (npcDetail.portrait_url) {
-            loggers.api.info('Portrait URL', { url: npcDetail.portrait_url });
-          }
-        } else {
-          loggers.api.warn('API returned status', { 
-            status: response.status, 
-            npcId: npcId 
-          });
-          // API가 성공적으로 응답했지만 오류 상태 코드인 경우 기본 정보 생성
-          npcDetails.push(this.createDefaultNpcDetail(npcId));
-        }
-      } catch (error) {
-        loggers.api.error('Error loading NPC details for ID', { npcId, error });
-        // 네트워크 오류 등의 경우에도 폴백 처리: 기본 정보 추가
-        npcDetails.push(this.createDefaultNpcDetail(npcId));
-      }
+      // API 호출 제거 - 기본 정보로만 처리
+      loggers.api.debug('Creating default detail for NPC ID', { npcId });
+      npcDetails.push(this.createDefaultNpcDetail(npcId));
     }
     
-    loggers.api.info('Loaded NPC details successfully', { 
+    loggers.api.info('Loaded NPC details successfully (static data)', { 
       count: npcDetails.length, 
       npcIds: npcDetails.map(npc => `${npc.id} → ${npc.name}`) 
     });

@@ -120,15 +120,12 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
       );
       
       for (const npcId of npcIds) {
-        try {
-          const response = await fetch(`/api/npc/get?id=${encodeURIComponent(npcId)}`);
-          if (response.ok) {
-            const npcDetail = await response.json();
-            details[npcId] = npcDetail;
-          }
-        } catch (error) {
-          loggers.npc.error(`NPC 세부정보 로드 실패: ${npcId}`, error);
-        }
+        // API 호출 제거 - 기본 NPC 정보 생성
+        details[npcId] = {
+          id: npcId,
+          name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
+          is_custom: false
+        };
       }
       
       setNpcDetails(details);

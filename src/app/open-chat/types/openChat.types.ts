@@ -51,6 +51,13 @@ export interface ChatRoomCreationParams {
   context?: string;
   contextUrl?: string;
   contextFileContent?: string;
+  freeDiscussionConfig?: {
+    auto_play: boolean;
+    playback_speed: number;
+    turn_interval: number;
+    max_turns: number;
+    allow_user_interruption: boolean;
+  };
 }
 
 export interface CreateChatModalProps {

@@ -1,16 +1,12 @@
 /* Modern Globals CSS - 2024 Best Practices */
 
-/* Google Fonts Import */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* All @import must come first (CSS spec) */
+@import "tailwindcss";
 
-/* CSS Layer Organization */
-@import '../styles/base.css';
-@import '../styles/components.css';
-@import '../styles/chat.css';
-@import '../styles/animations.css';
-@import '../styles/utilities.css';
-
-/* Tailwind CSS Layers */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@layer base {
+  body.app-pushed header,
+  body.app-pushed main {
+    margin-left: 18rem;
+    transition: margin-left 200ms ease;
+  }
+}

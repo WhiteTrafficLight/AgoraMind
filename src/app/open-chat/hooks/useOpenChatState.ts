@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { loggers } from '@/utils/logger';
 import chatService, { ChatRoom as ServiceChatRoom } from '@/lib/ai/chatService';
+import { useCreateChat } from './useCreateChat';
 import { 
   ChatRoom, 
   Philosopher, 
@@ -20,6 +21,7 @@ const convertChatRoom = (room: ServiceChatRoom): ChatRoom => {
 
 export function useOpenChatState() {
   const router = useRouter();
+  const { createChat, isCreating: isCreatingHook, error: createError } = useCreateChat();
   
   // Core state - completely removed socketConnected since we don't need Socket.IO
   const [state, setState] = useState<OpenChatState>({
@@ -138,11 +140,10 @@ export function useOpenChatState() {
 
   // Create chat room
   const handleCreateChat = async (params: ChatRoomCreationParams) => {
-    if (isCreating) return;
-    setIsCreating(true);
+    if (isCreating || isCreatingHook) return;
     
     try {
-      // 현재 사용자 이름을 params에 추가
+      // Add current username to params
       const paramsWithUser = {
         ...params,
         username: state.username || sessionStorage.getItem('chat_username') || 'Anonymous'
@@ -151,18 +152,18 @@ export function useOpenChatState() {
       loggers.ui.info('Creating chat with params', { paramsWithUser });
       loggers.ui.debug('Username passed to chat creation', { username: paramsWithUser.username });
       
-      const newChat = await chatService.createChatRoom(paramsWithUser);
+      // Use the new createChat hook that handles both Free Discussion and regular chats
+      const newChat = await createChat(paramsWithUser);
       loggers.ui.info('Chat creation response received', { chatId: newChat.id });
       
-      // Redirect to main chat page (v2 content is now main)
+      // Redirect to main chat page
       router.push(`/chat?id=${newChat.id}`);
       
       updateState({ showCreateChatModal: false });
+      toast.success('Chat room created successfully!');
     } catch (error) {
       loggers.ui.error('Failed to create chat', { error });
-      toast.error('Failed to create chat room. Please try again.');
-    } finally {
-      setIsCreating(false);
+      toast.error(createError || 'Failed to create chat room. Please try again.');
     }
   };
 
@@ -209,7 +210,7 @@ export function useOpenChatState() {
     username: state.username,
     philosophers: state.philosophers,
     customNpcs: state.customNpcs,
-    isCreating,
+    isCreating: isCreating || isCreatingHook,
     
     // Actions
     updateState,

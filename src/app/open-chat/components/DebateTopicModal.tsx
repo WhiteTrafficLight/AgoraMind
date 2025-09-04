@@ -312,11 +312,11 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
   const renderContextIcon = (contextType: string) => {
     switch (contextType) {
       case 'url':
-        return <LinkIcon style={{ width: '20px', height: '20px', color: '#3b82f6' }} />;
+        return <LinkIcon className="h-5 w-5 text-blue-600" />;
       case 'pdf':
-        return <DocumentTextIcon style={{ width: '20px', height: '20px', color: '#ef4444' }} />;
+        return <DocumentTextIcon className="h-5 w-5 text-red-600" />;
       case 'text':
-        return <DocumentTextIcon style={{ width: '20px', height: '20px', color: '#6b7280' }} />;
+        return <DocumentTextIcon className="h-5 w-5 text-gray-500" />;
       default:
         return null;
     }
@@ -325,148 +325,66 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
   const renderParticipantAvatar = (philosopherName: string, side: 'pro' | 'con') => {
     const philosopherInfo = findPhilosopherInfo(philosopherName);
     const defaultAvatarBg = side === 'pro' ? '22c55e' : 'ef4444';
-
+    const borderClass = side === 'pro' ? 'border-emerald-500' : 'border-rose-500';
     return (
-      <div 
-        key={philosopherName}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.5rem'
-        }}
-      >
-        <div style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          overflow: 'hidden',
-          border: `2px solid ${side === 'pro' ? '#22c55e' : '#ef4444'}`
-        }}>
+      <div key={philosopherName} className="flex flex-col items-center gap-2 p-2">
+        <div className={`w-12 h-12 rounded-full overflow-hidden border-2 ${borderClass}`}>
           <img
             src={philosopherInfo?.portrait_url || getPhilosopherPortraitPath(philosopherName)}
             alt={philosopherName}
             onError={(e) => {
               (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=48`;
             }}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              objectFit: 'cover'
-            }}
+            className="w-full h-full object-cover"
           />
         </div>
-        <span style={{
-          fontSize: '0.75rem',
-          color: '#374151',
-          textAlign: 'center',
-          fontWeight: '500'
-        }}>
-          {philosopherName}
-        </span>
+        <span className="text-xs text-gray-700 text-center font-medium">{philosopherName}</span>
       </div>
     );
   };
 
   const renderUserAvatar = (side: 'pro' | 'con') => {
     if (userPosition !== side) return null;
-
+    const borderClass = side === 'pro' ? 'border-emerald-500' : 'border-rose-500';
     return (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.5rem'
-      }}>
-        <div style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          overflow: 'hidden',
-          border: `2px solid ${side === 'pro' ? '#22c55e' : '#ef4444'}`
-        }}>
-          <img
-            src={userProfilePicture}
-            alt={username}
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              objectFit: 'cover'
-            }}
-          />
+      <div className="flex flex-col items-center gap-2 p-2">
+        <div className={`w-12 h-12 rounded-full overflow-hidden border-2 ${borderClass}`}>
+          <img src={userProfilePicture} alt={username} className="w-full h-full object-cover" />
         </div>
-        <span style={{
-          fontSize: '0.75rem',
-          color: '#374151',
-          textAlign: 'center',
-          fontWeight: '500'
-        }}>
-          {username}
-        </span>
+        <span className="text-xs text-gray-700 text-center font-medium">{username}</span>
       </div>
     );
   };
 
   const renderPhilosopherCard = (philosopherName: string, isProPosition: boolean) => {
     const philosopherInfo = findPhilosopherInfo(philosopherName);
-    const isSelected = isProPosition 
+    const isSelected = isProPosition
       ? selectedProPhilosophers.includes(philosopherName)
       : selectedConPhilosophers.includes(philosopherName);
-    
-    const backgroundColor = isSelected 
-      ? (isProPosition ? '#dcfce7' : '#fee2e2') // Darker when selected
-      : (isProPosition ? '#f0fdf4' : '#fef2f2'); // Light when not selected
-    
-    const borderColor = isProPosition ? '#bbf7d0' : '#fecaca';
+    const bgClass = isProPosition
+      ? (isSelected ? 'bg-emerald-100' : 'bg-emerald-50')
+      : (isSelected ? 'bg-rose-100' : 'bg-rose-50');
+    const borderClass = isProPosition ? 'border-emerald-200' : 'border-rose-200';
     const defaultAvatarBg = isProPosition ? '22c55e' : 'ef4444';
-
     return (
-      <div 
-        key={philosopherName} 
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          gap: '0.5rem',
-          padding: '0.5rem',
-          backgroundColor: backgroundColor,
-          borderRadius: '0.375rem',
-          border: `1px solid ${borderColor}`,
-          marginBottom: '0.5rem',
-          cursor: 'pointer',
-          transition: 'background-color 0.2s ease'
-        }}
+      <div
+        key={philosopherName}
+        className={`flex items-center justify-between gap-2 p-2 rounded-md border ${borderClass} ${bgClass} mb-2 cursor-pointer`}
         onClick={() => handlePhilosopherSelect(philosopherName, isProPosition)}
       >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          flex: '1'
-        }}>
+        <div className="flex items-center gap-2 flex-1">
           <img
             src={philosopherInfo?.portrait_url || getPhilosopherPortraitPath(philosopherName)}
             alt={philosopherName}
             onError={(e) => {
               (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=32`;
             }}
-            style={{ 
-              width: '32px', 
-              height: '32px', 
-              borderRadius: '50%' 
-            }}
+            className="w-8 h-8 rounded-full"
           />
-          <span style={{ 
-            color: '#374151', 
-            textTransform: 'capitalize', 
-            fontWeight: isSelected ? '600' : '500'
-          }}>
+          <span className={`capitalize ${isSelected ? 'font-semibold' : 'font-medium'} text-gray-700`}>
             {philosopherName}
           </span>
         </div>
-        
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -474,11 +392,7 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
             loadPhilosopherDetails(philosopherInfo?.id || philosopherName);
             return false;
           }}
-          className="view-details-button"
-          style={{
-            fontSize: '0.75rem',
-            padding: '0.25rem 0.5rem'
-          }}
+          className="text-xs px-2 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
         >
           View details
         </button>
@@ -489,79 +403,43 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
   return (
     <>
       {/* Background overlay */}
-      <div className="create-chat-modal-overlay" onClick={onClose}></div>
+      <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose}></div>
       
       {/* Modal container */}
-      <div className="create-chat-modal-container" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-4xl max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl z-50 border border-gray-200" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="create-chat-modal-header">
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Debate Topic</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="text-xl font-bold">Debate Topic</h2>
           <button 
             onClick={onClose}
-            className="create-chat-modal-close"
+            className="inline-flex items-center justify-center rounded-full p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Close"
           >
-            ✕
+            <XMarkIcon className="h-5 w-5" />
           </button>
         </div>
         
         {/* Content */}
-        <div className="create-chat-modal-content">
+        <div className="px-6 py-4 space-y-6">
           {/* Topic Title */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ 
-              fontSize: '1.25rem', 
-              fontWeight: '600', 
-              color: '#374151', 
-              marginBottom: '1rem' 
-            }}>
-              {topic.title}
-            </h3>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">{topic.title}</h3>
           </div>
 
           {/* Context Section */}
           {topic.context.content && (
-            <div style={{ marginBottom: '2rem' }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem', 
-                marginBottom: '0.75rem' 
-              }}>
+            <div>
+              <div className="flex items-center gap-2 mb-3">
                 {topic.context.type && renderContextIcon(topic.context.type)}
-                <h4 style={{ 
-                  fontSize: '1.125rem', 
-                  fontWeight: '500', 
-                  color: '#374151' 
-                }}>Context</h4>
+                <h4 className="text-base font-medium text-gray-700">Context</h4>
               </div>
-              
-              <div style={{ 
-                backgroundColor: '#f9fafb', 
-                borderRadius: '0.5rem', 
-                padding: '1rem', 
-                border: '1px solid #e5e7eb' 
-              }}>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 {topic.context.type === 'url' ? (
-                  <a 
-                    href={topic.context.content} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={{ 
-                      color: '#2563eb', 
-                      textDecoration: 'underline',
-                      wordBreak: 'break-all'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.color = '#1d4ed8'}
-                    onMouseOut={(e) => e.currentTarget.style.color = '#2563eb'}
-                  >
+                  <a href={topic.context.content} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all hover:text-blue-700">
                     {topic.context.content}
                   </a>
                 ) : (
-                  <div style={{ 
-                    color: '#374151', 
-                    lineHeight: '1.6',
-                    whiteSpace: 'pre-wrap'
-                  }}>
+                  <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {topic.context.content}
                   </div>
                 )}
@@ -570,72 +448,37 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
           )}
 
           {/* Moderator Section */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h4 style={{ 
-              fontSize: '1.125rem', 
-              fontWeight: '500', 
-              color: '#374151', 
-              marginBottom: '1rem' 
-            }}>Debate Moderator</h4>
-            <div className="moderator-selection-card selected">
-              <div className="moderator-card-content">
+          <div>
+            <h4 className="text-base font-medium text-gray-700 mb-4">Debate Moderator</h4>
+            <div className="rounded-lg border border-gray-200 bg-white">
+              <div className="flex items-center gap-3 p-3">
                 <img
                   src={`/moderator_portraits/Moderator${topic.moderator_style}.png`}
                   alt={moderatorInfo.name}
-                  className="moderator-image"
+                  className="w-14 h-14 rounded-md object-cover"
                 />
-                <div className="moderator-info">
-                  <div className="moderator-name">{moderatorInfo.name}</div>
-                  <div className="moderator-description">{moderatorInfo.description}</div>
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900">{moderatorInfo.name}</div>
+                  <div className="text-sm text-gray-500">{moderatorInfo.description}</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Participants Section */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h4 style={{ 
-              fontSize: '1.125rem', 
-              fontWeight: '500', 
-              color: '#374151', 
-              marginBottom: '1rem' 
-            }}>Participants</h4>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
-              gap: '1.5rem',
-              minHeight: '120px'
-            }}>
+          <div>
+            <h4 className="text-base font-medium text-gray-700 mb-4">Participants</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[120px]">
               {/* Pro Participants */}
-              <div style={{ 
-                backgroundColor: '#f0fdf4', 
-                borderRadius: '0.5rem', 
-                padding: '1rem', 
-                border: '1px solid #bbf7d0' 
-              }}>
-                <h5 style={{ 
-                  fontWeight: '600', 
-                  color: '#166534', 
-                  marginBottom: '0.75rem', 
-                  textAlign: 'center' 
-                }}>Pro Side</h5>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
+              <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                <h5 className="font-semibold text-emerald-800 mb-3 text-center">Pro Side</h5>
+                <div className="flex flex-col items-center gap-2">
                   {selectedProPhilosophers.map(philosopher => 
                     renderParticipantAvatar(philosopher, 'pro')
                   )}
                   {renderUserAvatar('pro')}
                   {(selectedProPhilosophers.length === 0 && userPosition !== 'pro') && (
-                    <div style={{
-                      color: '#9ca3af',
-                      fontSize: '0.875rem',
-                      textAlign: 'center',
-                      padding: '1rem'
-                    }}>
+                    <div className="text-sm text-gray-400 text-center p-4">
                       Select philosophers below
                     </div>
                   )}
@@ -643,35 +486,15 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
               </div>
 
               {/* Con Participants */}
-              <div style={{ 
-                backgroundColor: '#fef2f2', 
-                borderRadius: '0.5rem', 
-                padding: '1rem', 
-                border: '1px solid #fecaca' 
-              }}>
-                <h5 style={{ 
-                  fontWeight: '600', 
-                  color: '#991b1b', 
-                  marginBottom: '0.75rem', 
-                  textAlign: 'center' 
-                }}>Con Side</h5>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
+              <div className="bg-rose-50 rounded-lg p-4 border border-rose-200">
+                <h5 className="font-semibold text-rose-800 mb-3 text-center">Con Side</h5>
+                <div className="flex flex-col items-center gap-2">
                   {selectedConPhilosophers.map(philosopher => 
                     renderParticipantAvatar(philosopher, 'con')
                   )}
                   {renderUserAvatar('con')}
                   {(selectedConPhilosophers.length === 0 && userPosition !== 'con') && (
-                    <div style={{
-                      color: '#9ca3af',
-                      fontSize: '0.875rem',
-                      textAlign: 'center',
-                      padding: '1rem'
-                    }}>
+                    <div className="text-sm text-gray-400 text-center p-4">
                       Select philosophers below
                     </div>
                   )}
@@ -681,31 +504,12 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
           </div>
 
           {/* Recommended Philosophers Section */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h4 style={{ 
-              fontSize: '1.125rem', 
-              fontWeight: '500', 
-              color: '#374151', 
-              marginBottom: '1rem' 
-            }}>Recommended Philosophers</h4>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
-              gap: '1.5rem' 
-            }}>
+          <div>
+            <h4 className="text-base font-medium text-gray-700 mb-4">Recommended Philosophers</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Pro Position */}
-              <div style={{ 
-                backgroundColor: '#f0fdf4', 
-                borderRadius: '0.5rem', 
-                padding: '1rem', 
-                border: '1px solid #bbf7d0' 
-              }}>
-                <h5 style={{ 
-                  fontWeight: '600', 
-                  color: '#166534', 
-                  marginBottom: '0.75rem', 
-                  textAlign: 'center' 
-                }}>Pro Position</h5>
+              <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                <h5 className="font-semibold text-emerald-800 mb-3 text-center">Pro Position</h5>
                 <div>
                   {topic.pro_philosophers.map(philosopher => 
                     renderPhilosopherCard(philosopher, true)
@@ -714,18 +518,8 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
               </div>
 
               {/* Con Position */}
-              <div style={{ 
-                backgroundColor: '#fef2f2', 
-                borderRadius: '0.5rem', 
-                padding: '1rem', 
-                border: '1px solid #fecaca' 
-              }}>
-                <h5 style={{ 
-                  fontWeight: '600', 
-                  color: '#991b1b', 
-                  marginBottom: '0.75rem', 
-                  textAlign: 'center' 
-                }}>Con Position</h5>
+              <div className="bg-rose-50 rounded-lg p-4 border border-rose-200">
+                <h5 className="font-semibold text-rose-800 mb-3 text-center">Con Position</h5>
                 <div>
                   {topic.con_philosophers.map(philosopher => 
                     renderPhilosopherCard(philosopher, false)
@@ -736,66 +530,44 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
           </div>
 
           {/* User Position Selection */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h4 style={{ 
-              fontSize: '1.125rem', 
-              fontWeight: '500', 
-              color: '#374151', 
-              marginBottom: '1rem' 
-            }}>Choose Your Position</h4>
-            <div className="debate-role-cards-container">
-              <div 
+          <div>
+            <h4 className="text-base font-medium text-gray-700 mb-4">Choose Your Position</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div
                 onClick={() => setUserPosition('pro')}
-                className={`debate-role-card ${userPosition === 'pro' ? 'pro' : ''}`}
-                style={{ cursor: 'pointer' }}
+                className={`p-4 rounded-lg border-2 cursor-pointer transition ${userPosition === 'pro' ? 'border-emerald-600 bg-emerald-50' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}
               >
-                <div className="debate-role-card-title">
-                  Pro (Support)
-                </div>
-                <div className="debate-role-card-description">
-                  Argue in favor of the proposition
-                </div>
+                <div className="font-semibold text-gray-900">Pro (Support)</div>
+                <div className="text-sm text-gray-500">Argue in favor of the proposition</div>
               </div>
-              
-              <div 
+              <div
                 onClick={() => setUserPosition('con')}
-                className={`debate-role-card ${userPosition === 'con' ? 'con' : ''}`}
-                style={{ cursor: 'pointer' }}
+                className={`p-4 rounded-lg border-2 cursor-pointer transition ${userPosition === 'con' ? 'border-rose-600 bg-rose-50' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}
               >
-                <div className="debate-role-card-title">
-                  Con (Oppose)
-                </div>
-                <div className="debate-role-card-description">
-                  Argue against the proposition
-                </div>
+                <div className="font-semibold text-gray-900">Con (Oppose)</div>
+                <div className="text-sm text-gray-500">Argue against the proposition</div>
               </div>
-              
-              <div 
+              <div
                 onClick={() => setUserPosition('neutral')}
-                className={`debate-role-card ${userPosition === 'neutral' ? 'neutral' : ''}`}
-                style={{ cursor: 'pointer' }}
+                className={`p-4 rounded-lg border-2 cursor-pointer transition ${userPosition === 'neutral' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}
               >
-                <div className="debate-role-card-title">
-                  Observer
-                </div>
-                <div className="debate-role-card-description">
-                  Watch and learn from the debate
-                </div>
+                <div className="font-semibold text-gray-900">Observer</div>
+                <div className="text-sm text-gray-500">Watch and learn from the debate</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Footer with Start Debate Button */}
-        <div className="create-chat-actions">
+        <div className="px-6 py-4 border-t flex justify-end">
           <button
             onClick={handleStartDebate}
-            className="create-chat-submit"
+            className="inline-flex items-center gap-2 rounded-md bg-blue-600 text-white px-4 py-2 text-sm font-medium shadow hover:bg-blue-700 disabled:opacity-50"
             disabled={isCreating || (selectedProPhilosophers.length === 0 && selectedConPhilosophers.length === 0)}
           >
             {isCreating ? (
               <>
-                <span className="loading-spinner"></span>
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                 Creating Debate...
               </>
             ) : (

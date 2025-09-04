@@ -7,12 +7,12 @@ import Link from 'next/link';
 interface ProfileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  anchor?: { top: number; right: number };
 }
 
-export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
+export default function ProfileDrawer({ isOpen, onClose, anchor }: ProfileDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  // 외부 클릭 시 닫기
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
@@ -23,7 +23,6 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose]);
 
-  // ESC 키 닫기
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -33,36 +32,39 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
   }, [isOpen, onClose]);
 
   return (
-    // 백드롭
     <div
-      className={`drawer-backdrop ${isOpen ? 'open' : 'closed'}`}
+      className={`${isOpen ? 'fixed inset-0 z-[10000]' : 'hidden'}`}
       onClick={onClose}
     >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40" />
+      {/* Drawer */}
       <div
         ref={drawerRef}
         onClick={e => e.stopPropagation()}
-        className={`profile-drawer ${isOpen ? 'open' : 'closed'}`}
+        className={`fixed z-[10001] max-h-[90vh] w-[22rem] bg-white shadow-2xl border border-gray-200 rounded-xl transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ top: anchor?.top ?? 24, right: anchor?.right ?? 24 }}
       >
-        <div className="profile-drawer-content">
+        <div className="p-4 flex flex-col gap-2 overflow-y-auto max-h-[85vh]">
           <Link 
             href="/settings/custom-npc" 
             prefetch={false}
             onClick={onClose}
-            className="profile-drawer-link"
+            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-gray-800"
           >
-            <span>Custom Philosophers</span>
+            <span className="text-sm font-medium">Custom Philosophers</span>
           </Link>
           
           <Link 
             href="/settings#account" 
             prefetch={false}
             onClick={onClose}
-            className="profile-drawer-link"
+            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-gray-800"
           >
-            <span>Account Settings</span>
+            <span className="text-sm font-medium">Account Settings</span>
           </Link>
           
-          <div className="profile-drawer-divider"></div>
+          <div className="my-2 border-t border-gray-200" />
           
           <Link 
             href="#" 
@@ -71,18 +73,18 @@ export default function ProfileDrawer({ isOpen, onClose }: ProfileDrawerProps) {
               signOut({ callbackUrl: '/' });
               onClose();
             }}
-            className="profile-drawer-logout"
+            className="flex items-center gap-3 px-3 py-2 rounded-md bg-red-50 text-red-700 hover:bg-red-100"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
               fill="none" 
               viewBox="0 0 24 24" 
               stroke="currentColor"
-              className="profile-drawer-logout-icon"
+              className="h-5 w-5"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            <span>Log out</span>
+            <span className="text-sm font-medium">Log out</span>
           </Link>
         </div>
       </div>

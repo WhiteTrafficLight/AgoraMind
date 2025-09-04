@@ -94,13 +94,13 @@ export default function Home() {
 
   return (
     <>
-      <div className="min-h-screen overflow-y-auto overflow-x-hidden bg-white flex flex-col snap-scroll-container">
+      <div className="min-h-screen overflow-y-auto overflow-x-hidden bg-white flex flex-col snap-y snap-mandatory">
         {/* First Section - Hero */}
         <section className="min-h-screen w-full flex items-center snap-start">
-          <main className="flex-1 flex flex-col justify-center container px-6">
-            <div className="w-full max-w-6xl mx-auto">
+          <main className="flex-1 flex flex-col justify-center px-6">
+            <div className="w-full max-w-6xl mx-auto text-left">
               <h1 
-                className={`text-[5.5rem] md:text-[6rem] font-bold mb-12 font-sans tracking-tight transition-all duration-1500 text-black ${
+                className={`text-[5.5rem] md:text-[6rem] font-bold mb-12 font-sans tracking-tight transition-all duration-[1500ms] text-black ${
                   titleVisible ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-8'
                 }`}
               >
@@ -110,17 +110,17 @@ export default function Home() {
               </h1>
               
               <div 
-                className={`space-y-12 transition-all duration-1800 ${
+                className={`space-y-12 transition-all duration-[1800ms] ${
                   textVisible ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-12'
                 }`}
               >
                 <h2 className="text-[3.5rem] md:text-[4rem] font-medium text-black leading-tight tracking-tight">
                   <span>Virtual Restoration of the Ancient Agora</span>
                 </h2>
-                <p className="text-[2.5rem] md:text-[3rem] text-black font-light leading-snug pl-6">
+                <p className="text-[2.5rem] md:text-[3rem] text-black font-light leading-snug">
                   AgoraMind revives the intellectual culture of the ancient Agora in a digital space.
                 </p>
-                <p className="text-[2.5rem] md:text-[3rem] text-black font-light leading-snug pl-6">
+                <p className="text-[2.5rem] md:text-[3rem] text-black font-light leading-snug">
                   A new public square where AI and humans create knowledge together.
                 </p>
                 
@@ -128,7 +128,7 @@ export default function Home() {
                 <div className="flex justify-center mt-16">
                   <button
                     onClick={handleDebateClick}
-                    className="btn-debate-hero"
+                    className="px-6 py-3 bg-black text-white rounded-full hover:bg-gray-900 transition-colors text-lg cursor-pointer"
                     disabled={status === 'loading'}
                   >
                     {status === 'loading' ? 'Loading...' : 'Debate with Philosophers'}
@@ -208,12 +208,12 @@ export default function Home() {
         
         {/* Footer */}
         <div className="border-t-2 border-black py-4 mt-auto">
-          <div className="container grid grid-cols-3 w-full">
+          <div className="container mx-auto px-6 grid grid-cols-3 w-full">
             <div className="text-left">
-              <p className="text-lg">AGORAMIND</p>
+              <p className="text-lg">2025</p>
             </div>
             <div className="text-center">
-              <p className="text-lg">2025</p>
+              <p className="text-lg">AGORAMIND</p>
             </div>
             <div className="text-right">
               <p className="text-lg">agoramind.io</p>

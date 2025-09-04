@@ -49,21 +49,21 @@ const OpenChatContainer: React.FC = () => {
           <h1 className="text-2xl font-bold">Philosophical Debate Topics</h1>
           <div className="flex items-center gap-4">
             {/* Create Chat Button */}
-            <div className="relative">
+            <div className="relative z-10">
               <button 
                 onClick={handleCreateChatClick}
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
                 disabled={isCreating}
-                className="btn-create-chat"
                 aria-label="Create New Chat"
+                className="inline-flex items-center justify-center rounded-full p-3 bg-black text-white shadow hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
               >
-                <PlusIcon className="icon" />
+                <PlusIcon className="h-6 w-6" />
               </button>
               
               {/* Tooltip */}
               <div 
-                className={`btn-create-chat-tooltip ${showTooltip ? '' : 'hidden'}`}
+                className={`absolute right-0 mt-2 w-40 rounded-md bg-gray-900 text-white text-xs px-3 py-2 shadow-lg ${showTooltip ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity z-10`}
               >
                 Create Custom Debate
               </div>

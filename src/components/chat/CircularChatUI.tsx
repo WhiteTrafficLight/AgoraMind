@@ -26,7 +26,7 @@ interface NpcDetail {
 }
 
 interface CircularChatUIProps {
-  chatId: string;
+  chatId: string | number;
   chatTitle: string;
   participants: {
     users: string[];
@@ -250,15 +250,12 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
       const details: Record<string, NpcDetail> = {};
       
       for (const npcId of participants.npcs) {
-        try {
-          const response = await fetch(`/api/npc/get?id=${encodeURIComponent(npcId)}`);
-          if (response.ok) {
-            const npcDetail = await response.json();
-            details[npcId] = npcDetail;
-          }
-        } catch (error) {
-          console.error(`Error loading NPC details for ${npcId}:`, error);
-        }
+        // API 호출 제거 - 기본 NPC 정보 생성
+        details[npcId] = {
+          id: npcId,
+          name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
+          is_custom: false
+        };
       }
       
       setNpcDetails(details);
@@ -465,13 +462,57 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
     return npcId;
   };
   
+  // Generate philosopher portrait path from static files (DebateTopicModal.tsx와 동일한 함수)
+  const getPhilosopherPortraitPath = (philosopherName: string): string => {
+    // Map philosopher names to actual file names (using last names mostly)
+    const nameMapping: Record<string, string> = {
+      'socrates': 'Socrates',
+      'plato': 'Plato', 
+      'aristotle': 'Aristotle',
+      'immanuel kant': 'Kant',
+      'kant': 'Kant',
+      'friedrich nietzsche': 'Nietzsche',
+      'nietzsche': 'Nietzsche',
+      'jean-paul sartre': 'Sartre',
+      'sartre': 'Sartre',
+      'albert camus': 'Camus',
+      'camus': 'Camus',
+      'simone de beauvoir': 'Beauvoir',
+      'beauvoir': 'Beauvoir',
+      'karl marx': 'Marx',
+      'marx': 'Marx',
+      'jean-jacques rousseau': 'Rousseau',
+      'rousseau': 'Rousseau',
+      'confucius': 'Confucius',
+      'laozi': 'Laozi',
+      'buddha': 'Buddha',
+      'georg wilhelm friedrich hegel': 'Hegel',
+      'hegel': 'Hegel',
+      'ludwig wittgenstein': 'Wittgenstein',
+      'wittgenstein': 'Wittgenstein'
+    };
+    
+    const normalizedName = philosopherName.toLowerCase().trim();
+    const fileName = nameMapping[normalizedName];
+    
+    if (fileName) {
+      return `/philosophers_portraits/${fileName}.png`;
+    }
+    
+    // Fallback: use capitalized last word as filename
+    const words = philosopherName.split(' ');
+    const lastName = words[words.length - 1];
+    const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
+    return `/philosophers_portraits/${capitalizedLastName}.png`;
+  };
+
   // Get NPC profile image
   const getNpcProfileImage = (npcId: string): string => {
     if (npcDetails[npcId] && npcDetails[npcId].portrait_url) {
       return npcDetails[npcId].portrait_url;
     }
-    const displayName = getNpcDisplayName(npcId);
-    return getDefaultAvatar(displayName);
+    // 철학자 포트레이트 경로 사용 (DebateTopicModal.tsx와 동일)
+    return getPhilosopherPortraitPath(npcId);
   };
   
   // Calculate positions on an elliptical orbit - NPCs only
@@ -552,16 +593,19 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
           // 메시지가 없거나 빈 배열인 경우에만 API에서 메시지 로딩
           console.log(`🔄 Loading messages for chat ID: ${chatId} (${typeof chatId})`);
           
-          // ID를 숫자로 확인
-          if (typeof chatId !== 'number' || isNaN(chatId) || chatId <= 0) {
+          // ID 유효성 검사 - 문자열이든 숫자든 존재하면 유효
+          if (!chatId || chatId === '') {
             console.error(`❌ Invalid chat ID: ${chatId}`);
             setError('Invalid chat room ID format');
             setIsLoadingRoom(false);
             return;
           }
           
+          // API 호출에 사용할 ID (문자열 그대로 사용)
+          const apiChatId = String(chatId);
+          
           const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rooms`;
-          const response = await fetch(`${apiUrl}?id=${chatId}`);
+          const response = await fetch(`${apiUrl}?id=${apiChatId}`);
           
           if (!response.ok) {
             console.error(`❌ Failed to load room data: ${response.status} ${response.statusText}`);
@@ -589,10 +633,10 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
             return;
           }
           
-          // ID 일치 여부 확인 (숫자 변환)
-          const responseId = Number(data.id);
-          if (isNaN(responseId) || responseId !== chatId) {
-            console.error(`❌ ID mismatch: requested=${chatId}, received=${data.id} (${responseId})`);
+          // ID 일치 여부 확인 (문자열로 비교)
+          const responseId = String(data.id);
+          if (responseId !== apiChatId) {
+            console.error(`❌ ID mismatch: requested=${apiChatId}, received=${data.id}`);
             setError('Incorrect chat room data loaded');
             setIsLoadingRoom(false);
             return;
@@ -600,7 +644,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
           
           // messages 필드가 없는 경우 체크
           if (!data.messages) {
-            console.log(`⚠️ No messages field in room data for ID: ${chatId}, initializing empty array`);
+            console.log(`⚠️ No messages field in room data for ID: ${apiChatId}, initializing empty array`);
             data.messages = [];
           }
           

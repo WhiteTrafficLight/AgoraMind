@@ -77,72 +77,69 @@ const PhilosopherDetailsModal: React.FC<PhilosopherDetailsModalProps> = ({
 
   return (
     <>
-      {/* Background overlay */}
-      <div 
-        className="philosopher-details-modal-overlay"
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
         onClick={onClose}
       >
-        {/* Modal container */}
-        <div 
-          className="philosopher-details-modal-container"
+        <div
+          className="relative w-[92vw] max-w-md sm:max-w-lg max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 p-6"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Close button */}
-          <button 
-            className="philosopher-details-close"
+          <button
+            aria-label="Close"
+            className="absolute top-3 right-3 inline-flex items-center justify-center rounded-full p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200"
             onClick={onClose}
           >
             ✕
           </button>
-          
-          {/* Header with avatar and basic info */}
-          <div className="philosopher-details-header">
-            <div className="philosopher-details-avatar">
+
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-16 h-16 rounded-full overflow-hidden ring-1 ring-gray-200">
               <img
                 src={philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)}
                 alt={philosopher.name}
+                className="w-full h-full object-cover"
                 onError={(e) => {
-                  // 이미지 로드 실패 시 기본 아바타로 대체
                   (e.target as HTMLImageElement).src = getDefaultAvatar();
                 }}
               />
             </div>
-            <div className="philosopher-details-info">
-              <h3>{philosopher.name}</h3>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900">{philosopher.name}</h3>
               {(philosopher.period || philosopher.era) && (
-                <div className="philosopher-details-meta">
-                  {philosopher.school && `${philosopher.school} • `}
+                <div className="text-sm text-gray-600">
+                  {philosopher.school && (<span>{philosopher.school} • </span>)}
                   {philosopher.period || philosopher.era}
                 </div>
               )}
             </div>
           </div>
-          
-          {/* Description */}
+
           {philosopher.description && (
-            <div className="philosopher-details-description">
+            <div className="text-sm text-gray-800 mb-4">
               {philosopher.description}
             </div>
           )}
-          
-          {/* Key concepts */}
+
           {philosopher.key_ideas && philosopher.key_ideas.length > 0 && (
-            <div className="philosopher-details-concepts">
-              <h4>Key Ideas</h4>
-              <div className="philosopher-concepts-list">
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-900 mb-2">Key Ideas</h4>
+              <div className="flex flex-wrap gap-2">
                 {philosopher.key_ideas.map((concept, index) => (
-                  <span key={index} className="philosopher-concept-tag">
+                  <span
+                    key={index}
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 border border-gray-200"
+                  >
                     {concept}
                   </span>
                 ))}
               </div>
             </div>
           )}
-          
-          {/* Actions */}
-          <div className="philosopher-details-actions">
-            <button 
-              className="philosopher-details-action-button"
+
+          <div className="mt-6">
+            <button
+              className="w-full inline-flex items-center justify-center rounded-md bg-blue-600 text-white px-4 py-2 text-sm font-medium shadow hover:bg-blue-700"
               onClick={handleToggleSelect}
             >
               {isSelected ? 'Remove from Chat' : 'Add to Chat'}
