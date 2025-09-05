@@ -135,3 +135,4 @@ if (typeof window !== 'undefined') {
   window.debugFreeDiscussion = createFreeDiscussionDebug();
   console.log('🐛 Free Discussion debug tools loaded! Use window.debugFreeDiscussion');
 }
+

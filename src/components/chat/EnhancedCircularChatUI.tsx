@@ -135,7 +135,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
           user_id: username,
           user_name: username,
         },
-        config: freeDiscussionConfig,
+        // Omit config here to avoid unintentionally forcing auto-play
       });
     }
   }, [isFreeDiscussion, username, freeDiscussion?.state.sessionId]);
@@ -598,6 +598,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
             isAutoPlay: !freeDiscussion.state.isAutoPlay 
           })}
           autoPlay={freeDiscussion.state.isAutoPlay}
+          onNextTurn={freeDiscussion.controls.onNextTurn}
         />
       )}
       

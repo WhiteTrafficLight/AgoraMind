@@ -41,7 +41,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   
   // Free discussion settings
   const [freeDiscussionSettings, setFreeDiscussionSettings] = useState({
-    autoPlay: true,
+    autoPlay: false,
     playbackSpeed: 1.0,
     turnInterval: 3.0,
     maxTurns: 50,
@@ -290,6 +290,14 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     setShowPhilosopherDetails(false);
     // 추천 주제 상태 초기화
     setShowRecommendedTopics(false);
+    // Free discussion defaults (manual mode)
+    setFreeDiscussionSettings({
+      autoPlay: false,
+      playbackSpeed: 1.0,
+      turnInterval: 3.0,
+      maxTurns: 50,
+      allowInterruption: true,
+    });
   };
 
   const handleClose = () => {

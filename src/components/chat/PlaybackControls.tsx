@@ -14,6 +14,7 @@ interface PlaybackControlsProps {
   onSpeedChange: (speed: number) => void;
   onToggleAutoPlay: () => void;
   autoPlay: boolean;
+  onNextTurn?: () => void;
 }
 
 const SPEED_OPTIONS = [0.5, 1.0, 1.5, 2.0];
@@ -30,8 +31,46 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   onSpeedChange,
   onToggleAutoPlay,
   autoPlay,
+  onNextTurn,
 }) => {
   const [showSpeedMenu, setShowSpeedMenu] = React.useState(false);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [dragOffset, setDragOffset] = React.useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [position, setPosition] = React.useState<{ x: number; y: number }>({ x: 16, y: 120 });
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    // Initialize near bottom-left on mount
+    if (typeof window !== 'undefined') {
+      const initialY = Math.max(80, window.innerHeight - 180);
+      setPosition({ x: 16, y: initialY });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+      // Clamp within viewport
+      const padding = 8;
+      const maxX = (typeof window !== 'undefined') ? window.innerWidth - padding - 260 : newX; // approx width
+      const maxY = (typeof window !== 'undefined') ? window.innerHeight - padding - 80 : newY; // approx height
+      setPosition({
+        x: Math.max(padding, Math.min(newX, maxX)),
+        y: Math.max(padding, Math.min(newY, maxY)),
+      });
+    };
+    const handleMouseUp = () => setIsDragging(false);
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
 
   const handlePlayPause = () => {
     if (isPaused) {
@@ -48,9 +87,19 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
 
   const progressPercentage = maxTurns > 0 ? (currentTurn / maxTurns) * 100 : 0;
 
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setIsDragging(true);
+    setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
   return (
     <div
-      className="fixed bottom-16 md:bottom-8 left-1/2 -translate-x-1/2 z-50 bg-white/90 supports-[backdrop-filter]:backdrop-blur border border-gray-200 rounded-xl shadow-lg p-3 md:p-4 flex items-center gap-3 md:gap-4 pointer-events-auto overflow-visible"
+      ref={containerRef}
+      onMouseDown={handleDragStart}
+      className={`fixed z-50 bg-white/90 supports-[backdrop-filter]:backdrop-blur border border-gray-200 rounded-xl shadow-lg p-3 md:p-4 flex items-center gap-3 md:gap-4 pointer-events-auto overflow-visible ${isDragging ? 'cursor-grabbing' : 'cursor-move'}`}
+      style={{ left: position.x, top: position.y }}
     >
       {/* Play/Pause Button */}
       <button
@@ -127,7 +176,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         Auto
       </button>
 
-      {/* Skip Controls */}
+      {/* Skip / Next Controls */}
       <div className="flex items-center gap-1">
         <button
           className="p-1.5 rounded-md hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm"
@@ -137,11 +186,13 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           <BackwardIcon className="h-4 w-4 text-gray-600" />
         </button>
         <button
-          className="p-1.5 rounded-md hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm"
+          onClick={() => onNextTurn && onNextTurn()}
+          className="px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm text-sm font-medium flex items-center gap-1"
           title="Next turn"
-          disabled={!autoPlay || currentTurn >= maxTurns}
+          disabled={isProcessing || currentTurn >= maxTurns}
         >
           <ForwardIcon className="h-4 w-4 text-gray-600" />
+          <span>Next</span>
         </button>
       </div>
     </div>

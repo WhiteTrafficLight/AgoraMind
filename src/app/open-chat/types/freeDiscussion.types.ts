@@ -130,3 +130,4 @@ export interface TimelineMarker {
   color: string;
   isHighlight?: boolean;
 }
+

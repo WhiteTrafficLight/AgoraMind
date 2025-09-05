@@ -337,13 +337,7 @@ class ChatService {
           isPublic: false,
           dialogueType: 'free',
           freeDiscussionSessionId: sessionStatus.session_id,
-          freeDiscussionConfig: {
-            auto_play: true,
-            playback_speed: 1.0,
-            turn_interval: 3.0,
-            max_turns: 50,
-            allow_user_interruption: true,
-          },
+          // Do not force freeDiscussionConfig here; use session defaults/manual
         };
         
         loggers.api.info('Free Discussion session found and converted to ChatRoom', { roomId });

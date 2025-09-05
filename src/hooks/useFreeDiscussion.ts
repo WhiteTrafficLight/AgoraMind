@@ -10,7 +10,7 @@ import { freeDiscussionService } from '@/lib/api/freeDiscussionService';
 import socketClient from '@/lib/socket/socketClient';
 
 const DEFAULT_CONFIG: Partial<FreeDiscussionConfig> = {
-  auto_play: true,
+  auto_play: false,
   turn_interval: 3.0,
   playback_speed: 1.0,
   max_turns: 50,
@@ -19,7 +19,7 @@ const DEFAULT_CONFIG: Partial<FreeDiscussionConfig> = {
 
 export const useFreeDiscussion = (chatId: string, username: string) => {
   const [state, setState] = useState<FreeDiscussionUIState>({
-    isAutoPlay: true,
+    isAutoPlay: false,
     playbackSpeed: 1.0,
     isPaused: false,
     currentTurn: 0,
@@ -55,9 +55,9 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         ...prev,
         sessionId: response.session_id,
         sessionStatus: 'active',
-        isAutoPlay: config.auto_play || true,
-        playbackSpeed: config.playback_speed || 1.0,
-        maxTurns: config.max_turns || 50,
+        isAutoPlay: false,
+        playbackSpeed: (config.playback_speed ?? 1.0) as number,
+        maxTurns: (config.max_turns ?? 50) as number,
       }));
 
       return response.session_id;
@@ -126,6 +126,18 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
     if (!state.sessionId || !state.allowInterruption) return;
     
     try {
+      const localMessage = {
+        id: `user-${Date.now()}`,
+        session_id: state.sessionId,
+        sender: username || 'User',
+        content,
+        text: content,
+        timestamp: new Date().toISOString(),
+        message_type: 'user' as const,
+        senderType: 'user',
+        isUser: true,
+      } as FreeDiscussionMessage as any;
+      setMessages(prev => [...prev, localMessage]);
       await freeDiscussionService.sendUserMessage(
         state.sessionId, 
         username, 
@@ -167,8 +179,33 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
     };
 
     const handleNewMessage = (data: { roomId: string; message: any }) => {
-      if (String(data.roomId) === String(chatId)) {
+      if (String(data.roomId) === String(state.sessionId || chatId)) {
         const raw = data.message || {};
+        // Handle control messages sent via new_message with sender like "control:conversation:paused"
+        if (typeof raw.sender === 'string' && raw.sender.startsWith('control:')) {
+          const controlType = raw.sender.replace('control:', '');
+          try {
+            const payload = typeof raw.text === 'string' ? JSON.parse(raw.text) : raw.text;
+            switch (controlType) {
+              case 'conversation:paused':
+                setState(prev => ({ ...prev, isPaused: true }));
+                break;
+              case 'conversation:resumed':
+                setState(prev => ({ ...prev, isPaused: false }));
+                break;
+              case 'playback:speed_changed':
+                if (payload && typeof payload.speed === 'number') {
+                  setState(prev => ({ ...prev, playbackSpeed: payload.speed }));
+                }
+                break;
+              default:
+                break;
+            }
+          } catch {
+            // ignore malformed control payloads
+          }
+          return; // do not append control messages to chat history
+        }
         const normalized = {
           id: raw.id || `${Date.now()}`,
           session_id: state.sessionId || String(chatId),
@@ -220,7 +257,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         if (state.sessionId) {
           // Join backend Socket.IO room using server's expected event/payload
           (instance as any).emit?.('join_room', {
-            room_id: String(chatId),
+            room_id: String(state.sessionId),
             user_id: username || 'anonymous'
           });
         }
@@ -235,7 +272,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
     return () => {
       if (socketRef.current && state.sessionId) {
         (socketRef.current as any).emit?.('leave_room', {
-          room_id: String(chatId),
+          room_id: String(state.sessionId || chatId),
           user_id: username || 'anonymous'
         });
       }
@@ -275,6 +312,17 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       onSpeedChange: handleSpeedChange,
       onSeek: () => {}, // TODO: Implement seek functionality
       onInterrupt: handleUserInterruption,
+      onNextTurn: async () => {
+        if (!state.sessionId) return;
+        setState(prev => ({ ...prev, isProcessingControl: true }));
+        try {
+          await freeDiscussionService.nextTurn(state.sessionId);
+        } catch (err) {
+          console.error('Failed to request next turn:', err);
+        } finally {
+          setState(prev => ({ ...prev, isProcessingControl: false }));
+        }
+      },
     },
     initializeSession,
     updateUIState: (updates: Partial<FreeDiscussionUIState>) => {

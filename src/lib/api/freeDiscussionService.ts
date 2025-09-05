@@ -102,6 +102,15 @@ class FreeDiscussionService {
     }
   }
 
+  async nextTurn(sessionId: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/${sessionId}/next-turn`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to generate next turn: ${response.statusText}`);
+    }
+  }
+
   async sendUserMessage(sessionId: string, userId: string, content: string): Promise<void> {
     const response = await fetch(`${this.baseUrl}/${sessionId}/message`, {
       method: 'POST',
