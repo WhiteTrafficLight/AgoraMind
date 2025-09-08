@@ -44,6 +44,7 @@ interface EnhancedCircularChatUIProps {
     max_turns: number;
     allow_user_interruption: boolean;
   };
+  freeDiscussionSessionId?: string;
 }
 
 const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
@@ -55,6 +56,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
   dialogueType,
   context,
   freeDiscussionConfig,
+  freeDiscussionSessionId,
 }) => {
   const [message, setMessage] = useState('');
   const [username, setUsername] = useState('');
@@ -124,21 +126,18 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
     }
   }, []);
 
-  // Initialize Free Discussion session if needed
+  // Bind existing session without creating a new one
   useEffect(() => {
-    if (isFreeDiscussion && username && !freeDiscussion.state.sessionId) {
-      freeDiscussion.initializeSession({
-        topic: chatTitle,
-        philosophers: participants.npcs,
-        context: context,
-        user_info: {
-          user_id: username,
-          user_name: username,
-        },
-        // Omit config here to avoid unintentionally forcing auto-play
-      });
+    if (
+      isFreeDiscussion &&
+      username &&
+      freeDiscussion &&
+      !freeDiscussion.state.sessionId &&
+      freeDiscussionSessionId
+    ) {
+      freeDiscussion.updateUIState({ sessionId: freeDiscussionSessionId, sessionStatus: 'active' });
     }
-  }, [isFreeDiscussion, username, freeDiscussion?.state.sessionId]);
+  }, [isFreeDiscussion, username, freeDiscussion?.state.sessionId, freeDiscussionSessionId]);
 
   const fetchUserProfile = async (username: string) => {
     try {

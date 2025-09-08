@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ChatRoomCreationParams } from '../types/openChat.types';
 import { freeDiscussionService } from '@/lib/api/freeDiscussionService';
 import { loggers } from '@/utils/logger';
 
 export const useCreateChat = () => {
   const [isCreating, setIsCreating] = useState(false);
+  const isCreatingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const createChat = async (params: ChatRoomCreationParams) => {
+    if (isCreatingRef.current) return;
+    isCreatingRef.current = true;
     setIsCreating(true);
     setError(null);
 
@@ -90,6 +93,7 @@ export const useCreateChat = () => {
       throw err;
     } finally {
       setIsCreating(false);
+      isCreatingRef.current = false;
     }
   };
 

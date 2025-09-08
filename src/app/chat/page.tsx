@@ -622,6 +622,7 @@ function ChatContent() {
             dialogueType="free"
             context={chatData.context}
             freeDiscussionConfig={chatData.freeDiscussionConfig}
+            freeDiscussionSessionId={chatData.freeDiscussionSessionId}
           />
         ) : (
           <DebateChatContainer
