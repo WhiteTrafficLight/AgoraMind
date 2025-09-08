@@ -17,6 +17,7 @@ export interface DBChatRoom {
   lastActivity: string;
   isPublic: boolean;
   dialogueType?: string; // 대화 패턴 타입 추가
+  freeDiscussionSessionId?: string;
   // 찬반토론을 위한 필드 추가
   pro?: string[]; // 찬성측 참여자들 (NPC IDs와 사용자)
   con?: string[]; // 반대측 참여자들 (NPC IDs와 사용자)
@@ -360,6 +361,7 @@ class ChatRoomDB {
       if (updates.context) updateFields.context = updates.context;
       if (updates.participants) updateFields.participants = updates.participants;
       if (updates.isPublic !== undefined) updateFields.isPublic = updates.isPublic;
+      if (updates.freeDiscussionSessionId) updateFields.freeDiscussionSessionId = updates.freeDiscussionSessionId;
       
       // 항상 업데이트 시간 갱신
       updateFields.updatedAt = new Date();
@@ -387,6 +389,7 @@ class ChatRoomDB {
       lastActivity: room.lastActivity,
       isPublic: room.isPublic,
       dialogueType: room.dialogueType || 'free', // Add dialogueType with default of 'free'
+      freeDiscussionSessionId: room.freeDiscussionSessionId,
       pro: room.pro, // 찬성측 참여자
       con: room.con, // 반대측 참여자
       neutral: room.neutral, // 중립 참여자
@@ -406,6 +409,7 @@ class ChatRoomDB {
       lastActivity: dbRoom.lastActivity || 'Unknown',
       isPublic: typeof dbRoom.isPublic === 'boolean' ? dbRoom.isPublic : true,
       dialogueType: dbRoom.dialogueType || 'free', // 대화 패턴 타입 추가
+      freeDiscussionSessionId: dbRoom.freeDiscussionSessionId,
       pro: dbRoom.pro, // 찬성측 참여자
       con: dbRoom.con, // 반대측 참여자
       neutral: dbRoom.neutral, // 중립 참여자

@@ -16,16 +16,27 @@ export const useCreateChat = () => {
       
       // Check if this is a free discussion
       if (params.dialogueType === 'free' && params.freeDiscussionConfig) {
-        console.log('🎭 Creating Free Discussion session...');
-        
-        // Create Free Discussion session
-        const response = await freeDiscussionService.createSession({
+        // 1) Create room in MongoDB first
+        const roomResponse = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...params,
+            dialogueType: 'free',
+            generateInitialMessage: false
+          })
+        });
+        if (!roomResponse.ok) throw new Error('Failed to create chat room');
+        const dbRoom = await roomResponse.json();
+
+        // 2) Create Free Discussion session in backend
+        const session = await freeDiscussionService.createSession({
           topic: params.title,
           philosophers: params.npcs,
           context: params.context,
           user_info: {
             user_id: params.username || 'anonymous',
-            user_name: params.username || 'Anonymous User',
+            user_name: params.username || 'Anonymous User'
           },
           config: {
             max_turns: params.freeDiscussionConfig.max_turns,
@@ -36,40 +47,28 @@ export const useCreateChat = () => {
             auto_play: params.freeDiscussionConfig.auto_play,
             turn_interval: params.freeDiscussionConfig.turn_interval,
             allow_user_interruption: params.freeDiscussionConfig.allow_user_interruption,
-            playback_speed: params.freeDiscussionConfig.playback_speed,
-          },
+            playback_speed: params.freeDiscussionConfig.playback_speed
+          }
         });
 
-        console.log('✅ Free Discussion session created:', response);
-        loggers.ui.info('Free Discussion session created:', response);
-        
-        // Create a chat room entry for UI consistency
-        const chatRoom = {
-          id: response.session_id,
-          title: params.title,
-          context: params.context,
-          participants: {
-            users: [params.username || 'anonymous'],
-            npcs: params.npcs,
-          },
-          totalParticipants: params.npcs.length + 1,
-          lastActivity: new Date().toISOString(),
-          messages: [],
-          isPublic: params.isPublic,
-          dialogueType: 'free',
-          freeDiscussionSessionId: response.session_id,
-          freeDiscussionConfig: params.freeDiscussionConfig,
-        };
+        // 3) Store sessionId back to room
+        await fetch(`/api/rooms?id=${encodeURIComponent(dbRoom.id)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ freeDiscussionSessionId: session.session_id })
+        });
 
-        console.log('📦 Created chat room object:', chatRoom);
-        
-        // Store in local storage or state management
-        return chatRoom;
+        // 4) Return DB room with session mapping
+        return {
+          ...dbRoom,
+          dialogueType: 'free',
+          freeDiscussionSessionId: session.session_id
+        };
       } else {
         console.log('🎪 Creating regular chat room...');
         
         // Handle regular chat creation (debate, socratic, etc.)
-        const response = await fetch('/api/rooms/create', {
+        const response = await fetch('/api/rooms', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

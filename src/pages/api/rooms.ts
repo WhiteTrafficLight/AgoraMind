@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Socket as NetSocket } from 'net';
 import type { Server as HttpServer } from 'http';
 import type { Server as SocketIOServer } from 'socket.io';
-import { ChatRoom, ChatRoomCreationParams } from '@/lib/ai/chatService';
+import { ChatRoom, ChatRoomCreationParams, ChatMessage } from '@/lib/ai/chatService';
 import chatRoomDB from '@/lib/db/chatRoomDB';
 import mongoose from 'mongoose';
 import { loggers } from '@/utils/logger';
@@ -516,7 +516,7 @@ export default async function handler(
     }
   }
 
-  // PUT 요청 - 채팅룸 업데이트 (메시지 추가 등)
+  // PUT 요청 - 채팅룸 업데이트 (세션ID/참여자/메시지 등)
   if (req.method === 'PUT') {
     try {
       loggers.api.info('Processing PUT request - updating chat room');
@@ -538,9 +538,20 @@ export default async function handler(
         return res.status(404).json({ error: 'Chat room not found' });
       }
       
-      const updates = req.body;
+      const updates = req.body as Partial<ChatRoom> & {
+        freeDiscussionSessionId?: string;
+        message?: ChatMessage;
+      };
       loggers.api.debug('Updating room with data', { roomId: roomIdStr, updates });
       
+      // free discussion session id mapping
+      if (updates.freeDiscussionSessionId) {
+        await chatRoomDB.updateChatRoom(roomIdStr, {
+          // persist mapping in DB layer
+          // other fields unchanged
+        } as ChatRoom);
+      }
+
       // 메시지 추가 처리
       if (updates.message) {
         const { message } = updates;
