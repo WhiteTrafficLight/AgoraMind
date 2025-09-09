@@ -139,6 +139,20 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
     }
   }, [isFreeDiscussion, username, freeDiscussion?.state.sessionId, freeDiscussionSessionId]);
 
+  // Bind session from URL when chatId is a session id (e.g., free-xxxx)
+  useEffect(() => {
+    if (
+      isFreeDiscussion &&
+      freeDiscussion &&
+      !freeDiscussion.state.sessionId
+    ) {
+      const idStr = String(chatId);
+      if (idStr.startsWith('free-')) {
+        freeDiscussion.updateUIState({ sessionId: idStr, sessionStatus: 'active' });
+      }
+    }
+  }, [isFreeDiscussion, chatId, freeDiscussion?.state.sessionId]);
+
   const fetchUserProfile = async (username: string) => {
     try {
       const response = await fetch('/api/user/profile');

@@ -54,19 +54,20 @@ export const useCreateChat = () => {
           }
         });
 
-        // 3) Store sessionId back to room
-        await fetch(`/api/rooms?id=${encodeURIComponent(dbRoom.id)}`, {
+        // 3) Fire-and-forget mapping PUT (do not block UX)
+        fetch(`/api/rooms?id=${encodeURIComponent(dbRoom.id)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ freeDiscussionSessionId: session.session_id })
-        });
+        }).catch(() => {});
 
-        // 4) Return DB room with session mapping
-        return {
-          ...dbRoom,
-          dialogueType: 'free',
-          freeDiscussionSessionId: session.session_id
-        };
+        // 4) Route to session for immediate usability
+        if (typeof window !== 'undefined') {
+          window.location.href = `/chat?id=${encodeURIComponent(session.session_id)}`;
+        }
+
+        // Return minimal info (not used after redirect)
+        return { ...dbRoom, dialogueType: 'free', freeDiscussionSessionId: session.session_id } as any;
       } else {
         console.log('🎪 Creating regular chat room...');
         
