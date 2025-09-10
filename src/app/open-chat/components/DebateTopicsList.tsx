@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowPathIcon, LinkIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { getDebateCategories, categoryDisplayConfig, DebateTopic } from '../utils/debateTopics';
 import DebateTopicModal from './DebateTopicModal';
+import FreeDiscussionTopicModal from './FreeDiscussionTopicModal';
 import { loggers } from '@/utils/logger';
 
 interface Philosopher {
@@ -31,12 +32,14 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
     topicIndex: number;
   } | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showFreeModal, setShowFreeModal] = useState(false);
   
   const debateCategories = getDebateCategories();
 
   const handleTopicClick = (categoryKey: string, topicIndex: number, topic: DebateTopic) => {
     setSelectedTopic({ topic, categoryKey, topicIndex });
-    setShowModal(true);
+    // Open Free Discussion modal instead of Debate modal
+    setShowFreeModal(true);
   };
 
   const handleStartDebate = (categoryKey: string, topicIndex: number, topic: DebateTopic, userPosition: 'pro' | 'con' | 'neutral') => {
@@ -134,17 +137,14 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
         </div>
       </div>
 
-      {/* Debate Topic Modal */}
-      <DebateTopicModal
-        isOpen={showModal}
+      {/* Free Discussion Topic Modal */}
+      <FreeDiscussionTopicModal
+        isOpen={showFreeModal}
         onClose={() => {
-          setShowModal(false);
+          setShowFreeModal(false);
           setSelectedTopic(null);
         }}
         topic={selectedTopic?.topic || null}
-        categoryKey={selectedTopic?.categoryKey || ''}
-        topicIndex={selectedTopic?.topicIndex || 0}
-        onStartDebate={handleStartDebate}
         philosophers={philosophers}
         customNpcs={customNpcs}
       />
