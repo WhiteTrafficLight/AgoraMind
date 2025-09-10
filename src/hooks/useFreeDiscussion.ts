@@ -41,6 +41,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
   const [messages, setMessages] = useState<FreeDiscussionMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<any>(null);
+  const lastSentRef = useRef<{ content: string; ts: number } | null>(null);
 
   // Initialize Free Discussion session
   const initializeSession = useCallback(async (request: CreateFreeDiscussionRequest) => {
@@ -126,12 +127,21 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
     if (!state.sessionId || !state.allowInterruption) return;
     
     try {
+      const trimmed = (content || '').trim();
+      if (!trimmed) return;
+      const now = Date.now();
+      if (lastSentRef.current && lastSentRef.current.content === trimmed && (now - lastSentRef.current.ts) < 1500) {
+        // Drop rapid duplicate within 1.5s window
+        return;
+      }
+      lastSentRef.current = { content: trimmed, ts: now };
+
       const localMessage = {
         id: `user-${Date.now()}`,
         session_id: state.sessionId,
         sender: username || 'User',
-        content,
-        text: content,
+        content: trimmed,
+        text: trimmed,
         timestamp: new Date().toISOString(),
         message_type: 'user' as const,
         senderType: 'user',
@@ -141,7 +151,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       await freeDiscussionService.sendUserMessage(
         state.sessionId, 
         username, 
-        content
+        trimmed
       );
     } catch (error) {
       console.error('Failed to send interruption:', error);

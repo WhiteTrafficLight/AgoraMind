@@ -59,6 +59,8 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
   freeDiscussionSessionId,
 }) => {
   const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const sendingRef = useRef(false);
   const [username, setUsername] = useState('');
   const [showContextPanel, setShowContextPanel] = useState(false);
   const [showStatsPanel, setShowStatsPanel] = useState(false);
@@ -186,27 +188,35 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
     loadNpcDetails();
   }, [participants.npcs]);
 
-  // Handle message sending
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (message.trim() === '') return;
-
-    if (isFreeDiscussion) {
-      // Use Free Discussion interruption
-      await freeDiscussion.controls.onInterrupt(message);
-    } else {
-      // Handle regular message sending (existing logic)
-      console.log('Regular message sending not implemented in this demo');
+  // Handle message sending (guarded to avoid double submissions)
+  const handleSendMessage = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e && typeof (e as any).preventDefault === 'function') {
+      (e as any).preventDefault();
     }
-
-    setMessage('');
+    if (sendingRef.current) return;
+    const content = message.trim();
+    if (content === '') return;
+    try {
+      sendingRef.current = true;
+      setIsSending(true);
+      if (isFreeDiscussion) {
+        await freeDiscussion.controls.onInterrupt(content);
+      } else {
+        console.log('Regular message sending not implemented in this demo');
+      }
+      setMessage('');
+    } finally {
+      sendingRef.current = false;
+      setIsSending(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage(e);
+      if (!sendingRef.current) {
+        handleSendMessage(e);
+      }
     }
   };
 
@@ -617,7 +627,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
       
       {/* Input area */}
       <div className="bg-white border-t border-gray-200 p-3 w-full">
-        <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto">
+        <form onSubmit={(e) => e.preventDefault()} className="max-w-3xl mx-auto">
           <div className="relative bg-gray-100 rounded-full px-4 py-2 flex items-center">
             <textarea
               ref={inputRef}
@@ -646,10 +656,11 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
             )}
             
             <button
-              type="submit"
-              disabled={message.trim() === '' || !isConnected}
+              type="button"
+              onClick={(e) => handleSendMessage(e as any)}
+              disabled={message.trim() === '' || !isConnected || isSending}
               className={`p-1.5 rounded-full ${
-                message.trim() === '' || !isConnected
+                message.trim() === '' || !isConnected || isSending
                   ? 'bg-gray-300 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
