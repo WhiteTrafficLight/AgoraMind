@@ -6,6 +6,7 @@ import PhilosopherDetailsModal from './PhilosopherDetailsModal';
 import { freeDiscussionService } from '@/lib/api/freeDiscussionService';
 import { useRouter } from 'next/navigation';
 import { loggers } from '@/utils/logger';
+import { useLoadingOverlay } from '@/app/loadingOverlay';
 
 interface FreeDiscussionTopicModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
   customNpcs = []
 }) => {
   const router = useRouter();
+  const overlay = useLoadingOverlay();
 
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [selectedPhilosophers, setSelectedPhilosophers] = useState<string[]>([]);
@@ -163,6 +165,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       const username = (typeof window !== 'undefined' && (sessionStorage.getItem('chat_username') || 'Anonymous')) || 'Anonymous';
 
       // 1) Create DB room first
+      overlay.show('Creating room…');
       const roomResponse = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -182,6 +185,14 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       const dbRoom = await roomResponse.json();
 
       // 2) Create Free Discussion session on backend
+      if (topic.context.type === 'url') {
+        overlay.update(
+          'Reading and summarizing the context…',
+          'When the context is long, it might take some time for philosophers to read it.'
+        );
+      } else {
+        overlay.update('Preparing participants…');
+      }
       const session = await freeDiscussionService.createSession({
         topic: topic.title,
         philosophers: allSelected,
@@ -204,6 +215,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       } as any);
 
       // 3) Map session id to room (fire-and-forget)
+      overlay.update('Linking room and session…');
       fetch(`/api/rooms?id=${encodeURIComponent(dbRoom.id)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -211,6 +223,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       }).catch(() => {});
 
       // 4) Route using session id
+      overlay.update('Redirecting to the room…');
       onClose();
       router.push(`/chat?id=${encodeURIComponent(session.session_id)}`);
     } catch (error) {
@@ -218,6 +231,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       alert('Failed to create discussion. Please try again.');
     } finally {
       setIsCreating(false);
+      overlay.hide();
     }
   };
 
