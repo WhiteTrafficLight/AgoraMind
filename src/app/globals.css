@@ -10,3 +10,28 @@
     transition: margin-left 200ms ease;
   }
 }
+
+/* Utility to show only the scrollbar thumb without visible track gutter */
+@layer utilities {
+  .modal-scroll {
+    /* Do not reserve gutter; overlay the scrollbar on top of content */
+    scrollbar-width: medium; /* Firefox */
+    scrollbar-color: rgba(0,0,0,0.35) transparent; /* Firefox: thumb, track */
+  }
+  
+  .modal-scroll::-webkit-scrollbar {
+    width: 12px; /* ~1.5x wider for better grab */
+  }
+  
+  
+  .modal-scroll::-webkit-scrollbar-track {
+    background: transparent !important; /* hide track gutter */
+  }
+  
+  .modal-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.35);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+}
