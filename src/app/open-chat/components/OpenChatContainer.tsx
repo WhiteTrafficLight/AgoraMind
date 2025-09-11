@@ -56,7 +56,7 @@ const OpenChatContainer: React.FC = () => {
                 onMouseLeave={() => setShowTooltip(false)}
                 disabled={isCreating}
                 aria-label="Create New Chat"
-                className="inline-flex items-center justify-center rounded-full p-3 bg-black text-white shadow hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
+                className="inline-flex items-center justify-center rounded-full p-3 bg-black text-white shadow hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 <PlusIcon className="h-6 w-6" />
               </button>
