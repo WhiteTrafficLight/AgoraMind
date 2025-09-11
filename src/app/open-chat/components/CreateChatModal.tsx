@@ -966,7 +966,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                           key={npc.id}
                           className={`border rounded-lg p-3 transition select-none ${
                             selectedCustomNpcs.includes(npc.id)
-                              ? 'ring-2 ring-blue-600 border-blue-600 bg-blue-50'
+                              ? 'ring-2 ring-black border-black bg-gray-100'
                               : 'hover:shadow-sm'
                           }`}
                         >
@@ -1010,7 +1010,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                         key={philosopher.id}
                         className={`border rounded-lg p-3 transition select-none ${
                           selectedPhilosophers.includes(philosopher.id)
-                            ? 'ring-2 ring-blue-600 border-blue-600 bg-blue-50'
+                            ? 'ring-2 ring-black border-black bg-gray-100'
                             : 'hover:shadow-sm'
                         }`}
                       >
@@ -1081,7 +1081,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
             <button
               type="button"
               onClick={handleSubmit}
-              className="inline-flex items-center gap-2 rounded-md bg-blue-600 text-white px-4 py-2 text-sm font-medium shadow hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-md bg-black text-white px-4 py-2 text-sm font-medium shadow hover:bg-gray-900 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-black"
               disabled={!formData.title.trim() || (selectedPhilosophers.length + selectedCustomNpcs.length) === 0 || isCreating}
             >
               {isCreating ? (
