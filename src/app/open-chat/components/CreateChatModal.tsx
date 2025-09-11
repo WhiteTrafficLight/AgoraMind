@@ -25,7 +25,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     contextFileContent: ''
   });
 
-  const [contextType, setContextType] = useState<'none' | 'url' | 'file'>('none');
+  const [contextType, setContextType] = useState<'none' | 'url' | 'text'>('none');
   const [selectedPhilosophers, setSelectedPhilosophers] = useState<string[]>([]);
   const [selectedCustomNpcs, setSelectedCustomNpcs] = useState<string[]>([]);
   const [npcPositions, setNpcPositions] = useState<Record<string, 'pro' | 'con'>>({});
@@ -664,14 +664,14 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setContextType('file')}
+                      onClick={() => setContextType('text')}
                       className={`px-4 py-3 text-sm font-medium -mb-[2px] border-b-2 ${
-                        contextType === 'file'
+                        contextType === 'text'
                           ? 'text-gray-900 border-gray-900'
                           : 'text-gray-600 border-transparent hover:text-gray-700'
                       }`}
                     >
-                      File
+                      Text
                     </button>
                   </div>
 
@@ -682,29 +682,20 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       value={formData.contextUrl}
                       onChange={(e) => handleChange('contextUrl', e.target.value)}
                       placeholder="https://example.com/article"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black shadow-sm"
                     />
                   )}
 
-                  {/* File upload */}
-                  {contextType === 'file' && (
-                    <div className="space-y-2">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".txt,.md,.pdf"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
-                      >
-                        <DocumentArrowUpIcon className="h-5 w-5" />
-                        {formData.context || 'Choose file (txt, md, pdf)'}
-                      </button>
-                    </div>
+                  {/* Text input */}
+                  {contextType === 'text' && (
+                    <textarea
+                      value={formData.context}
+                      onChange={(e) => handleChange('context', e.target.value)}
+                      placeholder={`Please add detailed description about the topic.
+ex) Chat Title: Would you erase your worst memory for peace of mind?
+Context: A revolutionary technology can delete specific memories forever. You carry a traumatic memory that shapes who you are, but also causes ongoing suffering. Should one embrace pain that forms identity, or choose peace by removing it? Provide background, constraints, and desired perspectives.`}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black shadow-sm min-h-[120px] overflow-y-auto modal-scroll"
+                    />
                   )}
                 </div>
               </div>
