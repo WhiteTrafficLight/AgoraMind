@@ -273,7 +273,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
       npcs: [],
       isPublic: true,
       generateInitialMessage: true,
-      dialogueType: 'debate',
+      dialogueType: 'free',
       context: '',
       contextUrl: '',
       contextFileContent: ''
