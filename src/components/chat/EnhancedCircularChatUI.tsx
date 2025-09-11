@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { PaperAirplaneIcon, ArrowLeftIcon, StopIcon, HandRaisedIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, ArrowLeftIcon, StopIcon, HandRaisedIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
 import { useFreeDiscussion } from '@/hooks/useFreeDiscussion';
 import { PlaybackControls } from './PlaybackControls';
@@ -66,6 +66,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
   const [showStatsPanel, setShowStatsPanel] = useState(false);
   const [npcDetails, setNpcDetails] = useState<Record<string, NpcDetail>>({});
   const [userProfilePicture, setUserProfilePicture] = useState<string | null>(null);
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [windowDimensions, setWindowDimensions] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
     height: typeof window !== 'undefined' ? window.innerHeight : 768
@@ -392,8 +393,9 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
 
   return (
     <div className="fixed inset-0 bg-white flex flex-col w-full h-full overflow-hidden">
+      <div className={`h-full w-full flex flex-col transition-transform duration-200 ease-in-out ${showHistoryDrawer ? '-translate-x-80' : ''}`}>
       {/* Chat header */}
-      <div className="bg-white border-b border-gray-200 p-3 flex flex-col items-center relative">
+      <div className="bg-white border-b border-gray-200 p-3 flex flex-col items-center relative flex-none">
         <button 
           onClick={onBack}
           className="absolute left-4 top-4 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200"
@@ -413,7 +415,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
           {context && (
             <button
               onClick={() => setShowContextPanel(!showContextPanel)}
-              className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
             >
               Context
             </button>
@@ -423,11 +425,19 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
           {isFreeDiscussion && (
             <button
               onClick={() => setShowStatsPanel(!showStatsPanel)}
-              className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
             >
               Stats
             </button>
           )}
+
+          {/* Dialogue History Drawer Toggle */}
+          <button
+            onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
+            className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+          >
+            History
+          </button>
           
           <button 
             onClick={() => {}}
@@ -469,7 +479,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
       )}
 
       {/* Main circular chat area */}
-      <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+      <div className="flex-1 relative overflow-hidden flex items-center justify-center min-h-0">
         <div className="absolute inset-0 flex items-center justify-center">
           <div 
             id="elliptical-table"
@@ -626,7 +636,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
       )}
       
       {/* Input area */}
-      <div className="bg-white border-t border-gray-200 p-3 w-full">
+      <div className="bg-white border-t border-gray-200 p-3 w-full flex-none">
         <form onSubmit={(e) => e.preventDefault()} className="max-w-3xl mx-auto">
           <div className="relative bg-gray-100 rounded-full px-4 py-2 flex items-center">
             <textarea
@@ -670,6 +680,37 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
           </div>
         </form>
       </div>
+      </div>
+
+      {/* Right Drawer: Dialogue History */}
+      <aside className={`fixed top-0 right-0 h-full w-80 bg-white border-l border-gray-200 shadow-xl transition-transform duration-200 ease-in-out ${showHistoryDrawer ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="h-full flex flex-col">
+          <div className="flex items-center justify-between p-3 border-b">
+            <h3 className="text-sm font-semibold text-gray-900">Dialogue History</h3>
+            <button
+              onClick={() => setShowHistoryDrawer(false)}
+              className="inline-flex items-center justify-center rounded-full p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black"
+              aria-label="Close"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3 modal-scroll">
+            {augMessages.length === 0 && (
+              <div className="text-xs text-gray-500">No messages yet.</div>
+            )}
+            {augMessages.map((msg, idx) => (
+              <div key={idx} className="border border-gray-200 rounded-md p-2 bg-white">
+                <div className="text-xs font-medium text-gray-700 mb-1">
+                  {msg.isUser ? 'User' : (msg.senderName || msg.npc_id || msg.sender)}
+                  <span className="text-gray-400"> • {new Date(msg.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <div className="text-xs text-gray-800 whitespace-pre-wrap">{msg.text ?? msg.content}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </aside>
     </div>
   );
 };
