@@ -36,6 +36,17 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
   
   const debateCategories = getDebateCategories();
 
+  // Determine actual context type to display (only if content exists)
+  type TopicContext = { type?: string; content?: string } | undefined;
+  const getEffectiveContextType = (context: TopicContext): 'url' | 'text' | '' => {
+    if (!context) return '';
+    const raw = (context.content || '').trim();
+    if (!raw) return '';
+    if (context.type === 'url') return 'url';
+    if (context.type === 'text') return 'text';
+    return '';
+  };
+
   const handleTopicClick = (categoryKey: string, topicIndex: number, topic: DebateTopic) => {
     setSelectedTopic({ topic, categoryKey, topicIndex });
     // Open Free Discussion modal instead of Debate modal
@@ -64,6 +75,7 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
 
   const renderTopicCard = (topic: DebateTopic, categoryKey: string, topicIndex: number) => {
     const topicId = `${categoryKey}-${topicIndex}`;
+    const effectiveType = getEffectiveContextType((topic as any).context);
 
     return (
       <div 
@@ -74,7 +86,7 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
         <div className="flex items-center justify-between">
           <h4 className="font-semibold text-sm text-gray-900 flex-1 truncate">{topic.title}</h4>
           <div className="flex items-center gap-2">
-            {topic.context.type && renderContextIcon(topic.context.type)}
+            {effectiveType && renderContextIcon(effectiveType)}
           </div>
         </div>
       </div>

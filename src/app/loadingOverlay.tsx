@@ -60,14 +60,14 @@ function LoadingOverlay() {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
       <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl border border-gray-200">
         <div className="flex items-center gap-3">
-          <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+          <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent" />
           <p className="text-sm font-medium text-gray-900">{state.message}</p>
         </div>
         {state.subtext && (
           <p className="mt-2 text-xs text-gray-600">{state.subtext}</p>
         )}
         <div className="mt-4 h-1 w-full overflow-hidden rounded bg-gray-100">
-          <div className="h-full w-1/2 animate-[loading_1.2s_ease-in-out_infinite] rounded bg-blue-600" />
+          <div className="h-full w-1/2 animate-[loading_1.2s_ease-in-out_infinite] rounded bg-black" />
         </div>
       </div>
 
