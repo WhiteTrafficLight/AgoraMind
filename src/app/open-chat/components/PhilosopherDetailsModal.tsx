@@ -87,7 +87,7 @@ const PhilosopherDetailsModal: React.FC<PhilosopherDetailsModalProps> = ({
         >
           <button
             aria-label="Close"
-            className="absolute top-3 right-3 inline-flex items-center justify-center rounded-full p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200"
+            className="absolute top-3 right-3 inline-flex items-center justify-center rounded-full p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             onClick={onClose}
           >
             ✕
@@ -139,7 +139,7 @@ const PhilosopherDetailsModal: React.FC<PhilosopherDetailsModalProps> = ({
 
           <div className="mt-6">
             <button
-              className="w-full inline-flex items-center justify-center rounded-md bg-blue-600 text-white px-4 py-2 text-sm font-medium shadow hover:bg-blue-700"
+              className="w-full inline-flex items-center justify-center rounded-md bg-black text-white px-4 py-2 text-sm font-medium shadow hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black"
               onClick={handleToggleSelect}
             >
               {isSelected ? 'Remove from Chat' : 'Add to Chat'}
