@@ -369,10 +369,16 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          loadPhilosopherDetails(philosopher.id);
+                          if (!isDisabled) {
+                            loadPhilosopherDetails(philosopher.id);
+                          }
                           return false;
                         }}
-                        className="mt-2 text-xs text-black hover:underline"
+                        disabled={isDisabled}
+                        aria-disabled={isDisabled}
+                        className={`mt-2 text-xs ${
+                          isDisabled ? 'text-gray-400 cursor-not-allowed pointer-events-none' : 'text-black hover:underline'
+                        }`}
                       >
                         View details
                       </button>
