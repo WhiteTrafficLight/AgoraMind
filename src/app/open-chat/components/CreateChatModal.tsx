@@ -19,7 +19,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     npcs: [],
     isPublic: true,
     generateInitialMessage: true,
-    dialogueType: 'debate',
+    dialogueType: 'free',
     context: '',
     contextUrl: '',
     contextFileContent: ''
@@ -416,19 +416,11 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                     </div>
                   </div>
 
-                  <div
-                    className={`relative p-6 border-2 rounded-xl cursor-pointer transition bg-white text-center flex flex-col items-center gap-3 ${
-                      formData.dialogueType === 'debate'
-                        ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                    }`}
-                    onClick={() => handleDialogueTypeChange('debate')}
-                  >
+                  <div className="relative p-6 border-2 rounded-xl bg-gray-100 border-gray-200 cursor-not-allowed opacity-60 text-center flex flex-col items-center gap-3">
+                    <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wide">Coming Soon</div>
                     <img src="/ProCon.png" alt="Pro-Con Debate" className="w-20 h-20 object-cover rounded-md" />
-                    <div className="font-semibold text-base text-gray-900">Pro-Con Debate</div>
-                    <div className="text-sm text-gray-600 leading-tight">
-                      Structured debate<br/>with opposing positions
-                    </div>
+                    <div className="font-semibold text-base text-gray-400">Pro-Con Debate</div>
+                    <div className="text-sm text-gray-300 leading-tight">Structured debate<br/>with opposing positions</div>
                   </div>
 
                   <div className="relative p-6 border-2 rounded-xl bg-gray-100 border-gray-200 cursor-not-allowed opacity-60 text-center flex flex-col items-center gap-3">
