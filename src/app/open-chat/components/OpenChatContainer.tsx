@@ -46,7 +46,7 @@ const OpenChatContainer: React.FC = () => {
       {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Philosophical Debate Topics</h1>
+          <h1 className="text-2xl font-bold">Today's Topics</h1>
           <div className="flex items-center gap-4">
             {/* Create Chat Button */}
             <div className="relative z-10">
