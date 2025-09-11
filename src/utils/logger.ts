@@ -9,16 +9,19 @@ interface LoggerConfig {
   name?: string;
   level?: LogLevel;
   prefix?: string;
+  useEmojis?: boolean; // allow disabling emojis per logger instance
 }
 
 class Logger {
   private level: LogLevel;
   private name: string;
   private prefix: string;
+  private useEmojis: boolean;
 
   constructor(config: LoggerConfig = {}) {
     this.name = config.name || 'DEFAULT';
     this.prefix = config.prefix || '';
+    this.useEmojis = config.useEmojis !== false; // default true
 
     // 환경변수에서 로그 레벨 결정
     this.level = this.determineLogLevel(config.level);
@@ -92,7 +95,8 @@ class Logger {
   private formatMessage(level: string, emoji: string, ...args: any[]): any[] {
     const timestamp = new Date().toISOString().substr(11, 12);
     const prefix = this.prefix ? `${this.prefix} ` : '';
-    return [`${emoji} [${timestamp}] ${prefix}${this.name}:`, ...args];
+    const emojiPart = this.useEmojis && emoji ? `${emoji} ` : '';
+    return [`${emojiPart}[${timestamp}] ${prefix}${this.name}:`, ...args];
   }
 
   error(...args: any[]) {
@@ -169,6 +173,9 @@ export const loggers = {
   ui: new Logger({ name: 'UI', prefix: '🎨' }),
   rag: new Logger({ name: 'RAG', prefix: '🔍' })
 };
+
+// Factory for creating custom loggers externally without exposing class
+export const createLogger = (config: LoggerConfig = {}) => new Logger(config);
 
 // 기존 console.log 호환성을 위한 래퍼
 export const createCompatLogger = (originalConsole = console) => ({

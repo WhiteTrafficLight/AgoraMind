@@ -1,5 +1,6 @@
 // Debug utility for Free Discussion
 // Use this in browser console to test the API endpoints
+import { createLogger, LogLevel } from './logger';
 
 declare global {
   interface Window {
@@ -14,9 +15,11 @@ declare global {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+const debugLogger = createLogger({ name: 'FREE_DISCUSSION_DEBUG', useEmojis: false, level: LogLevel.DEBUG });
+
 export const createFreeDiscussionDebug = () => {
   const testCreateSession = async () => {
-    console.log('🧪 Testing Free Discussion API...');
+    debugLogger.info('Testing Free Discussion API...');
     
     const testPayload = {
       topic: "Test: The nature of consciousness",
@@ -36,8 +39,8 @@ export const createFreeDiscussionDebug = () => {
     };
 
     try {
-      console.log('📤 Sending request to:', `${API_BASE_URL}/api/free-discussion/create`);
-      console.log('📋 Payload:', testPayload);
+      debugLogger.debug('Sending request to:', `${API_BASE_URL}/api/free-discussion/create`);
+      debugLogger.debug('Payload:', testPayload);
 
       const response = await fetch(`${API_BASE_URL}/api/free-discussion/create`, {
         method: 'POST',
@@ -47,57 +50,55 @@ export const createFreeDiscussionDebug = () => {
         body: JSON.stringify(testPayload),
       });
 
-      console.log('📥 Response status:', response.status);
-      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+      debugLogger.debug('Response status:', response.status);
+      debugLogger.debug('Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Success! Response data:', data);
+        debugLogger.info('Success response:', data);
         
         // Test getting session status
         if (data.session_id) {
-          console.log('🔍 Testing session status...');
+          debugLogger.debug('Testing session status...');
           const statusResponse = await fetch(`${API_BASE_URL}/api/free-discussion/${data.session_id}/status`);
           const statusData = await statusResponse.json();
-          console.log('📊 Session status:', statusData);
+          debugLogger.info('Session status:', statusData);
         }
       } else {
         const errorData = await response.text();
-        console.error('❌ API Error:', response.status, errorData);
+        debugLogger.error('API Error:', response.status, errorData);
       }
     } catch (error) {
-      console.error('💥 Network Error:', error);
+      debugLogger.error('Network error:', error);
     }
   };
 
   const testAPIEndpoint = async (endpoint: string) => {
     try {
-      console.log(`🔍 Testing endpoint: ${API_BASE_URL}${endpoint}`);
+      debugLogger.debug('Testing endpoint:', `${API_BASE_URL}${endpoint}`);
       const response = await fetch(`${API_BASE_URL}${endpoint}`);
-      console.log(`📊 ${endpoint} status:`, response.status);
+      debugLogger.debug(`${endpoint} status:`, response.status);
       
       if (response.ok) {
         const data = await response.text();
-        console.log(`✅ ${endpoint} response:`, data.substring(0, 200));
+        debugLogger.info(`${endpoint} response (first 200 chars):`, data.substring(0, 200));
       } else {
-        console.error(`❌ ${endpoint} error:`, response.status);
+        debugLogger.warn(`${endpoint} error:`, response.status);
       }
     } catch (error) {
-      console.error(`💥 ${endpoint} network error:`, error);
+      debugLogger.error(`${endpoint} network error:`, error);
     }
   };
 
   const checkBackendHealth = async () => {
-    console.log('🏥 Checking backend health...');
-    
-    // Test various endpoints
+    debugLogger.info('Checking backend health...');
     await testAPIEndpoint('/health');
     await testAPIEndpoint('/api/free-discussion/');
     await testAPIEndpoint('/docs');
   };
 
   const simulateModalSubmission = () => {
-    console.log('🎭 Simulating modal submission...');
+    debugLogger.info('Simulating modal submission...');
     
     const mockParams = {
       title: "Test Free Discussion",
@@ -116,8 +117,8 @@ export const createFreeDiscussionDebug = () => {
       }
     };
 
-    console.log('📋 Mock params:', mockParams);
-    console.log('💡 Use this payload to test your createChat function');
+    debugLogger.debug('Mock params:', mockParams);
+    debugLogger.info('Use this payload to test your createChat function');
     
     return mockParams;
   };
@@ -133,6 +134,7 @@ export const createFreeDiscussionDebug = () => {
 // Auto-initialize if in browser
 if (typeof window !== 'undefined') {
   window.debugFreeDiscussion = createFreeDiscussionDebug();
-  console.log('🐛 Free Discussion debug tools loaded! Use window.debugFreeDiscussion');
+  debugLogger.info('Free Discussion debug tools loaded. Use window.debugFreeDiscussion');
 }
+
 
