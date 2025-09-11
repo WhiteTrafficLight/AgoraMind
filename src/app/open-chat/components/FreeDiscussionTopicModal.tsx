@@ -243,7 +243,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
     <>
       <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose}></div>
 
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-4xl max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl z-50 border border-gray-200" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-4xl max-h-[85vh] bg-white rounded-2xl shadow-2xl z-50 border border-gray-200 flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-xl font-bold">Start Free Discussion</h2>
           <button 
@@ -255,7 +255,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
           </button>
         </div>
 
-        <div className="px-6 py-4 space-y-6">
+        <div className="px-6 py-4 space-y-6 flex-1 overflow-y-auto pr-2 modal-scroll">
           <div>
             <h3 className="text-lg font-semibold text-gray-700 mb-4">{topic.title}</h3>
           </div>
@@ -292,7 +292,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
                       key={npc.id}
                       className={`border rounded-lg p-3 transition select-none ${
                         selectedCustomNpcs.includes(npc.id)
-                          ? 'ring-2 ring-blue-600 border-blue-600 bg-blue-50'
+                          ? 'ring-2 ring-black border-black bg-gray-100'
                           : 'hover:shadow-sm'
                       }`}
                     >
@@ -335,7 +335,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
                     key={philosopher.id}
                     className={`border rounded-lg p-3 transition select-none ${
                       selectedPhilosophers.includes(philosopher.id)
-                        ? 'ring-2 ring-blue-600 border-blue-600 bg-blue-50'
+                        ? 'ring-2 ring-black border-black bg-gray-100'
                         : 'hover:shadow-sm'
                     }`}
                   >
@@ -374,7 +374,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
         <div className="px-6 py-4 border-t flex justify-end">
           <button
             onClick={handleCreateDiscussion}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-600 text-white px-4 py-2 text-sm font-medium shadow hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-black text-white px-4 py-2 text-sm font-medium shadow hover:bg-gray-900 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-black"
             disabled={isCreating || (selectedPhilosophers.length + selectedCustomNpcs.length) === 0}
           >
             {isCreating ? (
