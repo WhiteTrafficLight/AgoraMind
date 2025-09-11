@@ -32,6 +32,9 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
 
   const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
+  
+  // Fine-tuned philosophers allowed for selection
+  const FINE_TUNED = new Set(['sartre', 'camus', 'nietzsche']);
 
   // Reset selections when modal opens or topic changes
   useEffect(() => {
@@ -330,42 +333,52 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
             <div>
               <h5 className="font-semibold text-gray-800 mb-3">Classic Philosophers</h5>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {philosophers.map(philosopher => (
-                  <div
-                    key={philosopher.id}
-                    className={`border rounded-lg p-3 transition select-none ${
-                      selectedPhilosophers.includes(philosopher.id)
-                        ? 'ring-2 ring-black border-black bg-gray-100'
-                        : 'hover:shadow-sm'
-                    }`}
-                  >
+                {philosophers.map(philosopher => {
+                  const pid = (philosopher.id || '').toLowerCase();
+                  const isFineTuned = FINE_TUNED.has(pid);
+                  const isDisabled = !isFineTuned;
+                  const isSelected = selectedPhilosophers.includes(philosopher.id);
+                  return (
                     <div
-                      className="flex items-center gap-2 cursor-pointer"
-                      onClick={() => togglePhilosopher(philosopher.id)}
+                      key={philosopher.id}
+                      className={`border rounded-lg p-3 transition select-none relative ${
+                        isSelected ? 'ring-2 ring-black border-black bg-gray-100' : 'hover:shadow-sm'
+                      } ${isDisabled ? 'opacity-60 grayscale cursor-not-allowed' : ''}`}
+                      aria-disabled={isDisabled}
                     >
-                      <img
-                        src={philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)}
-                        alt={philosopher.name}
-                        className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
+                      {isDisabled && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg">
+                          <img src="/lock.png" alt="Locked" className="h-full w-auto max-w-full opacity-20 select-none object-contain" />
+                        </div>
+                      )}
+                      <div
+                        className={`flex items-center gap-2 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                        onClick={() => { if (!isDisabled) togglePhilosopher(philosopher.id); }}
+                      >
+                        <img
+                          src={philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)}
+                          alt={philosopher.name}
+                          className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
+                          }}
+                        />
+                        <span className="text-sm text-gray-800">{philosopher.name}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          loadPhilosopherDetails(philosopher.id);
+                          return false;
                         }}
-                      />
-                      <span className="text-sm text-gray-800">{philosopher.name}</span>
+                        className="mt-2 text-xs text-black hover:underline"
+                      >
+                        View details
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        loadPhilosopherDetails(philosopher.id);
-                        return false;
-                      }}
-                      className="mt-2 text-xs text-black hover:underline"
-                    >
-                      View details
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

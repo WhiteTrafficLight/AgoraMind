@@ -9,6 +9,7 @@ import { FreeDiscussionTimeline } from './FreeDiscussionTimeline';
 import { freeDiscussionService } from '@/lib/api/freeDiscussionService';
 import { PhilosopherTurn, FreeDiscussionMessage } from '@/app/open-chat/types/freeDiscussion.types';
 import '@/utils/freeDiscussionDebug';
+import { loggers } from '@/utils/logger';
 
 interface ChatMessage extends ChatMessageBase {
   isNew?: boolean;
@@ -121,7 +122,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
           }
         })
         .catch(err => {
-          console.error('Error fetching user:', err);
+          loggers.ui.error('Error fetching user:', err);
           const randomUsername = `User_${Math.floor(Math.random() * 10000)}`;
           setUsername(randomUsername);
           sessionStorage.setItem('chat_username', randomUsername);
@@ -166,7 +167,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
         }
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      loggers.ui.error('Error fetching user profile:', error);
     }
   };
 
@@ -203,7 +204,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
       if (isFreeDiscussion) {
         await freeDiscussion.controls.onInterrupt(content);
       } else {
-        console.log('Regular message sending not implemented in this demo');
+        loggers.chat.info('Regular message sending not implemented in this demo');
       }
       setMessage('');
     } finally {
@@ -609,7 +610,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
         <FreeDiscussionTimeline
           turns={philosopherTurns}
           currentTurn={freeDiscussion.state.currentTurn}
-          onSeek={(turn) => console.log('Seek to turn:', turn)}
+          onSeek={(turn) => loggers.ui.debug('Seek to turn:', turn)}
           view={freeDiscussion.state.timelineView}
           philosopherColors={philosopherColors}
         />
@@ -657,7 +658,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
             {isFreeDiscussion && freeDiscussion.state.allowInterruption && (
               <button
                 type="button"
-                onClick={() => console.log('Raise hand')}
+                onClick={() => loggers.ui.info('Raise hand clicked')}
                 className="mr-2 p-1.5 rounded-full hover:bg-gray-200"
                 title="Raise hand to speak"
               >

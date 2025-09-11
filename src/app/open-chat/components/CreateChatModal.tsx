@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useLoadingOverlay } from '@/app/loadingOverlay';
 import { XMarkIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
 import { CreateChatModalProps, ChatRoomCreationParams, Philosopher } from '../types/openChat.types';
 import PhilosopherDetailsModal from './PhilosopherDetailsModal';
@@ -13,6 +14,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   customNpcs
 }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const overlay = useLoadingOverlay();
   const [formData, setFormData] = useState<ChatRoomCreationParams>({
     title: '',
     maxParticipants: 6,
@@ -48,6 +50,10 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     allowInterruption: true,
   });
   
+  // Fine-tuned philosophers (allowed for selection)
+  const FINE_TUNED = new Set(['sartre', 'camus', 'nietzsche']);
+  
+  // Deprecated (file input removed); keep ref to avoid refactor errors
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const moderatorStyles = [
@@ -226,15 +232,15 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     let finalContext = '';
     if (contextType === 'url' && formData.contextUrl) {
       finalContext = `URL: ${formData.contextUrl}`;
-    } else if (contextType === 'file' && formData.contextFileContent) {
-      finalContext = formData.contextFileContent;
+    } else if (contextType === 'text' && formData.context) {
+      finalContext = formData.context;
     }
 
     const finalFormData: ChatRoomCreationParams = {
       ...formData,
       context: finalContext,
       contextUrl: contextType === 'url' ? formData.contextUrl : undefined,
-      contextFileContent: contextType === 'file' ? formData.contextFileContent : undefined
+      contextFileContent: undefined
     };
 
     // Add debate-specific data
@@ -259,9 +265,23 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     }
 
     try {
+      // Show overlay by context type
+      overlay.show('Creating room…');
+      if (contextType === 'url') {
+        overlay.update(
+          'Reading and summarizing the context…',
+          'When the context is long, it might take some time for philosophers to read it.'
+        );
+      } else if (contextType === 'text') {
+        overlay.update('Preparing participants…');
+      }
+
       await onCreateChat(finalFormData);
     } catch (error) {
       loggers.ui.error('Error creating chat:', error);
+    }
+    finally {
+      overlay.hide();
     }
   };
 
@@ -694,7 +714,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       placeholder={`Please add detailed description about the topic.
 ex) Chat Title: Would you erase your worst memory for peace of mind?
 Context: A revolutionary technology can delete specific memories forever. You carry a traumatic memory that shapes who you are, but also causes ongoing suffering. Should one embrace pain that forms identity, or choose peace by removing it? Provide background, constraints, and desired perspectives.`}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black shadow-sm min-h-[120px] overflow-y-auto modal-scroll"
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-black shadow-sm min-h-[120px] overflow-y-auto modal-scroll resize-none"
                     />
                   )}
                 </div>
@@ -996,42 +1016,52 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                 <div>
                   <h3 className="text-base font-medium mb-2">Classic Philosophers</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {philosophers.map(philosopher => (
-                      <div
-                        key={philosopher.id}
-                        className={`border rounded-lg p-3 transition select-none ${
-                          selectedPhilosophers.includes(philosopher.id)
-                            ? 'ring-2 ring-black border-black bg-gray-100'
-                            : 'hover:shadow-sm'
-                        }`}
-                      >
+                    {philosophers.map(philosopher => {
+                      const pid = (philosopher.id || '').toLowerCase();
+                      const isFineTuned = FINE_TUNED.has(pid);
+                      const isDisabled = !isFineTuned;
+                      const isSelected = selectedPhilosophers.includes(philosopher.id);
+                      return (
                         <div
-                          className="flex items-center gap-2 cursor-pointer"
-                          onClick={() => togglePhilosopher(philosopher.id)}
+                          key={philosopher.id}
+                          className={`border rounded-lg p-3 transition select-none relative ${
+                            isSelected ? 'ring-2 ring-black border-black bg-gray-100' : 'hover:shadow-sm'
+                          } ${isDisabled ? 'opacity-60 grayscale cursor-not-allowed' : ''}`}
+                          aria-disabled={isDisabled}
                         >
-                          <img
-                            src={philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)}
-                            alt={philosopher.name}
-                            className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
+                          {isDisabled && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg">
+                              <img src="/lock.png" alt="Locked" className="h-full w-auto max-w-full opacity-20 select-none object-contain" />
+                            </div>
+                          )}
+                          <div
+                            className={`flex items-center gap-2 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            onClick={() => { if (!isDisabled) togglePhilosopher(philosopher.id); }}
+                          >
+                            <img
+                              src={philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)}
+                              alt={philosopher.name}
+                              className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
+                              }}
+                            />
+                            <span className="text-sm text-gray-800">{philosopher.name}</span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              loadPhilosopherDetails(philosopher.id);
+                              return false;
                             }}
-                          />
-                          <span className="text-sm text-gray-800">{philosopher.name}</span>
+                            className="mt-2 text-xs text-black hover:underline"
+                          >
+                            View details
+                          </button>
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            loadPhilosopherDetails(philosopher.id);
-                            return false;
-                          }}
-                          className="mt-2 text-xs text-black hover:underline"
-                        >
-                          View details
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
