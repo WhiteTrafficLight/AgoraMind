@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { PaperAirplaneIcon, ArrowLeftIcon, StopIcon, HandRaisedIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon, ArrowLeftIcon, StopIcon } from '@heroicons/react/24/outline';
 import { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
 import { useFreeDiscussion } from '@/hooks/useFreeDiscussion';
 import { PlaybackControls } from './PlaybackControls';
@@ -67,12 +67,12 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
   const [showStatsPanel, setShowStatsPanel] = useState(false);
   const [npcDetails, setNpcDetails] = useState<Record<string, NpcDetail>>({});
   const [userProfilePicture, setUserProfilePicture] = useState<string | null>(null);
-  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
-  const [windowDimensions, setWindowDimensions] = useState({
-    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
-    height: typeof window !== 'undefined' ? window.innerHeight : 768
-  });
-  const [circleRadius, setCircleRadius] = useState(0);
+  const [isWaitingNext, setIsWaitingNext] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
+  const waitTargetCountRef = useRef<number | null>(null);
+  const waitBaseIndexRef = useRef<number>(0);
+  const waitForNonUserRef = useRef<boolean>(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Use Free Discussion hook for free dialogues
@@ -99,6 +99,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
   };
   const augMessages = messages as unknown as AugmentedMessage[];
   const isConnected = isFreeDiscussion ? freeDiscussion.isConnected : true;
+  const MODERATOR_IMAGE = '/moderator_portraits/Moderator_basic.png';
 
   // Load user information
   useEffect(() => {
@@ -199,14 +200,26 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
     const content = message.trim();
     if (content === '') return;
     try {
+      // Clear input immediately for snappier UX
+      setMessage('');
       sendingRef.current = true;
       setIsSending(true);
       if (isFreeDiscussion) {
-        await freeDiscussion.controls.onInterrupt(content);
+        // Disable Next Turn until a non-user reply arrives
+        waitBaseIndexRef.current = augMessages.length;
+        waitForNonUserRef.current = true;
+        setIsWaitingNext(true);
+        try {
+          await freeDiscussion.controls.onInterrupt(content);
+        } catch (err) {
+          loggers.ui.error('User send failed:', err);
+          setIsWaitingNext(false);
+          waitForNonUserRef.current = false;
+          waitBaseIndexRef.current = 0;
+        }
       } else {
         loggers.chat.info('Regular message sending not implemented in this demo');
       }
-      setMessage('');
     } finally {
       sendingRef.current = false;
       setIsSending(false);
@@ -214,6 +227,9 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Ignore Enter while IME composition is active to avoid leaving last character
+    const nativeAny = e.nativeEvent as any;
+    if (isComposing || nativeAny?.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (!sendingRef.current) {
@@ -289,34 +305,16 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
     return `/Profile.png`;
   };
 
-  // Calculate positions
-  const calculateCirclePosition = (index: number, total: number, radius: number) => {
-    const totalParticipants = total + 1;
-    const degreesPerParticipant = 360 / totalParticipants;
-    let angle = (90 + degreesPerParticipant + (index * degreesPerParticipant)) % 360;
-    const angleInRadians = (angle * Math.PI) / 180;
-    
-    const ellipseXRadius = radius * 2.8;
-    const ellipseYRadius = radius * 0.95;
-    
-    const x = ellipseXRadius * Math.cos(angleInRadians);
-    const y = ellipseYRadius * Math.sin(angleInRadians);
-    
-    return { x, y, angle };
-  };
-
-  const getUserPosition = (radius: number) => {
-    const angle = 90;
-    const angleInRadians = (angle * Math.PI) / 180;
-    
-    const ellipseXRadius = radius * 2.8;
-    const ellipseYRadius = radius * 0.95;
-    
-    const x = ellipseXRadius * Math.cos(angleInRadians);
-    const y = ellipseYRadius * Math.sin(angleInRadians);
-    
-    return { x, y, angle };
-  };
+  // Participants list for thumbnails
+  const allParticipants = [
+    ...participants.npcs.map(npcId => ({
+      id: npcId,
+      type: 'npc' as const,
+      name: getNpcDisplayName(npcId),
+      image: getNpcProfileImage(npcId),
+    })),
+    { id: 'user', type: 'user' as const, name: username || 'User', image: getUserProfileImage() },
+  ];
 
   // Get current message (normalized to augmented shape)
   const currentMessage = augMessages.length > 0 ? augMessages[augMessages.length - 1] : null;
@@ -347,54 +345,64 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
     return acc;
   }, {} as Record<string, string>);
 
-  // Window resize handling
+  // When waiting for next message, clear waiting state once a new message is appended
   useEffect(() => {
-    const calculateRadius = () => {
-      const containerElement = document.getElementById('elliptical-table');
-      let containerWidth = 0;
-      let containerHeight = 0;
-      
-      if (containerElement) {
-        containerWidth = containerElement.offsetWidth;
-        containerHeight = containerElement.offsetHeight;
-      } else {
-        containerWidth = Math.min(windowDimensions.width * 0.8, 600);
-        containerHeight = Math.min(windowDimensions.height * 0.8, 600);
+    if (!isWaitingNext) return;
+    // Waiting for non-user reply (after sending a user message)
+    if (waitForNonUserRef.current) {
+      const base = waitBaseIndexRef.current;
+      if (augMessages.length > base) {
+        for (let i = base; i < augMessages.length; i++) {
+          const m: any = augMessages[i];
+          if (m && m.message_type && m.message_type !== 'user') {
+            setIsWaitingNext(false);
+            waitForNonUserRef.current = false;
+            waitBaseIndexRef.current = 0;
+            waitTargetCountRef.current = null;
+            break;
+          }
+        }
       }
-      
-      return Math.min(containerWidth, containerHeight) / 2.5;
-    };
-    
-    const newRadius = calculateRadius();
-    setCircleRadius(newRadius);
-    
-    const handleResize = () => {
-      const newDimensions = {
-        width: window.innerWidth,
-        height: window.innerHeight
-      };
-      setWindowDimensions(newDimensions);
-      const newRadius = calculateRadius();
-      setCircleRadius(newRadius);
-    };
-    
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', handleResize);
-      window.addEventListener('orientationchange', handleResize);
-      handleResize();
+      return;
     }
-    
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', handleResize);
-        window.removeEventListener('orientationchange', handleResize);
-      }
-    };
-  }, []);
+    // Waiting for the next appended message (after clicking Next Turn)
+    if (waitTargetCountRef.current !== null && augMessages.length >= waitTargetCountRef.current) {
+      setIsWaitingNext(false);
+      waitTargetCountRef.current = null;
+    }
+  }, [augMessages.length, isWaitingNext]);
+
+  // Always scroll messages to bottom when new messages arrive
+  useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [augMessages.length]);
+
+  // Derive active speaker info (treat system/moderator/SP/MO as Moderator with default portrait)
+  const hasNoMessages = augMessages.length === 0;
+  const activeSpeakerType = currentMessage ? (currentMessage as any).message_type : undefined;
+  const activeSenderLower = String(currentMessage?.sender || '').toLowerCase();
+  const activeSpeakerIsModerator = hasNoMessages || activeSpeakerType === 'moderator' || activeSpeakerType === 'system' || activeSenderLower === 'mo' || activeSenderLower === 'sp' || activeSenderLower === 'moderator' || activeSenderLower === 'system';
+  const activeSpeakerIsUser = currentMessage?.isUser === true;
+  const activeNpcId = !activeSpeakerIsUser && !activeSpeakerIsModerator && currentMessage ? (currentMessage.npc_id || currentMessage.sender) : null;
+  const activeSpeakerName = activeSpeakerIsUser
+    ? (username || 'User')
+    : (activeSpeakerIsModerator ? 'Moderator' : (activeNpcId ? getNpcDisplayName(activeNpcId) : null));
+  const activeSpeakerImage = activeSpeakerIsUser
+    ? getUserProfileImage()
+    : (activeSpeakerIsModerator ? MODERATOR_IMAGE : (activeNpcId ? getNpcProfileImage(activeNpcId) : getDefaultAvatar(activeSpeakerName || 'Speaker')));
+
+  // Next button label/tooltip based on state
+  const nextButtonLabel = (freeDiscussion && (freeDiscussion.state.isProcessingControl || isWaitingNext))
+    ? 'Waiting...'
+    : (hasNoMessages ? 'Begin the discussion' : 'Next Turn');
+  const nextButtonTooltip = hasNoMessages ? 'Start the discussion' : 'Request the next message';
 
   return (
     <div className="fixed inset-0 bg-white flex flex-col w-full h-full overflow-hidden">
-      <div className={`h-full w-full flex flex-col transition-transform duration-200 ease-in-out ${showHistoryDrawer ? '-translate-x-80' : ''}`}>
+      <div className="h-full w-full flex flex-col transition-transform duration-200 ease-in-out">
       {/* Chat header */}
       <div className="bg-white border-b border-gray-200 p-3 flex flex-col items-center relative flex-none">
         <button 
@@ -432,13 +440,14 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
             </button>
           )}
 
-          {/* Dialogue History Drawer Toggle */}
+          {/* Dialogue History Drawer Toggle (hidden for demo)
           <button
             onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
             className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
           >
             History
           </button>
+          */}
           
           <button 
             onClick={() => {}}
@@ -479,134 +488,169 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
         </div>
       )}
 
-      {/* Main circular chat area */}
-      <div className="flex-1 relative overflow-hidden flex items-center justify-center min-h-0">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div 
-            id="elliptical-table"
-            className="relative" 
-            style={{ 
-              width: '80vmin', 
-              height: '80vmin',
-              maxWidth: '600px',
-              maxHeight: '600px'
-            }}
-          >
-            {/* Message display */}
-            {currentMessage && (
-              <div 
-                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20"
-                style={{ 
-                  maxHeight: windowDimensions.width < 768 ? '35%' : '40%',
-                  width: windowDimensions.width < 768 ? '85%' : '70%',
-                  maxWidth: '500px',
-                }}
-              >
-                <div 
-                  className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200"
-                >
-                  <div className="font-semibold mb-2">
-                    {currentMessage.isUser
-                      ? 'User'
-                      : (currentMessage.senderName || getNpcDisplayName(currentMessage.npc_id || currentMessage.sender))}
-                  </div>
-                  <div className="text-gray-800">
-                    {currentMessage.text ?? currentMessage.content}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-2 text-right">
-                    {new Date(currentMessage.timestamp).toLocaleTimeString()}
+      {/* Main area: split layout */}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        {/* Left panel: Active speaker and thumbnails */}
+        <div className="w-[42%] min-w-[260px] border-r border-gray-200 flex flex-col">
+          {/* Active speaker */}
+          <div className="p-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col items-center relative">
+              <div className={`relative rounded-full overflow-hidden border-4 border-black w-2/3 aspect-square max-w-[420px]`}>
+                <img src={activeSpeakerImage} alt={activeSpeakerName || 'Speaker'} className="w-full h-full object-cover" onError={(e) => {
+                  const target = e.target as HTMLImageElement; target.onerror = null; target.src = getDefaultAvatar(activeSpeakerName || 'Speaker');
+                }} />
+              </div>
+              <div className="mt-3 text-sm text-gray-500">Now speaking</div>
+              <div className="text-xl font-semibold text-gray-900 truncate">{activeSpeakerName || '—'}</div>
+
+              {/* Next Turn button positioned at bottom-right of the active speaker card */}
+              {isFreeDiscussion && freeDiscussion && (
+                <div className="absolute bottom-3 right-3 group">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        waitTargetCountRef.current = augMessages.length + 1;
+                        waitBaseIndexRef.current = augMessages.length;
+                        waitForNonUserRef.current = false;
+                        setIsWaitingNext(true);
+                        await freeDiscussion.controls.onNextTurn();
+                      } catch (error) {
+                        loggers.ui.error('Next turn failed:', error);
+                        setIsWaitingNext(false);
+                        waitForNonUserRef.current = false;
+                        waitBaseIndexRef.current = 0;
+                        waitTargetCountRef.current = null;
+                      }
+                    }}
+                    disabled={freeDiscussion.state.isProcessingControl || isWaitingNext}
+                    className={`text-sm px-4 py-2 rounded-md shadow-sm ${
+                      freeDiscussion.state.isProcessingControl || isWaitingNext
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-black text-white hover:bg-gray-900 cursor-pointer'
+                    }`}
+                  >
+                    {nextButtonLabel}
+                  </button>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition duration-100 pointer-events-none bg-gray-700 text-white text-sm px-2.5 py-1.5 rounded shadow-md whitespace-nowrap">
+                    {nextButtonTooltip}
                   </div>
                 </div>
-              </div>
-            )}
-            
-            {/* Render NPCs in a circle */}
-            {participants.npcs.map((npcId, index) => {
-              const position = calculateCirclePosition(index, participants.npcs.length, circleRadius);
-              const isActive = npcId === activeSpeakerId;
-              
-              return (
-                <div 
-                  key={npcId}
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '50%',
-                    transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
-                    zIndex: isActive ? 20 : 10,
-                  }}
+              )}
+            </div>
+          </div>
+
+          {/* Thumbnails */}
+          <div className="px-4 pb-3 overflow-y-auto flex-1">
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {allParticipants.map(p => {
+                const isActive = (activeSpeakerIsUser && p.type === 'user') || (!activeSpeakerIsUser && p.type === 'npc' && (activeNpcId === p.id));
+                return (
+                  <div key={`${p.type}-${p.id}`} className="flex flex-col items-center">
+                    <div className={`rounded-full overflow-hidden border-2 ${isActive ? 'border-black' : 'border-gray-300'} w-14 h-14`}>
+                      <img src={p.image} alt={p.name} className="w-full h-full object-cover" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = getDefaultAvatar(p.name); }} />
+                    </div>
+                    <div className={`mt-1 text-[10px] font-medium ${isActive ? 'text-black' : 'text-gray-600'} truncate w-full text-center`}>{p.name}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Input area (moved from bottom) */}
+          <div className="px-4 pt-3 pb-4 border-t border-gray-200">
+            <form onSubmit={(e) => e.preventDefault()}>
+              <div className="relative bg-gray-100 rounded-md px-4 py-3 flex items-center">
+                <textarea
+                  ref={inputRef}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={() => setIsComposing(false)}
+                  placeholder={'Share your thoughts'}
+                  className="flex-1 bg-transparent outline-none resize-none text-sm py-1.5"
+                  rows={5}
+                  disabled={!isConnected}
+                />
+
+                {/* Hand-raise button hidden for demo; keep for future use
+                {isFreeDiscussion && freeDiscussion && freeDiscussion.state.allowInterruption && (
+                  <button
+                    type="button"
+                    onClick={() => loggers.ui.info('Raise hand clicked')}
+                    className="mr-2 p-1.5 rounded-full hover:bg-gray-200"
+                    title="Raise hand to speak"
+                  >
+                    <HandRaisedIcon className="h-5 w-5 text-gray-600" />
+                  </button>
+                )}
+                */}
+
+                <button
+                  type="button"
+                  onClick={(e) => handleSendMessage(e as any)}
+                  disabled={message.trim() === '' || !isConnected || isSending}
+                  className={`p-2.5 rounded-md ${
+                    message.trim() === '' || !isConnected || isSending
+                      ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                      : 'bg-black hover:bg-gray-900 text-white cursor-pointer'
+                  }`}
                 >
-                  <div className="flex flex-col items-center">
-                    <div className={`rounded-full overflow-hidden border-4 transition-all ${
-                      isActive ? 'border-blue-500 scale-110' : 'border-gray-300'
-                    }`}
-                    style={{
-                      width: windowDimensions.width < 768 ? '50px' : '70px',
-                      height: windowDimensions.width < 768 ? '50px' : '70px',
-                    }}>
-                      <img 
-                        src={getNpcProfileImage(npcId)}
-                        alt={getNpcDisplayName(npcId)}
+                  <PaperAirplaneIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* Right panel: Messages and controls */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200">
+            <div className="text-sm text-gray-700 font-medium">Conversation</div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3" ref={messagesContainerRef}>
+            {augMessages.length === 0 && (
+              <div className="text-xs text-gray-500">No messages yet.</div>
+            )}
+            {augMessages.map((msg, idx) => {
+              const senderLower = String((msg.sender || msg.npc_id || '')).toLowerCase();
+              const msgType: string | undefined = (msg as any).message_type;
+              const isModeratorMsg = msgType === 'moderator' || msgType === 'system' || senderLower === 'mo' || senderLower === 'sp' || senderLower === 'moderator' || senderLower === 'system';
+              const displayName = msg.isUser ? (username || 'User') : (isModeratorMsg ? 'Moderator' : (msg.senderName || msg.npc_id || msg.sender));
+              const avatarSrc = msg.isUser ? getUserProfileImage() : (isModeratorMsg ? MODERATOR_IMAGE : getNpcProfileImage(msg.npc_id || msg.sender));
+              const isLatest = idx === augMessages.length - 1;
+              return (
+                <div key={`msg-${idx}`} className={`bg-white rounded-md p-3 ${isLatest ? 'border-2 border-black' : 'border border-gray-200'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-full overflow-hidden border border-black w-8 h-8">
+                      <img
+                        src={avatarSrc}
+                        alt={displayName}
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.onerror = null;
-                          target.src = getDefaultAvatar(getNpcDisplayName(npcId));
-                        }}
+                        onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = getDefaultAvatar(displayName); }}
                       />
                     </div>
-                    <div className={`text-xs mt-2 font-medium ${
-                      isActive ? 'text-black' : 'text-gray-600'
-                    }`}>
-                      {getNpcDisplayName(npcId)}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-500">
+                        <span className="font-medium text-gray-700">{displayName}</span>
+                        <span className="mx-1">•</span>
+                        <span>{new Date(msg.timestamp).toLocaleTimeString()}</span>
+                      </div>
+                      <div className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{msg.text ?? msg.content}</div>
                     </div>
                   </div>
                 </div>
               );
             })}
-            
-            {/* User at the bottom */}
-            <div 
-              style={{
-                position: 'absolute',
-                left: '50%',
-                top: '50%',
-                transform: `translate(calc(-50% + ${getUserPosition(circleRadius).x}px), calc(-50% + ${getUserPosition(circleRadius).y}px))`,
-                zIndex: username === activeSpeakerId ? 20 : 10,
-              }}
-            >
-              <div className="flex flex-col items-center">
-                <div className={`rounded-full overflow-hidden border-4 transition-all ${
-                  username === activeSpeakerId ? 'border-blue-500 scale-110' : 'border-gray-300'
-                }`}
-                style={{
-                  width: windowDimensions.width < 768 ? '50px' : '70px',
-                  height: windowDimensions.width < 768 ? '50px' : '70px',
-                }}>
-                  <img 
-                    src={getUserProfileImage()}
-                    alt="User"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.onerror = null;
-                      target.src = getDefaultAvatar(username || 'User');
-                    }}
-                  />
-                </div>
-                <div className={`text-xs mt-2 font-medium ${
-                  username === activeSpeakerId ? 'text-black' : 'text-gray-600'
-                }`}>
-                  User
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Timeline for Free Discussion */}
-      {isFreeDiscussion && (
+      {/* Timeline for Free Discussion (hidden for demo release; keep for future use)
+      {isFreeDiscussion && freeDiscussion && (
         <FreeDiscussionTimeline
           turns={philosopherTurns}
           currentTurn={freeDiscussion.state.currentTurn}
@@ -615,9 +659,10 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
           philosopherColors={philosopherColors}
         />
       )}
+      */}
 
-      {/* Playback controls for Free Discussion */}
-      {isFreeDiscussion && freeDiscussion.state.showPlaybackControls && (
+      {/* Playback controls for Free Discussion (hidden for demo release; keep for future use)
+      {isFreeDiscussion && freeDiscussion && freeDiscussion.state.showPlaybackControls && (
         <PlaybackControls
           isPlaying={!freeDiscussion.state.isPaused}
           isPaused={freeDiscussion.state.isPaused}
@@ -635,55 +680,12 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
           onNextTurn={freeDiscussion.controls.onNextTurn}
         />
       )}
-      
-      {/* Input area */}
-      <div className="bg-white border-t border-gray-200 p-3 w-full flex-none">
-        <form onSubmit={(e) => e.preventDefault()} className="max-w-3xl mx-auto">
-          <div className="relative bg-gray-100 rounded-full px-4 py-2 flex items-center">
-            <textarea
-              ref={inputRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={
-                isFreeDiscussion && freeDiscussion.state.allowInterruption
-                  ? "Type to interrupt the discussion..."
-                  : "Type a message..."
-              }
-              className="flex-1 bg-transparent outline-none resize-none text-sm"
-              rows={1}
-              disabled={!isConnected}
-            />
-            
-            {isFreeDiscussion && freeDiscussion.state.allowInterruption && (
-              <button
-                type="button"
-                onClick={() => loggers.ui.info('Raise hand clicked')}
-                className="mr-2 p-1.5 rounded-full hover:bg-gray-200"
-                title="Raise hand to speak"
-              >
-                <HandRaisedIcon className="h-5 w-5 text-gray-600" />
-              </button>
-            )}
-            
-            <button
-              type="button"
-              onClick={(e) => handleSendMessage(e as any)}
-              disabled={message.trim() === '' || !isConnected || isSending}
-              className={`p-1.5 rounded-full ${
-                message.trim() === '' || !isConnected || isSending
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              <PaperAirplaneIcon className="h-5 w-5" />
-            </button>
-          </div>
-        </form>
-      </div>
+      */}
+
+      {/* Removed bottom Next container and bottom input area as requested */}
       </div>
 
-      {/* Right Drawer: Dialogue History */}
+      {/* Right Drawer: Dialogue History (hidden for demo)
       <aside className={`fixed top-0 right-0 h-full w-80 bg-white border-l border-gray-200 shadow-xl transition-transform duration-200 ease-in-out ${showHistoryDrawer ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="h-full flex flex-col">
           <div className="flex items-center justify-between p-3 border-b">
@@ -712,6 +714,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
           </div>
         </div>
       </aside>
+      */}
     </div>
   );
 };
