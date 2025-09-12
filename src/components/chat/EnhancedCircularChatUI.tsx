@@ -401,6 +401,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
     ? 'Waiting...'
     : (hasNoMessages ? 'Begin the discussion' : 'Next Turn');
   const nextButtonTooltip = hasNoMessages ? 'Start the discussion' : 'Request the next message';
+  const shouldPulseBegin = hasNoMessages && !!freeDiscussion && !(freeDiscussion.state.isProcessingControl || isWaitingNext);
 
   return (
     <div className="fixed inset-0 bg-white flex flex-col w-full h-full overflow-hidden">
@@ -529,7 +530,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
                     className={`text-sm px-4 py-2 rounded-md shadow-sm ${
                       freeDiscussion.state.isProcessingControl || isWaitingNext
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-black text-white hover:bg-gray-900 cursor-pointer'
+                        : `bg-black text-white hover:bg-gray-900 cursor-pointer ${shouldPulseBegin ? 'animate-pulse' : ''}`
                     }`}
                   >
                     {nextButtonLabel}
