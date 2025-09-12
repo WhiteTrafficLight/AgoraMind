@@ -99,6 +99,8 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
   };
   const augMessages = messages as unknown as AugmentedMessage[];
   const isConnected = isFreeDiscussion ? freeDiscussion.isConnected : true;
+  // Disable input until we receive the first non-user message (moderator/system/philosopher)
+  const hasReceivedNonUser = augMessages.some(m => !m.isUser);
   const MODERATOR_IMAGE = '/moderator_portraits/Moderator_basic.png';
 
   // Load user information
@@ -619,14 +621,14 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
               placeholder={'Share your thoughts'}
               className="flex-1 bg-transparent outline-none resize-none text-sm py-1.5"
               rows={3}
-              disabled={!isConnected}
+              disabled={!isConnected || !hasReceivedNonUser}
             />
             <button
               type="button"
               onClick={(e) => handleSendMessage(e as any)}
-              disabled={message.trim() === '' || !isConnected || isSending}
+              disabled={message.trim() === '' || !isConnected || isSending || !hasReceivedNonUser}
               className={`px-3 py-2 rounded-md ${
-                message.trim() === '' || !isConnected || isSending
+                message.trim() === '' || !isConnected || isSending || !hasReceivedNonUser
                   ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
                   : 'bg-black hover:bg-gray-900 text-white cursor-pointer'
               }`}
