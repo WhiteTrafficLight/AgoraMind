@@ -558,51 +558,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
             </div>
           </div>
 
-          {/* Input area (moved from bottom) */}
-          <div className="px-4 pt-3 pb-4 border-t border-gray-200">
-            <form onSubmit={(e) => e.preventDefault()}>
-              <div className="relative bg-gray-100 rounded-md px-4 py-3 flex items-center">
-                <textarea
-                  ref={inputRef}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  onCompositionStart={() => setIsComposing(true)}
-                  onCompositionEnd={() => setIsComposing(false)}
-                  placeholder={'Share your thoughts'}
-                  className="flex-1 bg-transparent outline-none resize-none text-sm py-1.5"
-                  rows={5}
-                  disabled={!isConnected}
-                />
-
-                {/* Hand-raise button hidden for demo; keep for future use
-                {isFreeDiscussion && freeDiscussion && freeDiscussion.state.allowInterruption && (
-                  <button
-                    type="button"
-                    onClick={() => loggers.ui.info('Raise hand clicked')}
-                    className="mr-2 p-1.5 rounded-full hover:bg-gray-200"
-                    title="Raise hand to speak"
-                  >
-                    <HandRaisedIcon className="h-5 w-5 text-gray-600" />
-                  </button>
-                )}
-                */}
-
-                <button
-                  type="button"
-                  onClick={(e) => handleSendMessage(e as any)}
-                  disabled={message.trim() === '' || !isConnected || isSending}
-                  className={`p-2.5 rounded-md ${
-                    message.trim() === '' || !isConnected || isSending
-                      ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                      : 'bg-black hover:bg-gray-900 text-white cursor-pointer'
-                  }`}
-                >
-                  <PaperAirplaneIcon className="h-5 w-5" />
-                </button>
-              </div>
-            </form>
-          </div>
+          {/* (input moved to full-width bottom bar) */}
         </div>
 
         {/* Right panel: Messages and controls */}
@@ -647,6 +603,38 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
             })}
           </div>
         </div>
+      </div>
+
+      {/* Full-width bottom input bar */}
+      <div className="border-t border-gray-200 bg-white p-3 flex items-start gap-3">
+        <form onSubmit={(e) => e.preventDefault()} className="w-full">
+          <div className="relative bg-gray-100 rounded-md px-4 py-3 flex items-start gap-3">
+            <textarea
+              ref={inputRef}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyPress}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              placeholder={'Share your thoughts'}
+              className="flex-1 bg-transparent outline-none resize-none text-sm py-1.5"
+              rows={3}
+              disabled={!isConnected}
+            />
+            <button
+              type="button"
+              onClick={(e) => handleSendMessage(e as any)}
+              disabled={message.trim() === '' || !isConnected || isSending}
+              className={`px-3 py-2 rounded-md ${
+                message.trim() === '' || !isConnected || isSending
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : 'bg-black hover:bg-gray-900 text-white cursor-pointer'
+              }`}
+            >
+              <PaperAirplaneIcon className="h-5 w-5" />
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Timeline for Free Discussion (hidden for demo release; keep for future use)
