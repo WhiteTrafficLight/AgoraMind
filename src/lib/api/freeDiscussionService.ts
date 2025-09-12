@@ -5,6 +5,7 @@ import {
   ConversationSummary,
   FreeDiscussionConfig
 } from '@/app/open-chat/types/freeDiscussion.types';
+import { loggers } from '@/utils/logger';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -12,9 +13,9 @@ class FreeDiscussionService {
   private baseUrl = `${API_BASE_URL}/api/free-discussion`;
 
   async createSession(request: CreateFreeDiscussionRequest): Promise<CreateFreeDiscussionResponse> {
-    console.log('🌐 Free Discussion API Base URL:', API_BASE_URL);
-    console.log('🎯 Full endpoint URL:', `${this.baseUrl}/create`);
-    console.log('📤 Request payload:', request);
+    loggers.api.debug('Free Discussion API Base URL', API_BASE_URL);
+    loggers.api.debug('Create endpoint URL', `${this.baseUrl}/create`);
+    loggers.api.debug('Create request payload', request);
     
     const response = await fetch(`${this.baseUrl}/create`, {
       method: 'POST',
@@ -24,37 +25,35 @@ class FreeDiscussionService {
       body: JSON.stringify(request),
     });
 
-    console.log('📥 Response status:', response.status);
-    console.log('📥 Response status text:', response.statusText);
+    loggers.api.debug('Create response status', response.status, response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ API Error response:', errorText);
+      loggers.api.error('Create API error response', errorText);
       throw new Error(`Failed to create session: ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('✅ Success response:', data);
+    loggers.api.debug('Create success response', data);
     return data;
   }
 
   async getSessionStatus(sessionId: string): Promise<FreeDiscussionSession> {
-    console.log('🔍 Getting session status for:', sessionId);
-    console.log('🎯 Status endpoint URL:', `${this.baseUrl}/${sessionId}`);
+    loggers.api.debug('Get session status for', sessionId);
+    loggers.api.debug('Status endpoint URL', `${this.baseUrl}/${sessionId}`);
     
     const response = await fetch(`${this.baseUrl}/${sessionId}`);
     
-    console.log('📥 Status response status:', response.status);
-    console.log('📥 Status response status text:', response.statusText);
+    loggers.api.debug('Status response', response.status, response.statusText);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Status API Error response:', errorText);
+      loggers.api.error('Status API error response', errorText);
       throw new Error(`Failed to get session status: ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('✅ Status success response:', data);
+    loggers.api.debug('Status success response', data);
     return data;
   }
 
@@ -129,22 +128,21 @@ class FreeDiscussionService {
   }
 
   async getConversationSummary(sessionId: string): Promise<ConversationSummary> {
-    console.log('📊 Getting conversation summary for:', sessionId);
-    console.log('🎯 Summary endpoint URL:', `${this.baseUrl}/${sessionId}/summary`);
+    loggers.api.debug('Get conversation summary for', sessionId);
+    loggers.api.debug('Summary endpoint URL', `${this.baseUrl}/${sessionId}/summary`);
     
     const response = await fetch(`${this.baseUrl}/${sessionId}/summary`);
     
-    console.log('📥 Summary response status:', response.status);
-    console.log('📥 Summary response status text:', response.statusText);
+    loggers.api.debug('Summary response', response.status, response.statusText);
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Summary API Error response:', errorText);
+      loggers.api.error('Summary API error response', errorText);
       throw new Error(`Failed to get summary: ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('✅ Summary success response:', data);
+    loggers.api.debug('Summary success response', data);
     return data.conversation_summary;
   }
 }

@@ -21,7 +21,9 @@ class Logger {
   constructor(config: LoggerConfig = {}) {
     this.name = config.name || 'DEFAULT';
     this.prefix = config.prefix || '';
-    this.useEmojis = config.useEmojis !== false; // default true
+    // Disable emojis in production by default, allow opt-in via config
+    const isProd = process.env.NODE_ENV === 'production';
+    this.useEmojis = config.useEmojis !== undefined ? config.useEmojis : !isProd;
 
     // 환경변수에서 로그 레벨 결정
     this.level = this.determineLogLevel(config.level);
@@ -72,14 +74,14 @@ class Logger {
         if (LogLevel[level as keyof typeof LogLevel] !== undefined) {
           localStorage.setItem(`debug_log_level_${this.name}`, level);
           this.level = LogLevel[level as keyof typeof LogLevel];
-          console.log(`🔧 ${this.name} 로그 레벨이 ${level}로 변경되었습니다.`);
+          console.log(`${this.name} log level changed to ${level}`);
         } else {
-          console.error(`❌ 유효하지 않은 로그 레벨: ${level}. 사용 가능: ERROR, WARN, INFO, DEBUG`);
+          console.error(`Invalid log level: ${level}. Allowed: ERROR, WARN, INFO, DEBUG`);
         }
       },
       [`get${this.name}LogLevel`]: () => {
         const currentLevel = LogLevel[this.level];
-        console.log(`ℹ️ ${this.name} 현재 로그 레벨: ${currentLevel}`);
+        console.log(`${this.name} current log level: ${currentLevel}`);
         return currentLevel;
       }
     };
@@ -101,40 +103,40 @@ class Logger {
 
   error(...args: any[]) {
     if (this.level >= LogLevel.ERROR) {
-      console.error(...this.formatMessage('ERROR', '🚨', ...args));
+      console.error(...this.formatMessage('ERROR', this.useEmojis ? '🚨' : '', ...args));
     }
   }
 
   warn(...args: any[]) {
     if (this.level >= LogLevel.WARN) {
-      console.warn(...this.formatMessage('WARN', '⚠️', ...args));
+      console.warn(...this.formatMessage('WARN', this.useEmojis ? '⚠️' : '', ...args));
     }
   }
 
   info(...args: any[]) {
     if (this.level >= LogLevel.INFO) {
-      console.log(...this.formatMessage('INFO', 'ℹ️', ...args));
+      console.log(...this.formatMessage('INFO', this.useEmojis ? 'ℹ️' : '', ...args));
     }
   }
 
   debug(...args: any[]) {
     if (this.level >= LogLevel.DEBUG) {
-      console.log(...this.formatMessage('DEBUG', '🐛', ...args));
+      console.log(...this.formatMessage('DEBUG', this.useEmojis ? '🐛' : '', ...args));
     }
   }
 
   // 항상 출력되는 강제 로그 (긴급 디버깅용)
   force(...args: any[]) {
-    console.log(...this.formatMessage('FORCE', '🔧', ...args));
+    console.log(...this.formatMessage('FORCE', this.useEmojis ? '🔧' : '', ...args));
   }
 
   // 그룹 로깅
   group(name: string, collapsed: boolean = false) {
     if (this.level >= LogLevel.DEBUG) {
       if (collapsed) {
-        console.groupCollapsed(...this.formatMessage('GROUP', '📁', name));
+        console.groupCollapsed(...this.formatMessage('GROUP', this.useEmojis ? '📁' : '', name));
       } else {
-        console.group(...this.formatMessage('GROUP', '📂', name));
+        console.group(...this.formatMessage('GROUP', this.useEmojis ? '📂' : '', name));
       }
     }
   }
@@ -164,14 +166,14 @@ export const logger = new Logger({ name: 'GLOBAL' });
 
 // 카테고리별 로거들
 export const loggers = {
-  socket: new Logger({ name: 'SOCKET', prefix: '🔌' }),
-  chat: new Logger({ name: 'CHAT', prefix: '💬' }),
-  api: new Logger({ name: 'API', prefix: '🌐' }),
-  npc: new Logger({ name: 'NPC', prefix: '🤖' }),
-  auth: new Logger({ name: 'AUTH', prefix: '🔐' }),
-  db: new Logger({ name: 'DB', prefix: '💾' }),
-  ui: new Logger({ name: 'UI', prefix: '🎨' }),
-  rag: new Logger({ name: 'RAG', prefix: '🔍' })
+  socket: new Logger({ name: 'SOCKET' }),
+  chat: new Logger({ name: 'CHAT' }),
+  api: new Logger({ name: 'API' }),
+  npc: new Logger({ name: 'NPC' }),
+  auth: new Logger({ name: 'AUTH' }),
+  db: new Logger({ name: 'DB' }),
+  ui: new Logger({ name: 'UI' }),
+  rag: new Logger({ name: 'RAG' })
 };
 
 // Factory for creating custom loggers externally without exposing class
@@ -200,33 +202,17 @@ if (typeof window !== 'undefined') {
           logger.setLevel(LogLevel[level as keyof typeof LogLevel]);
         }
       });
-      console.log(`🔧 모든 로거의 레벨이 ${level}로 변경되었습니다.`);
+      console.log(`All loggers' levels set to ${level}`);
     },
     showHelp: () => {
-      console.log(`
-🔧 AgoraMind 로거 제어 명령어:
-
-전체 제어:
-  AgoraLoggers.setGlobalLevel('DEBUG')  // 모든 로그 활성화
-  AgoraLoggers.setGlobalLevel('ERROR')  // 에러만 표시
-
-개별 제어:
-  loggerControls.setSOCKETLogLevel('DEBUG')
-  loggerControls.setCHATLogLevel('INFO')
-  loggerControls.setAPILogLevel('WARN')
-  
-로그 레벨: ERROR < WARN < INFO < DEBUG
-
-현재 상태 확인:
-  loggerControls.getSOCKETLogLevel()
-      `);
+      console.log(`AgoraMind Logger Controls:\n\nGlobal:\n  AgoraLoggers.setGlobalLevel('DEBUG')\n  AgoraLoggers.setGlobalLevel('ERROR')\n\nPer logger:\n  loggerControls.setSOCKETLogLevel('DEBUG')\n  loggerControls.setCHATLogLevel('INFO')\n  loggerControls.setAPILogLevel('WARN')\n\nLevels: ERROR < WARN < INFO < DEBUG\n\nCurrent:\n  loggerControls.getSOCKETLogLevel()`);
     }
   };
 
   // 초기 도움말 표시 (개발환경에서만)
   if (process.env.NODE_ENV === 'development') {
     setTimeout(() => {
-      console.log('🔧 로거 도움말을 보려면 AgoraLoggers.showHelp() 를 입력하세요');
+      console.log('Type AgoraLoggers.showHelp() for logger help');
     }, 1000);
   }
 } 
