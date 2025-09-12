@@ -402,6 +402,20 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
     : (hasNoMessages ? 'Begin the discussion' : 'Next Turn');
   const nextButtonTooltip = hasNoMessages ? 'Start the discussion' : 'Request the next message';
   const shouldPulseBegin = hasNoMessages && !!freeDiscussion && !(freeDiscussion.state.isProcessingControl || isWaitingNext);
+  const isWaiting = !!freeDiscussion && (freeDiscussion.state.isProcessingControl || isWaitingNext);
+
+  // Waiting dots animation state
+  const [dotCount, setDotCount] = useState(0);
+  useEffect(() => {
+    if (!isWaiting) {
+      setDotCount(0);
+      return;
+    }
+    const id = setInterval(() => {
+      setDotCount(prev => (prev + 1) % 3);
+    }, 450);
+    return () => clearInterval(id);
+  }, [isWaiting]);
 
   return (
     <div className="fixed inset-0 bg-white flex flex-col w-full h-full overflow-hidden">
@@ -502,6 +516,13 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
                 <img src={activeSpeakerImage} alt={activeSpeakerName || 'Speaker'} className="w-full h-full object-cover" onError={(e) => {
                   const target = e.target as HTMLImageElement; target.onerror = null; target.src = getDefaultAvatar(activeSpeakerName || 'Speaker');
                 }} />
+                {isWaiting && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <div className="text-white text-[7.5rem] font-semibold leading-none select-none">
+                      {'.'.repeat(dotCount + 1)}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="mt-3 text-sm text-gray-500">Now speaking</div>
               <div className="text-xl font-semibold text-gray-900 truncate">{activeSpeakerName || '—'}</div>
