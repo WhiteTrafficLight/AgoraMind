@@ -42,16 +42,17 @@ export default function ProfileDrawer({ isOpen, onClose, anchor }: ProfileDrawer
       <div
         ref={drawerRef}
         onClick={e => e.stopPropagation()}
-        className={`fixed z-[10001] max_h-[90vh] w-[22rem] bg-white shadow-2xl border border-gray-200 rounded-xl transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={`fixed z-[10001] max-h-[90vh] w-[22rem] bg-white shadow-2xl border border-gray-200 rounded-xl transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ top: anchor?.top ?? 24, right: anchor?.right ?? 24 }}
       >
         <div className="p-4 flex flex-col gap-2 overflow-y-auto max-h-[85vh]">
           <Link 
-            href="#" 
+            href="/settings/custom-npc" 
             prefetch={false}
             onClick={(e) => { e.preventDefault(); }}
-            aria-disabled
+            aria-disabled="true"
             title="coming soon"
+            tabIndex={-1}
             className="flex items-center gap-3 px-3 py-2 rounded-md text-gray-400 bg-gray-50 cursor-not-allowed"
           >
             <span className="text-sm font-medium">Custom Philosophers</span>
@@ -75,7 +76,7 @@ export default function ProfileDrawer({ isOpen, onClose, anchor }: ProfileDrawer
               signOut({ callbackUrl: '/' });
               onClose();
             }}
-            className="flex items_center gap-3 px-3 py-2 rounded-md bg-red-50 text-red-700 hover:bg-red-100"
+            className="flex items-center gap-3 px-3 py-2 rounded-md bg-red-50 text-red-700 hover:bg-red-100"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
