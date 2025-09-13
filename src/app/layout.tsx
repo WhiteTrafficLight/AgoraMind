@@ -8,6 +8,14 @@ import { Providers } from './providers';
 export const metadata: Metadata = {
   title: 'AgoraMind',
   description: 'AI-powered chat application',
+  icons: {
+    icon: [
+      { url: '/Logo.png', sizes: '32x32', type: 'image/png' },
+      { url: '/Logo.png', sizes: '192x192', type: 'image/png' }
+    ],
+    shortcut: ['/Logo.png'],
+    apple: ['/Logo.png']
+  }
 };
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
