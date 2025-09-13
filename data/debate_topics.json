@@ -4,10 +4,10 @@
         "name": "Dilemma Challenge",
         "topics": [
           {
-            "title": "Would you step on a puppy for 10 billion dollars?",
+            "title": "Would you step on a puppy for 1 million dollars?",
             "context": {
               "type": "text",
-              "content": "You've been unemployed for eight months. Your savings are gone, credit cards maxed out, and eviction notices keep piling up. Your elderly parents need expensive medical treatment you can't afford. The bank is foreclosing on your childhood home tomorrow. Then, a mysterious billionaire appears with an offer: step on this innocent puppy once, and receive 10 billion dollars instantly. No one will ever know. The puppy will survive but suffer temporary pain. Your family's financial nightmares would vanish forever, and you could help countless others with the remaining money. But you'd have to live with this moment for the rest of your life. The clock is ticking – what do you choose?"
+              "content": "You've been unemployed for eight months. Your savings are gone, credit cards maxed out, and eviction notices keep piling up. Your elderly parents need expensive medical treatment you can't afford. The bank is foreclosing on your childhood home tomorrow. Then, a mysterious billionaire appears with an offer: step on this innocent puppy once, and receive 1 million dollars instantly. No one will ever know. The puppy will die from this action. Your family's financial nightmares would vanish forever, and you could help countless others with the remaining money. But you'd have to live with this moment for the rest of your life. The clock is ticking – what do you choose?"
             },
             "moderator_style": 2,
             "pro_philosophers": ["nietzsche", "sartre"],
