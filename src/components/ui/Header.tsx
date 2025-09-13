@@ -71,16 +71,11 @@ const Header = () => {
             </button>
           </div>
 
-          {/* Center: Logo */}
+          {/* Center: Title */}
           <Link href="/" className="text-center">
-            <Image
-              src="/Logo.png"
-              alt="AgoraMind"
-              width={224}
-              height={224}
-              priority
-              className="h-12 w-auto md:h-14"
-            />
+            <span className="text-black font-black tracking-tight text-5xl md:text-6xl">
+              AgoraMind
+            </span>
           </Link>
 
           {/* Right: Login/Profile flush to edge */}
