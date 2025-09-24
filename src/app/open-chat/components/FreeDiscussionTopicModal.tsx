@@ -34,7 +34,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
   
   // Fine-tuned philosophers allowed for selection
-  const FINE_TUNED = new Set(['sartre', 'camus', 'nietzsche']);
+  const FINE_TUNED = new Set(['sartre', 'camus', 'nietzsche', 'plato', 'buddha']);
 
   // Reset selections when modal opens or topic changes
   useEffect(() => {

@@ -51,7 +51,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   });
   
   // Fine-tuned philosophers (allowed for selection)
-  const FINE_TUNED = new Set(['sartre', 'camus', 'nietzsche']);
+  const FINE_TUNED = new Set(['sartre', 'camus', 'nietzsche', 'plato', 'buddha']);
   
   // Deprecated (file input removed); keep ref to avoid refactor errors
   const fileInputRef = useRef<HTMLInputElement>(null);
