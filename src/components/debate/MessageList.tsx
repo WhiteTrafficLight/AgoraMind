@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowDownCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
-import TypingMessage from '../TypingMessage';
+import TypingMessage from '@/components/chat/TypingMessage';
 import { loggers } from '@/utils/logger';
 
 interface MessageListProps {

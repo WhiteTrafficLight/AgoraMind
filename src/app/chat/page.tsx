@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import DebateChatContainer from '@/components/chat/main_components/DebateChatContainer';
+import DebateChatContainer from '@/components/debate/DebateChatContainer';
 import CircularChatUI from '@/components/chat/CircularChatUI';
 import EnhancedCircularChatUI from '@/components/chat/EnhancedCircularChatUI';
 import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DebateStage, DebateState, TurnInfo } from '../types/debate.types';
+import { DebateStage, DebateState, TurnInfo } from '@/types/debate';
 
 export function useDebateState() {
   const [debateState, setDebateState] = useState<DebateState>({

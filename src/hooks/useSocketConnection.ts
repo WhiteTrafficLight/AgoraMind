@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { SocketEvents, TurnInfo } from '../types/debate.types';
+import { SocketEvents, TurnInfo } from '@/types/debate';
 
 interface UseSocketConnectionProps {
   roomId: string;
