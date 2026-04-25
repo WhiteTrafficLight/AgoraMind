@@ -66,7 +66,7 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
         }
       });
       
-      if (matchingCitation) {
+      if (matchingCitation && matchingCitation.url) {
         fullUrl = matchingCitation.url;
       }
     }
@@ -151,14 +151,15 @@ const MessageList: React.FC<MessageListProps> = ({
         }
       } else {
         // 기존 rag_sources 구조 처리 (하위 호환성)
-        if (source.type === 'web' && source.metadata?.url) {
+        const ragSource = source as RagSource;
+        if (ragSource.type === 'web' && ragSource.metadata?.url) {
           try {
-            window.open(source.metadata.url, '_blank', 'noopener,noreferrer');
+            window.open(ragSource.metadata.url, '_blank', 'noopener,noreferrer');
           } catch (error) {
             loggers.rag.error('Failed to open web URL', error);
           }
-        } else if (source.type === 'context' && source.metadata?.file_path) {
-          loggers.rag.info('Context file accessed', { filePath: source.metadata.file_path });
+        } else if (ragSource.type === 'context' && ragSource.metadata?.file_path) {
+          loggers.rag.info('Context file accessed', { filePath: ragSource.metadata.file_path });
         }
       }
     };
@@ -167,13 +168,14 @@ const MessageList: React.FC<MessageListProps> = ({
       if (hasCitations) {
         return source.url && source.url.startsWith('http');
       } else {
-        return (source.type === 'web' && source.metadata?.url) || 
-               (source.type === 'context' && source.metadata?.file_path);
+        const ragSource = source as RagSource;
+        return (ragSource.type === 'web' && ragSource.metadata?.url) ||
+               (ragSource.type === 'context' && ragSource.metadata?.file_path);
       }
     };
 
-    const sourceCount = hasCitations ? message.citations.length : message.rag_source_count;
-    const sources = hasCitations ? message.citations : message.rag_sources;
+    const sourceCount = hasCitations ? (message.citations?.length ?? 0) : (message.rag_source_count ?? 0);
+    const sources: Array<RagSource | Citation> = (hasCitations ? message.citations : message.rag_sources) ?? [];
 
     return (
       <div className="debate-rag-indicator">
@@ -225,27 +227,32 @@ const MessageList: React.FC<MessageListProps> = ({
                   </>
                 ) : (
                   // 기존 rag_sources 구조 렌더링 (하위 호환성)
-                  <>
-                    <div className="debate-rag-source-type">
-                      {source.type === 'web' ? '🌐 Web' : 
-                       source.type === 'context' ? '📄 Context' :
-                       source.type === 'dialogue' ? '💬 Dialogue' :
-                       source.type === 'philosopher' ? '🧠 Philosopher' : '📚 Source'}
-                    </div>
-                    <div className="debate-rag-source-content">
-                      {source.content ? source.content.substring(0, 100) : 'No content available'}...
-                    </div>
-                    {source.relevance_score && (
-                      <div className="debate-rag-source-score">
-                        Relevance: {(source.relevance_score * 100).toFixed(1)}%
-                      </div>
-                    )}
-                    {!source.relevance_score && source.relevance && (
-                      <div className="debate-rag-source-score">
-                        Relevance: {(source.relevance * 100).toFixed(1)}%
-                      </div>
-                    )}
-                  </>
+                  (() => {
+                    const ragSource = source as RagSource & { content?: string; relevance_score?: number; relevance?: number };
+                    return (
+                      <>
+                        <div className="debate-rag-source-type">
+                          {ragSource.type === 'web' ? '🌐 Web' :
+                           ragSource.type === 'context' ? '📄 Context' :
+                           ragSource.type === 'dialogue' ? '💬 Dialogue' :
+                           ragSource.type === 'philosopher' ? '🧠 Philosopher' : '📚 Source'}
+                        </div>
+                        <div className="debate-rag-source-content">
+                          {ragSource.content ? ragSource.content.substring(0, 100) : 'No content available'}...
+                        </div>
+                        {ragSource.relevance_score && (
+                          <div className="debate-rag-source-score">
+                            Relevance: {(ragSource.relevance_score * 100).toFixed(1)}%
+                          </div>
+                        )}
+                        {!ragSource.relevance_score && ragSource.relevance && (
+                          <div className="debate-rag-source-score">
+                            Relevance: {(ragSource.relevance * 100).toFixed(1)}%
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()
                 )}
               </div>
             ))}

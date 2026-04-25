@@ -62,7 +62,7 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
         }
       });
       
-      if (matchingCitation) {
+      if (matchingCitation && matchingCitation.url) {
         fullUrl = matchingCitation.url;
       }
     }

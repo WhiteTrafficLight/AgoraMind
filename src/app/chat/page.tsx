@@ -102,17 +102,24 @@ function ChatContent() {
                 msg.isGenerating && msg.sender === data.message.sender
               );
               
-              if (tempMessageIndex >= 0) {
-                // 임시 메시지를 완성된 메시지로 교체
-                const completeMessage = {
-                  ...data.message,
-                  skipAnimation: false,  // 완성된 메시지는 타이핑 애니메이션 적용
-                  // metadata에서 RAG 정보 추출
-                  rag_used: data.message.metadata?.rag_used || false,
-                  rag_source_count: data.message.metadata?.rag_source_count || 0,
-                  rag_sources: data.message.metadata?.rag_sources || [],
-                  citations: data.message.metadata?.citations || []
+              const enrichFromMetadata = (msg: ChatMessage): ChatMessage => {
+                const meta = (msg.metadata ?? {}) as {
+                  rag_used?: boolean;
+                  rag_source_count?: number;
+                  rag_sources?: ChatMessage['rag_sources'];
+                  citations?: ChatMessage['citations'];
                 };
+                return {
+                  ...msg,
+                  skipAnimation: false,
+                  rag_used: meta.rag_used || false,
+                  rag_source_count: meta.rag_source_count || 0,
+                  rag_sources: meta.rag_sources || [],
+                  citations: meta.citations || [],
+                };
+              };
+              if (tempMessageIndex >= 0) {
+                const completeMessage = enrichFromMetadata(data.message);
                 messagesCopy[tempMessageIndex] = completeMessage;
                 loggers.chat.info('임시 메시지 교체 완료');
                 loggers.rag.debug('RAG 정보', {
@@ -128,15 +135,7 @@ function ChatContent() {
               } else {
                 // 임시 메시지가 없으면 새로 추가
                 loggers.chat.warn('임시 메시지를 찾을 수 없어 새로 추가');
-                const newMessage = {
-                  ...data.message,
-                  skipAnimation: false,
-                  // metadata에서 RAG 정보 추출
-                  rag_used: data.message.metadata?.rag_used || false,
-                  rag_source_count: data.message.metadata?.rag_source_count || 0,
-                  rag_sources: data.message.metadata?.rag_sources || [],
-                  citations: data.message.metadata?.citations || []
-                };
+                const newMessage = enrichFromMetadata(data.message);
                 
                 loggers.rag.debug('일반 메시지 RAG 정보', {
                   rag_used: newMessage.rag_used,
@@ -154,15 +153,23 @@ function ChatContent() {
             } else {
               // 일반 메시지인 경우 기존 로직 사용
               loggers.chat.debug('일반 메시지 추가');
-              const newMessage = {
-                ...data.message,
-                skipAnimation: false,
-                // metadata에서 RAG 정보 추출
-                rag_used: data.message.metadata?.rag_used || false,
-                rag_source_count: data.message.metadata?.rag_source_count || 0,
-                rag_sources: data.message.metadata?.rag_sources || [],
-                citations: data.message.metadata?.citations || []
+              const enrichFromMetadataOuter = (msg: ChatMessage): ChatMessage => {
+                const meta = (msg.metadata ?? {}) as {
+                  rag_used?: boolean;
+                  rag_source_count?: number;
+                  rag_sources?: ChatMessage['rag_sources'];
+                  citations?: ChatMessage['citations'];
+                };
+                return {
+                  ...msg,
+                  skipAnimation: false,
+                  rag_used: meta.rag_used || false,
+                  rag_source_count: meta.rag_source_count || 0,
+                  rag_sources: meta.rag_sources || [],
+                  citations: meta.citations || [],
+                };
               };
+              const newMessage = enrichFromMetadataOuter(data.message);
               
               loggers.rag.debug('일반 메시지 RAG 정보', {
                 rag_used: newMessage.rag_used,
@@ -305,7 +312,7 @@ function ChatContent() {
         text: message.trim(),
         sender: username || 'User',
         isUser: true,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
         role: 'user'
       });
       

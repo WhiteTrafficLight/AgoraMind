@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { type AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import connectDB from "@/lib/mongodb";
@@ -6,11 +6,11 @@ import User from "@/models/User";
 import { loggers } from "@/utils/logger";
 
 // Check if Google OAuth should be enabled (only in production or when explicitly configured)
-const isGoogleOAuthEnabled = process.env.NODE_ENV === 'production' && 
-  process.env.GOOGLE_CLIENT_ID && 
+const isGoogleOAuthEnabled = process.env.NODE_ENV === 'production' &&
+  process.env.GOOGLE_CLIENT_ID &&
   process.env.GOOGLE_CLIENT_SECRET;
 
-const providers = [
+const providers: AuthOptions["providers"] = [
   CredentialsProvider({
     name: "Credentials",
     credentials: {

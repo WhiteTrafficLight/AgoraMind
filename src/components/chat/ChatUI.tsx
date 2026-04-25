@@ -8,30 +8,33 @@ import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatServic
 import socketClient from '@/lib/socket/socketClient';
 import Image from 'next/image';
 
-// The wrapper exposes joinRoom/getActiveUsers/isConnected/etc., but
-// socketClient.init() declares its return type as the underlying Socket.
-// Treat the resolved instance as also having the wrapper API.
-type SocketClientLike = typeof socketClient;
+// socketClient.init() declares its return type as the underlying Socket,
+// but the codebase treats it as a duck-typed bag with optional helper
+// methods (joinRoom/leaveRoom/getActiveUsers/isConnected/socket/...).
+// We model that explicitly here rather than `as any` casts everywhere.
+/* eslint-disable @typescript-eslint/no-explicit-any -- handler payloads vary per event; consumers narrow at use site. */
+interface SocketClientLike {
+  on: (event: string, handler: (...args: any[]) => void | Promise<void>) => void;
+  off: (event: string, handler?: (...args: any[]) => void | Promise<void>) => void;
+  emit: (event: string, data?: any) => void;
+  joinRoom?: (...args: any[]) => any;
+  leaveRoom?: (...args: any[]) => any;
+  getActiveUsers?: (...args: any[]) => any;
+  isConnected?: () => boolean;
+  socket?: any;
+  addEventHandler?: (event: string, handler: (...args: any[]) => void) => void;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
-// Extend the ChatMessage interface to include additional NPC information
+// Extend the ChatMessage interface to include additional NPC information.
+// rag_used, rag_source_count, rag_sources, citations are already on
+// ChatMessageBase and don't need redeclaring here.
 interface ChatMessage extends ChatMessageBase {
   isNew?: boolean;
   senderName?: string;
   senderType?: string;
   portrait_url?: string;
   npc_id?: string;
-  citations?: Citation[]; // 인용 정보 추가
-  isSystemMessage?: boolean; // 시스템 메시지 여부
-  role?: string; // 메시지 역할 (moderator 등)
-  // RAG 관련 정보 추가
-  rag_used?: boolean;
-  rag_source_count?: number;
-  rag_sources?: Array<{
-    source: string;
-    content: string;
-    relevance_score?: number;
-    type?: 'web' | 'context' | 'dialogue' | 'philosopher';
-  }>;
 }
 
 // Citation 인터페이스 추가
@@ -395,10 +398,10 @@ const ChatUI: React.FC<ChatUIProps> = ({
         
         // ⚡️ 연결/재연결 시에도 방에 즉시 다시 참가
         console.log('✅ 연결/재연결 시 방에 참가:', chatId);
-        const joinResult = instance.joinRoom(chatId);
+        const joinResult = instance.joinRoom?.(chatId);
         console.log('재연결 후 방 참가 요청 결과:', joinResult ? '성공' : '실패');
-        
-        instance.getActiveUsers(chatId);
+
+        instance.getActiveUsers?.(chatId);
       };
       
       // First remove any existing handlers to prevent duplicates
@@ -662,7 +665,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
         
         // 사용자 접속 상태 확인을 위한 타임아웃 설정
         const timeoutId = setTimeout(() => {
-          if (!instance.isConnected()) {
+          if (!instance.isConnected?.()) {
             console.warn('Socket connection timeout - falling back to direct API mode');
             setError('Network connection limited. Using API fallback mode.');
             setIsSocketConnected(false);
@@ -678,7 +681,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
         
         // Use type casting for missing method (best compromise for fix)
         if ('addEventHandler' in instance) {
-          (instance as unknown as { addEventHandler: (event: string, handler: (...args: unknown[]) => void) => void }).addEventHandler('send-message', handler);
+          instance.addEventHandler?.('send-message', handler);
         }
         
         // Return cleanup function
@@ -985,7 +988,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     }
     
     console.log('✅ Socket client exists');
-    console.log('Socket connected (client):', socketClientInstance.isConnected());
+    console.log('Socket connected (client):', socketClientInstance.isConnected?.());
     
     try {
       // Access the raw socket object for debugging

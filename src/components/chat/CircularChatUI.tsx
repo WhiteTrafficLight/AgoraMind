@@ -8,7 +8,18 @@ import { useRouter } from 'next/navigation';
 import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
 import socketClient from '@/lib/socket/socketClient';
 
-type SocketClientLike = typeof socketClient;
+/* eslint-disable @typescript-eslint/no-explicit-any -- duck-typed wrapper around socketClient; per-event handlers narrow at use site. */
+interface SocketClientLike {
+  on: (event: string, handler: (...args: any[]) => void | Promise<void>) => void;
+  off: (event: string, handler?: (...args: any[]) => void | Promise<void>) => void;
+  emit: (event: string, data?: any) => void;
+  joinRoom?: (...args: any[]) => any;
+  leaveRoom?: (...args: any[]) => any;
+  getActiveUsers?: (...args: any[]) => any;
+  isConnected?: () => boolean;
+  socket?: any;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Extend the ChatMessage interface to include NPC information
 interface ChatMessage extends ChatMessageBase {

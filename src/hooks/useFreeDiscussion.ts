@@ -292,6 +292,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
   // Socket event handlers
   useEffect(() => {
     if (!isConnected || !socketRef.current || !state.sessionId) return;
+    const sock = socketRef.current;
 
     const handleControlEvent = (event: PlaybackControlEvent) => {
       if (event.session_id !== state.sessionId) return;
@@ -349,11 +350,11 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         }
         const computedId = ((): string => {
           if (raw.id) return String(raw.id);
-          const ts = raw.timestamp || new Date().toISOString();
-          const text = raw.text || raw.content || '';
+          const ts = (raw.timestamp as string | Date | undefined) || new Date().toISOString();
+          const text = (raw.text as string | undefined) || (raw.content as string | undefined) || '';
           return generateStableMessageId({
             sessionId: state.sessionId || String(chatId),
-            sender: raw.sender || raw.senderName || 'Unknown',
+            sender: (raw.sender as string | undefined) || (raw.senderName as string | undefined) || 'Unknown',
             timestamp: ts,
             text
           });
@@ -392,17 +393,17 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       }
     };
 
-    socketRef.current.on('control:conversation:paused', handleControlEvent);
-    socketRef.current.on('control:conversation:resumed', handleControlEvent);
-    socketRef.current.on('control:playback:speed_changed', handleControlEvent);
+    sock.on('control:conversation:paused', handleControlEvent);
+    sock.on('control:conversation:resumed', handleControlEvent);
+    sock.on('control:playback:speed_changed', handleControlEvent);
     // Backend emits "new_message" (underscore), align listener name
-    socketRef.current.on('new_message', handleNewMessage);
+    sock.on('new_message', handleNewMessage);
 
     return () => {
-      socketRef.current.off('control:conversation:paused', handleControlEvent);
-      socketRef.current.off('control:conversation:resumed', handleControlEvent);
-      socketRef.current.off('control:playback:speed_changed', handleControlEvent);
-      socketRef.current.off('new_message', handleNewMessage);
+      sock.off('control:conversation:paused', handleControlEvent);
+      sock.off('control:conversation:resumed', handleControlEvent);
+      sock.off('control:playback:speed_changed', handleControlEvent);
+      sock.off('new_message', handleNewMessage);
     };
   }, [state.sessionId, chatId, isConnected]);
 
@@ -410,13 +411,15 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
   useEffect(() => {
     const initSocket = async () => {
       try {
-        const instance = await socketClient.init(username);
-        socketRef.current = instance;
+        await socketClient.init(username);
+        // socketClient.init returns the underlying Socket but the wrapper
+        // (with joinRoom/leaveRoom/emit/on/off) is what we want for the ref.
+        socketRef.current = socketClient;
         setIsConnected(true);
         
         if (state.sessionId) {
           // Join backend Socket.IO room using server's expected event/payload
-          instance.emit?.('join_room', {
+          socketClient.emit('join_room', {
             room_id: String(state.sessionId),
             user_id: username || 'anonymous'
           });
@@ -431,7 +434,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
 
     return () => {
       if (socketRef.current && state.sessionId) {
-        socketRef.current.emit?.('leave_room', {
+        socketRef.current.emit('leave_room', {
           room_id: String(state.sessionId || chatId),
           user_id: username || 'anonymous'
         });

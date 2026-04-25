@@ -93,7 +93,9 @@ export interface Citation {
 export interface NpcDetail {
   id: string;
   name: string;
+  description?: string;
   portrait_url?: string;
+  is_custom?: boolean;
 }
 
 export interface DebateState {

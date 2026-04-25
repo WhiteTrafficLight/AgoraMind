@@ -2,19 +2,23 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { loggers } from '@/utils/logger';
 
-interface SocketPayload {
-  [key: string]: unknown;
-}
-
+// Socket payloads are server-shaped; each consumer narrows the handler
+// arg to its expected event payload. Using `any` here is intentional —
+// `unknown` would force every caller to re-narrow, and a generic
+// parameter on the option type doesn't help because each handler is
+// independent. See .claude/skills/typescript: any is acceptable at
+// system boundaries when narrowing happens at the call site.
+/* eslint-disable @typescript-eslint/no-explicit-any -- See note above. */
 interface UseSocketOptions {
   roomId?: string;
   userId?: string;
-  onMessage?: (data: SocketPayload) => void;
-  onUserJoined?: (data: SocketPayload) => void;
-  onUserLeft?: (data: SocketPayload) => void;
+  onMessage?: (data: any) => void | Promise<void>;
+  onUserJoined?: (data: any) => void;
+  onUserLeft?: (data: any) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // 전역 소켓 인스턴스 관리
 let globalSocket: Socket | null = null;
@@ -37,17 +41,19 @@ export const useSocket = (options: UseSocketOptions = {}) => {
   } = options;
 
   // 안정적인 콜백 함수들
-  const stableOnMessage = useCallback((data: SocketPayload) => {
+  /* eslint-disable @typescript-eslint/no-explicit-any -- socket payload shapes vary by event; consumers narrow at use site. */
+  const stableOnMessage = useCallback((data: any) => {
     onMessage?.(data);
   }, [onMessage]);
 
-  const stableOnUserJoined = useCallback((data: SocketPayload) => {
+  const stableOnUserJoined = useCallback((data: any) => {
     onUserJoined?.(data);
   }, [onUserJoined]);
 
-  const stableOnUserLeft = useCallback((data: SocketPayload) => {
+  const stableOnUserLeft = useCallback((data: any) => {
     onUserLeft?.(data);
   }, [onUserLeft]);
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   const stableOnConnect = useCallback(() => {
     onConnect?.();

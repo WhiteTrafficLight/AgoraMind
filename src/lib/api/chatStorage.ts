@@ -3,10 +3,17 @@ import { ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 
 // 글로벌 변수로 채팅룸 데이터 저장
 // Next.js 서버리스 함수들이 이 변수를 공유할 수 있음
-const chatStorage = {
-  chatRooms: [
+const chatStorage: {
+  chatRooms: ChatRoom[];
+  getChatRooms: () => ChatRoom[];
+  getChatRoomById: (id: string | number) => ChatRoom | undefined;
+  createChatRoom: (room: ChatRoom) => ChatRoom;
+  addMessage: (roomId: string | number, message: ChatMessage) => boolean;
+  updateChatRoom: (roomId: string | number, updates: Partial<ChatRoom>) => boolean;
+} = {
+  chatRooms: ([
     {
-      id: 1,
+      id: '1',
       title: 'The Nature of Consciousness',
       context: 'Exploring the philosophical aspects of consciousness and its relationship to the brain.',
       participants: {
@@ -27,7 +34,7 @@ const chatStorage = {
       ]
     },
     {
-      id: 2,
+      id: '2',
       title: 'Ethics in the Digital Age',
       context: 'Discussing the moral implications of technology and its impacts on society.',
       participants: {
@@ -47,7 +54,7 @@ const chatStorage = {
         }
       ]
     },
-  ],
+  ] as unknown) as ChatRoom[],
 
   // 채팅룸 조회
   getChatRooms: function() {

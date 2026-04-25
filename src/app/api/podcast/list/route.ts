@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Error listing podcasts:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to list podcasts' },
+      { error: error instanceof Error ? error.message : 'Failed to list podcasts' },
       { status: 500 }
     );
   }

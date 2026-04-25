@@ -8,6 +8,15 @@ export interface Citation {
   location?: string; // 위치 정보 (선택사항)
 }
 
+export interface RagSource {
+  type?: string;
+  url?: string;
+  title?: string;
+  content?: string;
+  metadata?: { url?: string; file_path?: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
 export interface ChatMessage {
   id: string;
   text: string;
@@ -20,6 +29,9 @@ export interface ChatMessage {
   skipAnimation?: boolean; // 새로고침으로 로드된 메시지는 애니메이션 스킵
   isGenerating?: boolean; // 메시지 생성 중임을 표시하는 플래그
   metadata?: { [key: string]: unknown }; // 메타데이터 정보
+  rag_used?: boolean;
+  rag_source_count?: number;
+  rag_sources?: RagSource[];
 }
 
 export interface ChatRoom {
@@ -105,8 +117,11 @@ function log(...args: unknown[]) {
   }
 }
 
-// Helper function to safely parse JSON and detect HTML responses
-async function safeParseJson(response: Response): Promise<unknown> {
+// Helper function to safely parse JSON and detect HTML responses.
+// Returns `any` because every consumer narrows differently and the
+// API responses come from many different endpoints with no shared shape.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- API boundary; consumers narrow.
+async function safeParseJson(response: Response): Promise<any> {
   // Check content type before reading the response
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('text/html')) {

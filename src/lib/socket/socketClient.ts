@@ -5,7 +5,9 @@ import { socketClientCore } from '@/lib/messaging/socket/client/socket-client-co
 import { SocketEvents } from '@/lib/messaging/types/common.types';
 import { Socket } from 'socket.io-client';
 
-type SocketHandler = (...args: unknown[]) => void;
+/* eslint-disable @typescript-eslint/no-explicit-any -- handler payloads vary per event; consumers narrow at use site. */
+type SocketHandler = (...args: any[]) => void | Promise<void>;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // 기존 인터페이스와의 호환성을 위한 래퍼 클래스
 class SocketClient {

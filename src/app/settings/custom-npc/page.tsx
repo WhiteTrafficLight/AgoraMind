@@ -103,7 +103,7 @@ export default function CustomNpcPage() {
       }
     } catch (e: unknown) {
       console.error('Portrait generation error', e);
-      setPortraitError(prev => ({ ...prev, [npc.id]: e.message || 'Error generating portrait' }));
+      setPortraitError(prev => ({ ...prev, [npc.id]: e instanceof Error ? e.message : 'Error generating portrait' }));
     } finally {
       setLoadingPortrait(null);
     }
