@@ -24,7 +24,6 @@ interface MessageListProps {
   isGeneratingNext: boolean;
 }
 
-// 마크다운 링크를 JSX로 변환하는 함수
 const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   const parts: React.ReactNode[] = [];
@@ -33,7 +32,6 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
   let key = 0;
 
   while ((match = linkRegex.exec(text)) !== null) {
-    // 링크 앞의 텍스트
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
@@ -41,14 +39,12 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
     const linkText = match[1];
     const linkUrl = match[2];
     
-    // citations 배열에서 매칭되는 완전한 URL 찾기
+    // citations URL
     let fullUrl = linkUrl;
     if (citations && citations.length > 0) {
-      // 도메인이나 제목으로 매칭 시도
       const matchingCitation = citations.find(citation => {
         if (!citation.url) return false;
         
-        // URL에서 도메인 추출하여 비교
         try {
           const citationDomain = new URL(citation.url).hostname;
           const simplifiedDomain = citationDomain.replace('www.', '');
@@ -59,7 +55,6 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
                  citation.text === linkText ||
                  citation.title === linkText;
         } catch (e) {
-          // URL 파싱 실패 시 문자열 비교
           return citation.url.includes(linkUrl) || 
                  citation.text === linkText ||
                  citation.title === linkText;
@@ -71,7 +66,6 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
       }
     }
     
-    // 링크 요소
     parts.push(
       <a
         key={key++}
@@ -97,7 +91,6 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
     lastIndex = match.index + match[0].length;
   }
   
-  // 마지막 텍스트
   if (lastIndex < text.length) {
     parts.push(text.slice(lastIndex));
   }
@@ -129,7 +122,7 @@ const MessageList: React.FC<MessageListProps> = ({
       hasCitations: message.citations && message.citations.length > 0
     });
 
-    // citations가 있으면 citations 사용, 없으면 기존 rag_sources 사용 (하위 호환성)
+    // citations citations , rag_sources ( )
     const hasCitations = message.citations && message.citations.length > 0;
     const hasRagSources = message.rag_sources && message.rag_sources.length > 0;
     
@@ -141,7 +134,7 @@ const MessageList: React.FC<MessageListProps> = ({
       loggers.rag.info('Source clicked', source);
       
       if (hasCitations) {
-        // citations 구조: { title, url }
+        // citations : { title, url }
         if (source.url && source.url.startsWith('http')) {
           try {
             window.open(source.url, '_blank', 'noopener,noreferrer');
@@ -150,7 +143,7 @@ const MessageList: React.FC<MessageListProps> = ({
           }
         }
       } else {
-        // 기존 rag_sources 구조 처리 (하위 호환성)
+        // rag_sources ( )
         const ragSource = source as RagSource;
         if (ragSource.type === 'web' && ragSource.metadata?.url) {
           try {
@@ -179,7 +172,7 @@ const MessageList: React.FC<MessageListProps> = ({
 
     return (
       <div className="debate-rag-indicator">
-        <div className="debate-rag-icon" title={`RAG 검색 결과 ${sourceCount}개 활용`}>
+        <div className="debate-rag-icon" title={`RAG search results ${sourceCount}used`}>
           <InformationCircleIcon style={{ height: '16px', width: '16px' }} />
           <span className="debate-rag-count">{sourceCount}</span>
         </div>
@@ -198,7 +191,6 @@ const MessageList: React.FC<MessageListProps> = ({
                   handleSourceClick(source);
                 }}
                 onMouseDown={(e) => {
-                  // 마우스 다운 시에도 이벤트 전파 방지
                   e.preventDefault();
                   e.stopPropagation();
                 }}
@@ -209,7 +201,7 @@ const MessageList: React.FC<MessageListProps> = ({
                 }}
               >
                 {hasCitations ? (
-                  // Citations 구조 렌더링
+                  // Citations
                   <>
                     <div className="debate-rag-source-type">
                       🌐 Web Citation
@@ -226,7 +218,7 @@ const MessageList: React.FC<MessageListProps> = ({
                     </div>
                   </>
                 ) : (
-                  // 기존 rag_sources 구조 렌더링 (하위 호환성)
+                  // rag_sources ( )
                   (() => {
                     const ragSource = source as RagSource & { content?: string; relevance_score?: number; relevance?: number };
                     return (

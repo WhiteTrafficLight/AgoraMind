@@ -96,7 +96,7 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
   return (
     <>
       <div className="relative z-0 h-[calc(100vh-80px)] flex flex-col overflow-hidden">
-        {/* 4개 섹션 그리드 - 정확히 4등분 */}
+        {/* 4-section grid (exactly quartered) */}
         <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-4 p-4 overflow-hidden min-h-0">
           {debateCategories.map(({ key: categoryKey, category }) => {
             const displayConfig = categoryDisplayConfig[categoryKey as keyof typeof categoryDisplayConfig];
@@ -106,7 +106,7 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
                 key={categoryKey}
                 className="flex flex-col bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden h-full min-h-0"
               >
-                {/* 섹션 타이틀 */}
+                {/* Section title */}
                 <div 
                   className={`${displayConfig?.color || 'bg-gray-50'} flex-shrink-0 p-4 border-b border-gray-200 rounded-t-lg`}
                 >
@@ -131,14 +131,14 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
                   </div>
                 </div>
                 
-                {/* 스크롤 가능한 주제 목록 */}
+                {/* Scrollable topic list */}
                 <div className="flex-1 overflow-y-auto p-2 min-h-0">
                   {category.topics.length > 0 ? (
                     category.topics.map((topic, index) => renderTopicCard(topic, categoryKey, index))
                   ) : (
                     <div className="text-center py-8">
                       <p className="text-xs text-gray-400">
-                        No topics available for {displayConfig?.title || category.name}
+                        No topics available  {displayConfig?.title || category.name}
                       </p>
                     </div>
                   )}

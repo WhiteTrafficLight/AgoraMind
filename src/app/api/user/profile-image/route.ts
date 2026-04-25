@@ -6,7 +6,6 @@ import connectDB from '@/lib/mongodb';
 import { revalidatePath } from 'next/cache';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-// S3 클라이언트 설정
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-northeast-2',
   credentials: {
@@ -15,7 +14,6 @@ const s3Client = new S3Client({
   },
 });
 
-// 지원되는 이미지 포맷 (업계 표준)
 const SUPPORTED_FORMATS = {
   'image/jpeg': 'jpg',
   'image/png': 'png', 
@@ -29,10 +27,8 @@ function validateImageSecurity(base64Data: string): boolean {
   try {
     const buffer = Buffer.from(base64Data, 'base64');
     
-    // 파일 크기 검사 (5MB)
     if (buffer.length > 5 * 1024 * 1024) return false;
     
-    // 매직 바이트 검증
     if (buffer.length < 12) return false;
     
     // JPEG: FF D8 FF
@@ -55,17 +51,16 @@ function validateImageSecurity(base64Data: string): boolean {
 }
 
 function removeMetadata(buffer: Buffer): Buffer {
-  // 간단한 메타데이터 제거 (EXIF 등)
-  // 실제로는 sharp나 jimp 라이브러리 사용 권장
+  // (EXIF )
+  // sharp jimp
   return buffer;
 }
 
 // POST: Upload profile image with client-side security
 export async function POST(req: NextRequest) {
-  console.log('🔧 [Profile Image API] 요청 시작');
+  console.log('[Profile Image API] Request started');
   
   try {
-    // 환경변수 체크
     const requiredEnvVars = {
       AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
       AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
@@ -74,7 +69,7 @@ export async function POST(req: NextRequest) {
       MONGODB_URI: process.env.MONGODB_URI
     };
     
-    console.log('🔧 [Profile Image API] 환경변수 체크:', {
+    console.log('[Profile Image API] Env vars check:', {
       AWS_S3_BUCKET: !!requiredEnvVars.AWS_S3_BUCKET,
       AWS_ACCESS_KEY_ID: !!requiredEnvVars.AWS_ACCESS_KEY_ID,
       AWS_SECRET_ACCESS_KEY: !!requiredEnvVars.AWS_SECRET_ACCESS_KEY,
@@ -82,81 +77,76 @@ export async function POST(req: NextRequest) {
       MONGODB_URI: !!requiredEnvVars.MONGODB_URI
     });
     
-    // 필수 환경변수 체크
     const missingEnvVars = Object.entries(requiredEnvVars)
       .filter(([key, value]) => !value)
       .map(([key]) => key);
     
     if (missingEnvVars.length > 0) {
-      console.error('❌ [Profile Image API] 누락된 환경변수:', missingEnvVars);
+      console.error('[Profile Image API] Missing env vars:', missingEnvVars);
       return NextResponse.json({ 
         error: 'Server configuration error', 
         details: `Missing environment variables: ${missingEnvVars.join(', ')}` 
       }, { status: 500 });
     }
     
-    console.log('🔧 [Profile Image API] 세션 확인 중...');
+    console.log('[Profile Image API] Verifying session...');
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      console.error('❌ [Profile Image API] 인증되지 않은 사용자');
+      console.error('[Profile Image API] Unauthenticated user');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
     
-    console.log('✅ [Profile Image API] 세션 확인 완료:', session.user.email);
+    console.log('[Profile Image API] Session verified:', session.user.email);
     
-    console.log('🔧 [Profile Image API] 요청 데이터 파싱 중...');
+    console.log('[Profile Image API] Parsing request data...');
     const data = await req.json();
     const { image, format } = data;
     
     if (!image) {
-      console.error('❌ [Profile Image API] 이미지 데이터 없음');
+      console.error('[Profile Image API] No image data');
       return NextResponse.json({ error: 'Image data is required' }, { status: 400 });
     }
     
-    console.log('✅ [Profile Image API] 이미지 데이터 확인 완료');
+    console.log('[Profile Image API] Image data verified');
     
-    console.log('🔧 [Profile Image API] MongoDB 연결 중...');
+    console.log('[Profile Image API] Connecting to MongoDB...');
     await connectDB();
-    console.log('✅ [Profile Image API] MongoDB 연결 완료');
+    console.log('[Profile Image API] Connected to MongoDB');
     
     // Find the user to get their ID
-    console.log('🔧 [Profile Image API] 사용자 조회 중:', session.user.email);
+    console.log('🔧 [Profile Image API] User lookup in progress:', session.user.email);
     const user = await User.findOne({ email: session.user.email });
     
     if (!user) {
-      console.error('❌ [Profile Image API] 사용자를 찾을 수 없음:', session.user.email);
+      console.error('[Profile Image API] User not found:', session.user.email);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    console.log('✅ [Profile Image API] 사용자 조회 완료:', user._id);
+    console.log('[Profile Image API] User lookup complete:', user._id);
     
     try {
-      console.log('🔧 [Profile Image API] 이미지 처리 시작...');
+      console.log('[Profile Image API] Image processing started...');
       
       // Remove the data:image/...;base64, prefix
       const base64Data = image.replace(/^data:image\/[^;]+;base64,/, '');
       
-      // 클라이언트 사이드 보안 검증
       if (!validateImageSecurity(base64Data)) {
-        console.error('❌ [Profile Image API] 이미지 보안 검증 실패');
+        console.error('[Profile Image API] Image security validation failed');
         return NextResponse.json({ error: 'Invalid or unsafe image file' }, { status: 400 });
       }
       
-      console.log('✅ [Profile Image API] 이미지 보안 검증 완료');
+      console.log('[Profile Image API] Image security check passed');
       
       // Convert base64 to buffer
       const buffer = Buffer.from(base64Data, 'base64');
-      console.log('✅ [Profile Image API] 이미지 버퍼 변환 완료, 크기:', buffer.length);
+      console.log('[Profile Image API] Image buffer converted, size:', buffer.length);
       
-      // 메타데이터 제거 (보안)
       const cleanBuffer = removeMetadata(buffer);
       
-      // 원본 포맷 감지 및 확장자 결정
-      let detectedFormat = 'jpg'; // 기본값
-      let contentType = 'image/jpeg'; // 기본값
+      let detectedFormat = 'jpg';
+      let contentType = 'image/jpeg';
       
-      // 매직 바이트로 실제 포맷 감지
       if (buffer.subarray(0, 3).equals(Buffer.from([0xFF, 0xD8, 0xFF]))) {
         detectedFormat = 'jpg';
         contentType = 'image/jpeg';
@@ -176,17 +166,16 @@ export async function POST(req: NextRequest) {
       }
       
       const fileName = `users/profiles/user_${user._id}_${Date.now()}.${detectedFormat}`;
-      console.log('✅ [Profile Image API] 파일명 생성 완료:', fileName);
+      console.log('✅ [Profile Image API] Filename generated:', fileName);
       
-      console.log('🔧 [Profile Image API] S3 업로드 시작...');
+      console.log('[Profile Image API] S3 upload starting...');
       
-      // S3 업로드 (환경변수명 수정: AWS_S3_BUCKET 사용)
+      // S3 ( : AWS_S3_BUCKET )
       const uploadParams = {
         Bucket: process.env.AWS_S3_BUCKET!,
         Key: fileName,
         Body: cleanBuffer,
         ContentType: contentType,
-        // 추가 보안 헤더
         Metadata: {
           'user-id': user._id.toString(),
           'upload-time': new Date().toISOString(),
@@ -196,15 +185,15 @@ export async function POST(req: NextRequest) {
       
       const command = new PutObjectCommand(uploadParams);
       await s3Client.send(command);
-      console.log('✅ [Profile Image API] S3 업로드 완료');
+      console.log('[Profile Image API] S3 upload complete');
       
-      // S3 URL 생성 (환경변수명 수정)
+      // S3 URL ( )
       const imageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'ap-northeast-2'}.amazonaws.com/${fileName}`;
-      console.log('✅ [Profile Image API] S3 URL 생성 완료:', imageUrl);
+      console.log('[Profile Image API] S3 URL generated:', imageUrl);
       
-      console.log('🔧 [Profile Image API] 데이터베이스 업데이트 시작...');
+      console.log('[Profile Image API] Database update started...');
       
-      // Update the user profile in the database (MONGODB_URI 환경변수는 connectDB()에서 사용)
+      // Update the user profile in the database (MONGODB_URI connectDB() )
       const updatedUser = await User.findOneAndUpdate(
         { email: session.user.email },
         { profileImage: imageUrl },
@@ -212,15 +201,15 @@ export async function POST(req: NextRequest) {
       ).select('-password');
       
       if (!updatedUser) {
-        console.error('❌ [Profile Image API] 사용자 프로필 업데이트 실패');
+        console.error('[Profile Image API] User profile update failed');
         return NextResponse.json({ error: 'Failed to update user profile' }, { status: 500 });
       }
       
-      console.log('✅ [Profile Image API] 데이터베이스 업데이트 완료');
+      console.log('[Profile Image API] Database update complete');
       
       revalidatePath('/settings');
       
-      console.log('✅ [Profile Image API] 전체 프로세스 완료');
+      console.log('✅ [Profile Image API] Pipeline complete');
       
       return NextResponse.json({
         message: 'Profile image updated successfully',
@@ -234,14 +223,14 @@ export async function POST(req: NextRequest) {
         }
       });
     } catch (error) {
-      console.error('❌ [Profile Image API] 이미지 처리 중 오류:', error);
+      console.error('❌ [Profile Image API] Error processing image:', error);
       return NextResponse.json({ 
         error: 'Failed to process image',
         details: error instanceof Error ? error.message : 'Unknown error'
       }, { status: 500 });
     }
   } catch (error) {
-    console.error('❌ [Profile Image API] 전체 프로세스 오류:', error);
+    console.error('[Profile Image API] Pipeline error:', error);
     return NextResponse.json({ 
       error: 'Failed to upload profile image',
       details: error instanceof Error ? error.message : 'Unknown error'

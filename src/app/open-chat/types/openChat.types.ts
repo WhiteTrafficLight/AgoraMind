@@ -95,7 +95,6 @@ export interface OpenChatState {
   showCreateChatModal: boolean;
   chatToJoin: ChatRoom | null;
   
-  // Socket
   socketConnected: boolean;
   
   // User

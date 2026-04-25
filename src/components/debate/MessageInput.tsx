@@ -25,7 +25,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   waitingForUserInput
 }) => {
   
-  // Enter 키 처리
+  // Enter
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !isInputDisabled && messageText.trim() && isUserTurn) {
       e.preventDefault();
@@ -33,7 +33,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  // 플레이스홀더 텍스트 생성
   const getPlaceholderText = () => {
     if (waitingForUserInput && currentUserTurn) {
       const roleText = currentUserTurn.role === 'pro' ? 'Pro' : 
@@ -47,7 +46,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  // 턴 메시지 생성
   const getTurnMessage = () => {
     if (waitingForUserInput && currentUserTurn) {
       const roleText = currentUserTurn.role === 'pro' ? 'Pro' : 

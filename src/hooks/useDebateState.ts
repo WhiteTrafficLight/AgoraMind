@@ -12,7 +12,6 @@ export function useDebateState() {
     inputDisabled: true,
   });
 
-  // 사용자 차례 설정
   const setUserTurn = useCallback((isUserTurn: boolean, showIndicator = true) => {
     setDebateState(prev => ({
       ...prev,
@@ -22,14 +21,12 @@ export function useDebateState() {
     }));
   }, []);
 
-  // NPC 선택 상태 설정
   const setSelectedNpc = useCallback((npcId: string | null, autoHideDelay = 3000) => {
     setDebateState(prev => ({
       ...prev,
       selectedNpcId: npcId,
     }));
 
-    // 자동으로 선택 해제
     if (npcId && autoHideDelay > 0) {
       setTimeout(() => {
         setDebateState(prev => ({
@@ -40,7 +37,6 @@ export function useDebateState() {
     }
   }, []);
 
-  // 응답 생성 상태 설정
   const setGeneratingResponse = useCallback((isGenerating: boolean) => {
     setDebateState(prev => ({
       ...prev,
@@ -48,7 +44,7 @@ export function useDebateState() {
     }));
   }, []);
 
-  // Next 버튼 상태 설정
+  // Next
   const setGeneratingNext = useCallback((isGenerating: boolean) => {
     setDebateState(prev => ({
       ...prev,
@@ -56,7 +52,6 @@ export function useDebateState() {
     }));
   }, []);
 
-  // 토론 단계 변경
   const setCurrentStage = useCallback((stage: DebateStage) => {
     setDebateState(prev => ({
       ...prev,
@@ -64,12 +59,10 @@ export function useDebateState() {
     }));
   }, []);
 
-  // 입력 필드 비활성화 여부 계산
   const isInputDisabled = useCallback((): boolean => {
     return !debateState.isUserTurn || debateState.isGeneratingResponse;
   }, [debateState.isUserTurn, debateState.isGeneratingResponse]);
 
-  // 다음 메시지 버튼 표시 여부 계산
   const shouldShowNextMessageButton = useCallback((
     isDebateRoom: boolean,
     onRequestNextMessage?: () => void,
@@ -78,16 +71,14 @@ export function useDebateState() {
     if (!isDebateRoom || !onRequestNextMessage || debateState.isGeneratingResponse) {
       return false;
     }
-    // 토론방에서는 항상 Next 버튼 표시 (메시지 개수 무관)
+    // Next ( )
     return true;
   }, [debateState.isGeneratingResponse]);
 
-  // 차례 정보 업데이트 (소켓 이벤트에서 호출)
   const updateTurnInfo = useCallback((turnInfo: TurnInfo) => {
     setUserTurn(turnInfo.isUserTurn, true);
   }, [setUserTurn]);
 
-  // 상태 초기화
   const resetDebateState = useCallback(() => {
     setDebateState({
       currentStage: DebateStage.OPENING,
@@ -101,11 +92,9 @@ export function useDebateState() {
   }, []);
 
   return {
-    // 상태
     debateState,
     isInputDisabled: isInputDisabled(),
     
-    // 액션
     setUserTurn,
     setSelectedNpc,
     setGeneratingResponse,
@@ -114,10 +103,8 @@ export function useDebateState() {
     updateTurnInfo,
     resetDebateState,
     
-    // 계산된 값
     shouldShowNextMessageButton,
     
-    // 개별 상태 값들 (편의성을 위해)
     currentStage: debateState.currentStage,
     isUserTurn: debateState.isUserTurn,
     turnIndicatorVisible: debateState.turnIndicatorVisible,

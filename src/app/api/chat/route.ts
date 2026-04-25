@@ -4,19 +4,16 @@ import path from 'path';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 
-// .env.local 파일에서 직접 API 키를 로드하는 함수
+// .env.local API
 function loadEnvLocal() {
   try {
-    // 프로젝트 루트 디렉토리 경로
     const rootDir = process.cwd();
     const envPath = path.join(rootDir, '.env.local');
     
-    // .env.local 파일이 존재하는지 확인
+    // .env.local
     if (fs.existsSync(envPath)) {
-      console.log('📁 .env.local 파일을 찾았습니다.');
-      // 파일 내용 읽기
+      console.log('.env.local file found.');
       const fileContent = fs.readFileSync(envPath, 'utf-8');
-      // 각 줄을 파싱하여 환경 변수로 설정
       const vars = fileContent.split('\n')
         .filter(line => line && !line.startsWith('#'))
         .map(line => line.split('='))
@@ -27,24 +24,24 @@ function loadEnvLocal() {
           return acc;
         }, {} as Record<string, string>);
       
-      console.log('✅ .env.local 파일에서 설정을 로드했습니다.');
+      console.log('Configuration loaded from .env.local.');
       return vars;
     } else {
-      console.error('❌ .env.local 파일을 찾을 수 없습니다.');
+      console.error('.env.local file not found.');
       return {};
     }
   } catch (error) {
-    console.error('❌ .env.local 파일 로드 중 오류 발생:', error);
+    console.error('Error loading .env.local file:', error);
     return {};
   }
 }
 
-// .env.local에서 설정 로드
+// .env.local
 const envVars = loadEnvLocal();
 
-// API Key 설정 - .env.local에서 가져온 값을 우선 사용
+// API Key - .env.local
 const apiKey = envVars.OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-console.log('API Key source:', apiKey === envVars.OPENAI_API_KEY ? '.env.local 파일' : 'system 환경 변수');
+console.log('API Key source:', apiKey === envVars.OPENAI_API_KEY ? '.env.local file' : 'system environment variable');
 console.log('API Key check:', apiKey ? `${apiKey.substring(0, 7)}...${apiKey.substring(apiKey.length - 4)}` : 'MISSING');
 
 // Define philosopher profile type
@@ -123,18 +120,16 @@ interface NpcDetail {
   created_by?: string;
 }
 
-// 백엔드 API URL
 const BACKEND_API_URL = 'http://0.0.0.0:8000';
 
 export async function POST(req: NextRequest) {
   try {
-    // 헤더에서 API 키 추출 (소켓 서버에서 보낸 경우)
+    // API ( )
     const headerApiKey = req.headers.get('x-api-key');
     
-    // 헤더 API 키가 있으면 우선 사용, 없으면 환경 변수 사용
     const effectiveApiKey = headerApiKey || apiKey;
     
-    // API 키 확인 - 강화된 검증
+    // API -
     if (!effectiveApiKey) {
       console.error("❌ OpenAI API key is not set (neither in headers nor in environment)");
       return NextResponse.json(
@@ -143,7 +138,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // API 키 길이 확인
     if (effectiveApiKey.length < 20) {
       console.error("❌ OpenAI API key appears to be invalid (too short)");
       return NextResponse.json(
@@ -152,15 +146,12 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // API 키 출처 로깅
     console.log(`Using API key from: ${headerApiKey ? 'request header' : 'environment variable'}`);
 
-    // 요청 데이터 파싱 - 새로운 형식으로 변경
     const data = await req.json();
     const { room_id, user_message, npcs, llm_provider: clientLlmProvider, llm_model: clientLlmModel } = data;
     
-    // 이전 요청 형식과의 호환성 (messages, roomId, topic, context, participants)
-    // 새 요청 형식 검증
+    // (messages, roomId, topic, context, participants)
     if (!room_id) {
       return NextResponse.json(
         { error: "Missing room_id in request" },
@@ -186,7 +177,7 @@ export async function POST(req: NextRequest) {
     console.log(`User message: ${user_message.substring(0, 30)}...`);
     console.log(`Participating NPCs: ${npcs.join(', ')}`);
     
-    // 클라이언트 요청의 헤더에서 LLM 설정 정보 확인
+    // LLM
     const llmProvider = req.headers.get('x-llm-provider') || clientLlmProvider || 'openai';
     const llmModel = req.headers.get('x-llm-model') || clientLlmModel || 'gpt-4o';
     
@@ -195,7 +186,7 @@ export async function POST(req: NextRequest) {
     try {
       console.log('🔄 Calling Python backend (llm_manager) API with new format...');
       
-      // Python 백엔드 API 호출 - 새로운 서버 측 대화 관리 방식 사용
+      // Python API -
       const backendResponse = await fetch(`${BACKEND_API_URL}/api/chat/generate`, {
         method: 'POST',
         headers: {
@@ -212,7 +203,6 @@ export async function POST(req: NextRequest) {
         cache: 'no-store'
       });
 
-      // 응답 검증
       if (!backendResponse.ok) {
         const errorStatus = backendResponse.status;
         let errorText = '';
@@ -227,11 +217,9 @@ export async function POST(req: NextRequest) {
         throw new Error(`Python backend API request failed with status ${errorStatus}: ${errorText}`);
       }
 
-      // 정상 응답 처리
       const backendData = await backendResponse.json();
       console.log('✅ Python backend API response received');
       
-      // 응답 형식 확인 및 클라이언트에 맞게 변환
       const response = backendData.response || '';
       const philosopher = backendData.philosopher || '';
       
@@ -239,7 +227,7 @@ export async function POST(req: NextRequest) {
         throw new Error('Invalid response format from Python backend API');
       }
       
-      // 메시지 형식으로 변환 (socket.ts에서 기대하는 형식)
+      // (socket.ts )
       const messageId = `ai-${Date.now()}`;
       const messageObject = {
         id: messageId,

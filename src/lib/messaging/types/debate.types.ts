@@ -1,6 +1,6 @@
 import { BaseMessage, BaseRoom, SocketEvents } from './common.types';
 
-// Debate 메시지 타입
+// Debate
 export interface DebateMessage extends BaseMessage {
   metadata?: {
     stage?: string;
@@ -10,7 +10,7 @@ export interface DebateMessage extends BaseMessage {
   };
 }
 
-// Debate 방 타입
+// Debate
 export interface DebateRoom extends BaseRoom {
   dialogueType: 'debate';
   pro: string[];
@@ -28,23 +28,19 @@ export interface DebateRoom extends BaseRoom {
   };
 }
 
-// Debate 소켓 이벤트
+// Debate
 export interface DebateSocketEvents extends SocketEvents {
-  // 토론 흐름 관련
   'request-next-message': (data: { roomId: string }) => void;
   'next-speaker-update': (data: { roomId: string; nextSpeaker: NextSpeaker }) => void;
   'debate-stage-change': (data: { roomId: string; stage: string }) => void;
   
-  // 참가자 관리
   'npc-selected': (data: { npc_id: string; roomId: string }) => void;
   'user_turn': (data: { is_user: boolean; speaker_id?: string }) => void;
   'user_message': (data: { message: string; user_id: string }) => void;
   
-  // 토론 메시지
   'debate-message': (data: { roomId: string; message: DebateMessage }) => void;
 }
 
-// 다음 발언자 정보
 export interface NextSpeaker {
   speaker_id: string;
   role: 'moderator' | 'pro' | 'con' | 'neutral';
@@ -52,7 +48,6 @@ export interface NextSpeaker {
   stage: string;
 }
 
-// 토론 설정
 export interface DebateConfig {
   roomId: string;
   title: string;
@@ -63,7 +58,6 @@ export interface DebateConfig {
   moderator_style: string;
 }
 
-// 토론 상태
 export interface DebateState {
   currentStage: string;
   isUserTurn: boolean;

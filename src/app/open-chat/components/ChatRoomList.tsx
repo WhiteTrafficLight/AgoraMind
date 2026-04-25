@@ -10,7 +10,6 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
 }) => {
   const [showParticipants, setShowParticipants] = useState<number | null>(null);
 
-  // 채팅 타입별로 분류
   const dialogueTypes = [
     { key: 'free', title: 'Free Discussion', color: 'bg-blue-50 border-blue-200' },
     { key: 'debate', title: 'Pro-Con Debate', color: 'bg-red-50 border-red-200' },
@@ -18,7 +17,6 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
     { key: 'dialectical', title: 'Dialectical Discussion', color: 'bg-purple-50 border-purple-200' }
   ];
 
-  // 타입별로 채팅방 필터링
   const getChatsByType = (type: string) => {
     return chatRooms.filter(chat => chat.dialogueType === type);
   };
@@ -93,7 +91,7 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      {/* 4개 섹션 그리드 - 정확히 4등분 */}
+      {/* 4-section grid (exactly quartered) */}
       <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-4 p-4 overflow-hidden">
         {dialogueTypes.map((dialogueType) => {
           const chatsForType = getChatsByType(dialogueType.key);
@@ -103,7 +101,7 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
               key={dialogueType.key}
               className="flex flex-col bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden h-full"
             >
-              {/* 섹션 타이틀 */}
+              {/* Section title */}
               <div className={`flex-shrink-0 p-3 border-b border-gray-200 ${dialogueType.color} rounded-t-lg`}>
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-sm text-gray-800">{dialogueType.title}</h3>
@@ -111,7 +109,7 @@ const ChatRoomList: React.FC<ChatRoomListProps> = ({
                 </div>
               </div>
               
-              {/* 스크롤 가능한 채팅방 목록 */}
+              {/* Scrollable chat room list */}
               <div className="flex-1 overflow-y-auto p-2">
                 {chatsForType.length > 0 ? (
                   chatsForType.map(chat => renderChatCard(chat))

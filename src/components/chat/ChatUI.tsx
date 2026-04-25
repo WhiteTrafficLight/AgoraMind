@@ -37,15 +37,14 @@ interface ChatMessage extends ChatMessageBase {
   npc_id?: string;
 }
 
-// Citation 인터페이스 추가
+// Citation
 interface Citation {
-  id: string;       // 각주 ID (예: "1", "2")
-  source: string;   // 출처 (책 이름)
-  text: string;     // 원문 텍스트
-  location?: string; // 위치 정보 (선택사항)
+  id: string;
+  source: string;
+  text: string;
+  location?: string;
 }
 
-// NPC 상세 정보 인터페이스 추가
 interface NpcDetail {
   id: string;
   name: string;
@@ -62,17 +61,16 @@ interface ChatUIProps {
     npcs: string[];
   };
   initialMessages?: ChatMessage[];
-  onBack?: () => void; // Optional callback for back button click
+  onBack?: () => void; // Optional callback  back button click
 }
 
-// 인용 모달 컴포넌트 추가
 interface CitationModalProps {
   isOpen: boolean;
   onClose: () => void;
   citation: Citation | null;
 }
 
-// Citation 모달 컴포넌트 개선
+// Citation
 const CitationModal: React.FC<CitationModalProps> = ({ isOpen, onClose, citation }) => {
   if (!isOpen || !citation) return null;
   
@@ -104,7 +102,7 @@ const CitationModal: React.FC<CitationModalProps> = ({ isOpen, onClose, citation
           maxHeight: '80vh',
           overflow: 'auto'
         }}
-        onClick={(e) => e.stopPropagation()} // 모달 내부 클릭 시 닫히지 않도록
+        onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#1f2937' }}>Source Reference</h3>
@@ -199,28 +197,27 @@ const ChatUI: React.FC<ChatUIProps> = ({
   const [loading, setLoading] = useState(true);
   const [sentMessageIds, setSentMessageIds] = useState<string[]>([]);
   
-  // NPC 상세 정보를 저장할 state 추가
+  // NPC state
   const [npcDetails, setNpcDetails] = useState<Record<string, NpcDetail>>({});
   
   const [autoDialogueMode, setAutoDialogueMode] = useState(false);
   const [isAutoDialogueRunning, setIsAutoDialogueRunning] = useState(false);
   
-  // 현재 응답 중인 NPC 상태 관리 - 새 방식
+  // NPC -
   const [thinkingNpcId, setThinkingNpcId] = useState<string | null>(null);
   
   const [isLoaded, setIsLoaded] = useState(false);
   
-  // 인용 모달 상태 추가
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const [isCitationModalOpen, setIsCitationModalOpen] = useState(false);
   
-  // Auto-dialogue 관련 상태를 별도로 추가
+  // Auto-dialogue
   
-  // NPC 선택 이벤트 핸들러 추가 - 새 이벤트 처리
+  // NPC -
   const onNpcSelected = useCallback((data: { npc_id: string, npc_name?: string }) => {
     console.log('🎯 NPC selected event received:', data);
     
-    // NPC ID가 있으면 thinking 상태 설정
+    // NPC ID thinking
     if (data.npc_id) {
       setThinkingNpcId(data.npc_id);
       setIsThinking(true);
@@ -230,10 +227,10 @@ const ChatUI: React.FC<ChatUIProps> = ({
     }
   }, []);
   
-  // Prompt for username if not already set
+  // Prompt  username if not already set
   useEffect(() => {
     if (!username) {
-      // Get username from session storage first (for persistence between refreshes)
+      // Get username from session storage first ( persistence between refreshes)
       const storedUsername = sessionStorage.getItem('chat_username');
       
       if (storedUsername) {
@@ -267,12 +264,10 @@ const ChatUI: React.FC<ChatUIProps> = ({
   
   // Process and deduplicate messages
   const processedMessages = messages.filter((msg, index, self) => {
-    // 이전 메시지와 동일한 내용과 발신자를 가진 메시지 제거 (5초 이내 발송된 경우)
     if (index > 0) {
       const prevMsg = self[index - 1];
       const timeDiff = new Date(msg.timestamp).getTime() - new Date(prevMsg.timestamp).getTime();
       
-      // 같은 사람이 5초 이내에 동일한 텍스트를 보낸 경우 중복으로 간주
       if (
         msg.sender === prevMsg.sender && 
         msg.text === prevMsg.text && 
@@ -283,24 +278,20 @@ const ChatUI: React.FC<ChatUIProps> = ({
       }
     }
     
-    // 동일한 ID를 가진 첫 번째 메시지만 유지
     return index === self.findIndex(m => m.id === msg.id);
   });
 
-  // 채팅방 ID가 변경될 때마다 완전히 새로운 채팅방으로 초기화
   useEffect(() => {
-    // chatId가 변경되면 메시지와 상태를 완전히 초기화
-    console.log(`🔄 채팅방 ID 변경: ${chatId}`);
+    // chatId
+    console.log(`🔄 Chat room ID changed: ${chatId}`);
     
-    // 이전 메시지 상태 초기화
     setMessages([]);
     setIsThinking(false);
     setIsSending(false);
     setError(null);
     
-    // 채팅방 별 고유한 ID로 빈 메시지 배열 초기화
     if (initialMessages && initialMessages.length > 0) {
-      console.log(`⚡ 채팅방 ${chatId}에 대한 ${initialMessages.length}개 초기 메시지 설정`);
+      console.log(`⚡ Chat room ${chatId} ${initialMessages.length}initial messages set`);
       // Mark existing messages as not new to avoid animation
       const existingMessages = initialMessages.map(msg => ({
         ...msg,
@@ -309,7 +300,6 @@ const ChatUI: React.FC<ChatUIProps> = ({
       setMessages([...existingMessages]);
     }
     
-    // 화면 스크롤 초기화
     setTimeout(() => {
       if (endOfMessagesRef.current) {
         endOfMessagesRef.current.scrollIntoView({ behavior: 'auto' });
@@ -317,9 +307,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     }, 100);
   }, [chatId, initialMessages]);
 
-  // 채팅방 입장 시 최신 메시지 로드 기능 추가
   useEffect(() => {
-    // 메시지가 없을 때만 API에서 메시지 로드
     const shouldLoadMessages = initialMessages.length === 0 && messages.length === 0;
     
     if (chatId && shouldLoadMessages && !loading && username) {
@@ -327,7 +315,6 @@ const ChatUI: React.FC<ChatUIProps> = ({
     }
   }, [chatId, initialMessages.length, messages.length, loading, username]);
 
-  // Socket.IO 연결 상태 관리 및 이벤트 리스너 설정
   useEffect(() => {
     if (!username) return;
 
@@ -339,7 +326,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
       try {
         console.log('Starting socket initialization...');
         
-        // Initialize socket client and wait for it to complete
+        // Initialize socket client and wait  it to complete
         const instance = await socketClient.init(username);
         
         console.log('Socket client initialization completed');
@@ -352,7 +339,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
           
           // Join room and get active users after connection
           const joinResult = (instance as unknown as SocketClientLike).joinRoom?.(chatId);
-          console.log('재연결 후 방 참가 요청 결과:', joinResult ? '성공' : '실패');
+          console.log('Room rejoin result after reconnect:', joinResult ? 'success' : 'failed');
           (instance as unknown as SocketClientLike).getActiveUsers?.(chatId);
         });
         
@@ -361,24 +348,21 @@ const ChatUI: React.FC<ChatUIProps> = ({
           console.log('⚡️ Socket is already connected - setting state immediately');
           setIsSocketConnected(true);
         } else {
-          console.log('⚡️ Socket is not yet connected - waiting for connect event');
+          console.log('⚡️ Socket is not yet connected - waiting  connect event');
         }
         
         // Update state with the instance
         setSocketClientInstance(instance);
         
-        // ⚡️ 항상 방에 참가 - 연결 성공 여부와 상관없이 시도
-        // 소켓이 아직 연결 중이면 소켓 라이브러리 내부에서 큐에 저장됨
-        console.log('✅ 소켓 초기화 후 즉시 방 참가 시도:', chatId);
+        console.log('✅ Joining room immediately after socket init:', chatId);
         const joinResult = (instance as unknown as SocketClientLike).joinRoom?.(chatId);
-        console.log('방 참가 요청 결과:', joinResult ? '성공' : '실패 (큐에 저장됨)');
+        console.log('Room join result:', joinResult ? 'success' : 'failed (queued)');
         
         (instance as unknown as SocketClientLike).getActiveUsers?.(chatId);
         
         // Set up the event listeners and get the cleanup function
         cleanupFn = setupEventListeners(instance);
         
-        // 초기화 완료
         setLoading(false);
       } catch (error) {
         console.error('Error initializing socket:', error);
@@ -390,16 +374,14 @@ const ChatUI: React.FC<ChatUIProps> = ({
 
     // Set up all event listeners
     const setupEventListeners = (instance: SocketClientLike) => {
-      // 소켓 연결 상태 업데이트
       const onConnect = () => {
         console.log('✅ Socket.IO connected!');
         setIsSocketConnected(true);
         setError('');
         
-        // ⚡️ 연결/재연결 시에도 방에 즉시 다시 참가
-        console.log('✅ 연결/재연결 시 방에 참가:', chatId);
+        console.log('✅ Joining room on connect/reconnect:', chatId);
         const joinResult = instance.joinRoom?.(chatId);
-        console.log('재연결 후 방 참가 요청 결과:', joinResult ? '성공' : '실패');
+        console.log('Room rejoin result after reconnect:', joinResult ? 'success' : 'failed');
 
         instance.getActiveUsers?.(chatId);
       };
@@ -409,13 +391,11 @@ const ChatUI: React.FC<ChatUIProps> = ({
       // Then add the handler
       instance.on('connect', onConnect);
 
-      // 소켓 연결 해제 처리
       const onDisconnect = () => {
         console.log('Socket.IO disconnected');
         setIsSocketConnected(false);
         
-        // 비정상적인 연결 해제인 경우에만 에러 메시지 표시
-        setError('서버와의 연결이 끊어졌습니다. 자동으로 재연결을 시도합니다.');
+        setError('Disconnected from server. Attempting to reconnect.');
       };
       
       // Remove any existing handlers
@@ -425,44 +405,40 @@ const ChatUI: React.FC<ChatUIProps> = ({
       
       // Handle new messages received through socket
       const onNewMessage = async (data: { roomId: string, message: ChatMessage }) => {
-        console.log('🔍 새 메시지 수신:', data);
+        console.log('🔍 New message received:', data);
         
-        // 해당 방의 메시지인지 확인 - 문자열 변환하여 비교
         const currentRoomId = String(chatId);
         const receivedRoomId = String(data.roomId);
         
         if (currentRoomId !== receivedRoomId) {
-          console.log(`❌ 메시지 무시: 다른 방의 메시지 (${receivedRoomId} != ${currentRoomId})`);
+          console.log(`❌ Ignoring message: message from a different room (${receivedRoomId} != ${currentRoomId})`);
           return;
         }
         
-        // 유효성 검사 - 메시지 객체가 없으면 무시
         if (!data.message) {
-          console.error('❌ 유효하지 않은 메시지 데이터:', data);
+          console.error('❌ Invalid message data:', data);
           return;
         }
         
-        console.log('✅ 유효한 메시지임, UI에 추가 검토:', data.message);
-        console.log('📋 메시지 세부 정보:');
+        console.log('✅ Valid message; reviewing  UI add:', data.message);
+        console.log('📋 Message details:');
         console.log(`- ID: ${data.message.id}`);
         console.log(`- Sender: ${data.message.sender}`);
         console.log(`- SenderName: ${data.message.senderName}`);
         console.log(`- SenderType: ${data.message.senderType}`);
         console.log(`- NPC ID: ${data.message.npc_id}`);
         console.log(`- Portrait URL: ${data.message.portrait_url}`);
-        console.log(`- 텍스트 미리보기: ${data.message.text.substring(0, 100)}...`);
+        console.log(`- Text preview: ${data.message.text.substring(0, 100)}...`);
         
-        // sentMessageIds에 있는 메시지 ID인지 확인 (내가 보낸 메시지가 서버에서 다시 오는 경우)
+        // sentMessageIds ID ( )
         if (sentMessageIds.includes(data.message.id)) {
-          console.log('⚠️ 내가 보낸 메시지가 서버에서 다시 왔습니다. 무시합니다:', data.message.id);
+          console.log('Ignoring echo of own message:', data.message.id);
           return;
         }
         
-        // 메시지가 현재 사용자의 것이고, 이미 로컬에 표시된 경우 (ID는 다르지만 내용이 같은 경우)
-        // Get stored username for consistency
+        // Get stored username  consistency
         const storedUsername = sessionStorage.getItem('chat_username') || username;
         if (data.message.isUser && (data.message.sender === username || data.message.sender === storedUsername)) {
-          // 최근 5초 이내에 보낸 동일한 내용의 메시지가 있는지 확인
           const now = new Date().getTime();
           const existingSimilarMessage = messages.some(msg => 
             (msg.sender === username || msg.sender === storedUsername) && 
@@ -472,65 +448,57 @@ const ChatUI: React.FC<ChatUIProps> = ({
           );
           
           if (existingSimilarMessage) {
-            console.log('⚠️ 이미 표시된 유사한 메시지입니다. 무시합니다:', data.message.text);
+            console.log('Similar message already displayed; ignoring:', data.message.text);
             return;
           }
         }
         
-        // NPC 메시지인 경우, 해당 NPC의 정보를 먼저 로드
         if (!data.message.isUser) {
           const npcId = data.message.npc_id || data.message.sender;
           
           try {
-            // NPC 정보가 캐시에 없는 경우에만 로드
             if (npcId && !npcDetails[npcId]) {
-              console.log(`🔍 새 메시지에 대한 NPC 정보 로드 중: ${npcId}`);
+              console.log(`🔍 Loading NPC info  new message: ${npcId}`);
               const npcInfo = await fetchNpcDetails(npcId);
               setNpcDetails(prev => ({
                 ...prev,
                 [npcId]: npcInfo
               }));
               
-              // NPC 정보를 메시지에 직접 추가
               data.message.senderName = npcInfo.name;
               if (!data.message.portrait_url) {
                 data.message.portrait_url = npcInfo.portrait_url;
               }
               
-              console.log(`✅ NPC 정보 로드 완료: ${npcId} → ${npcInfo.name}`);
+              console.log(`✅ NPC info loaded: ${npcId} → ${npcInfo.name}`);
             } else if (npcId && npcDetails[npcId]) {
-              // 이미 캐시된 정보가 있으면 메시지에 직접 추가
               data.message.senderName = npcDetails[npcId].name;
               if (!data.message.portrait_url) {
                 data.message.portrait_url = npcDetails[npcId].portrait_url;
               }
-              console.log(`✅ 캐시된 NPC 정보 사용: ${npcId} → ${npcDetails[npcId].name}`);
+              console.log(`✅ Using cached NPC info: ${npcId} → ${npcDetails[npcId].name}`);
             }
           } catch (e) {
-            console.error(`❌ NPC 정보 로드 실패: ${npcId}`, e);
+            console.error(`❌ NPC info load failed: ${npcId}`, e);
           }
         }
         
-        // 이미 UI에 있는 메시지인지 확인 (중복 방지)
         setMessages(prev => {
-          // 이미 존재하는 메시지인지 확인 (ID로 비교)
           const isDuplicate = prev.some(msg => msg.id === data.message.id);
           
-          // 이미 존재하는 메시지면 무시
           if (isDuplicate) {
-            console.log('⚠️ 중복 메시지 무시 (ID 일치):', data.message.id);
+            console.log('Ignoring duplicate message (matching ID):', data.message.id);
             return prev;
           }
           
-          // 새 메시지 추가 - 즉시 화면에 표시하기 위해 상태 업데이트
-          console.log('🆕 새 메시지 추가:', data.message);
-          // Mark the message as new for animation
+          console.log('Adding new message:', data.message);
+          // Mark the message as new  animation
           const isCurrentUserMessage = data.message.isUser && 
             (data.message.sender === username || data.message.sender === storedUsername);
             
-          // 자동 대화 메시지인지 확인 (message.id가 auto-로 시작하는지)
+          // (message.id auto- )
           const isAutoMessage = data.message.id.startsWith('auto-');
-          console.log('자동 대화 메시지 여부:', isAutoMessage);
+          console.log('Is auto-conversation message:', isAutoMessage);
           
           const newMessage = {
             ...data.message,
@@ -539,37 +507,36 @@ const ChatUI: React.FC<ChatUIProps> = ({
             sender: isCurrentUserMessage ? username : data.message.sender
           };
           
-          console.log('📝 최종 메시지 객체:', newMessage);
-          console.log(`- 최종 SenderName: ${newMessage.senderName}`);
-          console.log(`- 최종 Portrait URL: ${newMessage.portrait_url}`);
+          console.log('Final message object:', newMessage);
+          console.log(`- Final SenderName: ${newMessage.senderName}`);
+          console.log(`- Final Portrait URL: ${newMessage.portrait_url}`);
           
           return [...prev, newMessage];
         });
         
-        // AI 응답이면 thinking 상태 해제
+        // AI thinking
         if (!data.message.isUser) {
           setIsThinking(false);
         }
         
-        // 새 메시지가 오면 자동으로 스크롤
         setTimeout(() => {
           if (endOfMessagesRef.current) {
             endOfMessagesRef.current.scrollIntoView({ behavior: 'smooth' });
           }
         }, 100);
         
-        // 주기적으로 오래된 sentMessageIds 정리 (30초 이상 지난 ID 제거)
+        // sentMessageIds (30 ID )
         setSentMessageIds(prev => {
           const thirtySecondsAgo = Date.now() - 30000;
           return prev.filter(id => {
-            // ID에서 타임스탬프 추출 (형식: user-1234567890)
+            // ID (: user-1234567890)
             const timestamp = parseInt(id.split('-')[1]);
             return isNaN(timestamp) || timestamp > thirtySecondsAgo;
           });
         });
       };
       
-      // Handle thinking state for AI responses
+      // Handle thinking state  AI responses
       const onThinking = (data: { sender: string }) => {
         if (data.sender === chatId.toString()) {
           setIsThinking(true);
@@ -630,28 +597,28 @@ const ChatUI: React.FC<ChatUIProps> = ({
         setTimeout(() => setError(null), 5000); // Clear error after 5 seconds
       };
       
-      // Add handler for auto-dialogue thinking state
+      // Add handler  auto-dialogue thinking state
       
-      // Add handler for auto-dialogue message sent
+      // Add handler  auto-dialogue message sent
       const onAutoMessageSent = () => {
         console.log('🤖 Auto-dialogue message sent event received');
         
-        // thinking 상태 초기화
+        // thinking
         setThinkingNpcId(null);
         setIsThinking(false);
         console.log('🤖 Cleared thinking state after message sent');
       };
       
       try {
-        // 소켓 이벤트 리스너 설정 - Remove existing handlers first
+        // - Remove existing handlers first
         instance.off('new-message', onNewMessage);
         instance.off('thinking', onThinking);
         instance.off('active-users', onActiveUsers);
         instance.off('user-joined', onUserJoined);
         instance.off('user-left', onUserLeft);
         instance.off('error', onError);
-        instance.off('npc-selected', onNpcSelected); // 새 이벤트 핸들러 추가
-        instance.off('auto-message-sent', onAutoMessageSent); // auto-message-sent는 계속 사용
+        instance.off('npc-selected', onNpcSelected);
+        instance.off('auto-message-sent', onAutoMessageSent);  // auto-message-sent
         
         // Then add new handlers
         instance.on('new-message', onNewMessage);
@@ -660,26 +627,25 @@ const ChatUI: React.FC<ChatUIProps> = ({
         instance.on('user-joined', onUserJoined);
         instance.on('user-left', onUserLeft);
         instance.on('error', onError);
-        instance.on('npc-selected', onNpcSelected); // 새 이벤트 핸들러 추가
-        instance.on('auto-message-sent', onAutoMessageSent); // auto-message-sent는 계속 사용
+        instance.on('npc-selected', onNpcSelected);
+        instance.on('auto-message-sent', onAutoMessageSent);  // auto-message-sent
         
-        // 사용자 접속 상태 확인을 위한 타임아웃 설정
         const timeoutId = setTimeout(() => {
           if (!instance.isConnected?.()) {
             console.warn('Socket connection timeout - falling back to direct API mode');
             setError('Network connection limited. Using API fallback mode.');
             setIsSocketConnected(false);
           }
-        }, 5000); // 5초 타임아웃
+        }, 5000);
         
         // Type fix: Define the addEventHandler method on SocketClient
         const handler = (data: { roomId: string | number; message: ChatMessage }) => {
-          console.log(`🚨 'send-message' 이벤트 수신 - 방 ID: ${data.roomId}, 메시지:`, data.message);
+          console.log(`🚨 'send-message' event received - room ID: ${data.roomId}, message:`, data.message);
           // Return unmodified data - RAG parameter is no longer needed
           return data;
         };
         
-        // Use type casting for missing method (best compromise for fix)
+        // Use type casting  missing method (best compromise  fix)
         if ('addEventHandler' in instance) {
           instance.addEventHandler?.('send-message', handler);
         }
@@ -687,7 +653,6 @@ const ChatUI: React.FC<ChatUIProps> = ({
         // Return cleanup function
         return () => {
           clearTimeout(timeoutId);
-          // 기존 정리 로직
           instance.off('new-message', onNewMessage);
           instance.off('thinking', onThinking);
           instance.off('active-users', onActiveUsers);
@@ -713,7 +678,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     // Start the initialization process
     initSocket();
     
-    // Return a cleanup function for the useEffect
+    // Return a cleanup function  the useEffect
     return () => {
       if (cleanupFn) {
         cleanupFn();
@@ -736,7 +701,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     }
   };
 
-  // Auto-resize textarea for input
+  // Auto-resize textarea  input
   const adjustTextareaHeight = () => {
     const textarea = inputRef.current;
     if (textarea) {
@@ -772,7 +737,6 @@ const ChatUI: React.FC<ChatUIProps> = ({
     }
   };
 
-  // 메시지 전송 함수
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -782,7 +746,6 @@ const ChatUI: React.FC<ChatUIProps> = ({
       console.log('📝 sending message:', message);
       setIsSending(true);
       
-      // 메시지 객체 생성
       const timestamp = new Date(); // Fix: Use Date object instead of string
       const messageObj: ChatMessage = {
         id: `local-${Date.now()}`,
@@ -792,41 +755,37 @@ const ChatUI: React.FC<ChatUIProps> = ({
         timestamp
       };
       
-      // UI에 메시지 추가
       setMessages(prevMessages => [...prevMessages, messageObj]);
       
-      // 메시지 입력창 비우기
       setMessage('');
       
-      // 자동 스크롤
       scrollToBottom();
       
-      // 소켓 연결 확인
       if (!socketClientInstance || !isSocketConnected) {
-        console.error('❌ 소켓 연결이 없습니다. 메시지 전송 취소');
-        setError('연결이 끊어졌습니다. 새로고침 후 다시 시도해주세요.');
+        console.error('No socket connection; cancelling send');
+        setError('Disconnected. Please refresh and try again.');
         setIsSending(false);
           return;
       }
       
-      // 소켓을 통해 메시지 전송 - RAG flag removed
+      // - RAG flag removed
       socketClientInstance.emit('send-message', {
               roomId: chatId,
         message: messageObj
       });
       
-      console.log(`✅ 소켓을 통해 메시지 전송됨:`);
+      console.log(`✅ Message sent through socket:`);
       setIsThinking(true);
       
       } catch (error) {
-      console.error('❌ 메시지 전송 오류:', error);
-      setError('메시지 전송 중 오류가 발생했습니다.');
+      console.error('❌ message send error:', error);
+      setError('An error occurred while sending the message.');
     } finally {
       setIsSending(false);
     }
   };
 
-  // Handle key press in textarea (Enter to send, Shift+Enter for new line)
+  // Handle key press in textarea (Enter to send, Shift+Enter  new line)
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     console.log('🎮 Key pressed:', e.key, 'shiftKey:', e.shiftKey);
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -836,13 +795,12 @@ const ChatUI: React.FC<ChatUIProps> = ({
     }
   };
 
-  // Format time as HH:MM AM/PM - NaN 오류 해결
+  // Format time as HH:MM AM/PM - NaN
   const formatTime = (date: Date) => {
     try {
-      // 날짜 객체 확인 및 변환
       const validDate = date instanceof Date ? date : new Date(date);
       if (isNaN(validDate.getTime())) {
-        return ""; // 유효하지 않은 날짜면 빈 문자열 반환
+        return "";
       }
       
       return validDate.toLocaleTimeString('en-US', { 
@@ -852,7 +810,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
       });
     } catch (error) {
       console.error("Time formatting error:", error);
-      return ""; // 오류 발생 시 빈 문자열 반환
+      return "";
     }
   };
 
@@ -871,25 +829,23 @@ const ChatUI: React.FC<ChatUIProps> = ({
     setShowUserList(!showUserList);
   };
 
-  // 소켓 연결 다시 시도
   const handleReconnect = async () => {
     try {
-      // 소켓 다시 초기화 - use init method instead of constructor
-      console.log('🔄 수동 재연결 시도...');
+      // - use init method instead of constructor
+      console.log('Attempting manual reconnect...');
       const instance = await socketClient.init(username);
       setSocketClientInstance(instance);
       
-      // 재연결 후 즉시 방에 참가 시도
-      console.log('🔄 재연결 후 방 참가 시도:', chatId);
+      console.log('Attempting to rejoin room after reconnect:', chatId);
       if (instance) {
         const joinResult = (instance as unknown as SocketClientLike).joinRoom?.(chatId);
-        console.log('수동 재연결 후 방 참가 결과:', joinResult ? '성공' : '실패');
+        console.log('Manual reconnect rejoin result:', joinResult ? 'success' : 'failed');
         (instance as unknown as SocketClientLike).getActiveUsers?.(chatId);
       }
       
-      setError(null);  // 성공하면 에러 메시지 제거
+      setError(null);
     } catch (error) {
-      console.error('재연결 실패:', error);
+      console.error('Reconnect failed:', error);
       setError('Reconnection failed. Please try again.');
     }
   };
@@ -912,7 +868,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
       timestamp: new Date()
     };
     
-    // Access the socket directly for debugging
+    // Access the socket directly  debugging
     const socketObj = (socketClientInstance as unknown as SocketClientLike).socket;
     
     if (!socketObj) {
@@ -945,7 +901,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     
     console.log('🔎 Testing basic message with simplified object');
     
-    // Access the socket directly for debugging
+    // Access the socket directly  debugging
     const socketObj = (socketClientInstance as unknown as SocketClientLike).socket;
     
     if (!socketObj) {
@@ -991,7 +947,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     console.log('Socket connected (client):', socketClientInstance.isConnected?.());
     
     try {
-      // Access the raw socket object for debugging
+      // Access the raw socket object  debugging
       const rawSocket = (socketClientInstance as unknown as SocketClientLike).socket;
       
       if (!rawSocket) {
@@ -1017,7 +973,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
       // List active event listeners
       console.log('Event listeners:', rawSocket._events ? Object.keys(rawSocket._events) : 'Not available');
       
-      // Alert summary for quick visual feedback
+      // Alert summary  quick visual feedback
       alert(`Socket Debug:
 ID: ${rawSocket.id || 'none'}
 Connected: ${rawSocket.connected ? 'Yes' : 'No'}
@@ -1029,7 +985,7 @@ Namespace: ${rawSocket.nsp || '/'}
     }
   };
 
-  // Add a test function for direct API call
+  // Add a test function  direct API call
   const testDirectAPICall = async () => {
     try {
       console.log('🧪 Testing direct API call');
@@ -1085,7 +1041,7 @@ Namespace: ${rawSocket.nsp || '/'}
 
   // Toggle automatic dialogue mode
   const toggleAutoDialogueMode = () => {
-    console.log('🤖 자동 대화 토글 함수 호출됨');
+    console.log('Auto-conversation toggle called');
     
     if (isAutoDialogueRunning) {
       stopAutoDialogue();
@@ -1097,12 +1053,12 @@ Namespace: ${rawSocket.nsp || '/'}
   // Start automatic dialogue
   const startAutoDialogue = async () => {
     try {
-      console.log('🚀 자동 대화 시작 함수 호출됨');
+      console.log('🚀 Auto-conversation start called');
       
       // Remove setLoading(true) to prevent triggering message reload
       // setLoading(true);
       
-      // Python API 서버에 직접 요청
+      // Python API
       const response = await fetch('http://localhost:8000/api/auto-conversation', {
         method: 'POST',
         headers: {
@@ -1113,25 +1069,24 @@ Namespace: ${rawSocket.nsp || '/'}
           room_id: chatId.toString(),
           npcs: participants.npcs,
           topic: chatTitle,
-          delay_range: [15, 30] // 15-30초 간격으로 메시지 생성
+          delay_range: [15, 30]
         })
       });
       
       const data = await response.json();
-      console.log('Python API 응답:', data);
+      console.log('Python API response:', data);
       
       if (response.ok) {
-        console.log('✅ 자동 대화 시작 성공');
-        // UI 상태 업데이트
+        console.log('Auto conversation started successfully');
         setIsAutoDialogueRunning(true);
         setAutoDialogueMode(true);
       } else {
-        console.error('❌ 자동 대화 시작 실패:', data);
-        setError(`자동 대화 시작 실패: ${data.message || '알 수 없는 오류'}`);
+        console.error('Auto conversation start failed:', data);
+        setError(`Auto-conversation start failed: ${data.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('❌ 자동 대화 시작 중 오류 발생:', error);
-      setError(`자동 대화 시작 실패: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Error starting auto conversation:', error);
+      setError(`Auto-conversation start failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       // setLoading(false); // Remove this to prevent message reloading
     }
@@ -1140,14 +1095,14 @@ Namespace: ${rawSocket.nsp || '/'}
   // Stop automatic dialogue
   const stopAutoDialogue = async () => {
     try {
-      console.log('🛑 자동 대화 중지 함수 호출됨');
+      console.log('🛑 Auto-conversation stop called');
       
       // Remove setLoading(true) to prevent triggering message reload
       // setLoading(true);
       
-      // Python API 서버에 직접 요청 - 쿼리 파라미터로 room_id 전달
+      // Python API - room_id
       const requestUrl = `http://localhost:8000/api/auto-conversation?room_id=${chatId.toString()}`;
-      console.log('요청 URL:', requestUrl);
+      console.log('Request URL:', requestUrl);
       
       const response = await fetch(requestUrl, {
         method: 'DELETE',
@@ -1157,62 +1112,55 @@ Namespace: ${rawSocket.nsp || '/'}
       });
       
       const data = await response.json();
-      console.log('Python API 응답:', data);
+      console.log('Python API response:', data);
       
       if (response.ok) {
-        console.log('✅ 자동 대화 중지 성공');
-        // UI 상태 업데이트
+        console.log('✅ Auto-conversation stopped successfully');
         setIsAutoDialogueRunning(false);
         setAutoDialogueMode(false);
       } else {
-        console.error('❌ 자동 대화 중지 실패:', data);
-        setError(`자동 대화 중지 실패: ${data.message || '알 수 없는 오류'}`);
+        console.error('❌ Auto-conversation stop failed:', data);
+        setError(`Auto-conversation stop failed: ${data.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('❌ 자동 대화 중지 중 오류 발생:', error);
-      setError(`자동 대화 중지 실패: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('❌ Error during auto-conversation stop:', error);
+      setError(`Auto-conversation stop failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       // setLoading(false); // Remove this to prevent message reloading
     }
   };
 
-  // 메시지 렌더링 디버깅을 위한 useEffect - 필요 없어 제거
+  // useEffect -
   
-  // 모든 NPC 디테일 로깅
   useEffect(() => {
-    // NPC 디테일 변경 시 필요한 로직만 남기고 로그는 제거
   }, [npcDetails]);
 
-  // 채팅방 메시지 로드 함수 개선
   const loadLatestMessages = async () => {
     try {
-      console.log('🔄 채팅방 메시지 로드 시작');
+      console.log('Loading chat room messages');
       setLoading(true);
       setError(null);
       
-      // API에서 최근 메시지 가져오기
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rooms`;
-      console.log(`🔗 메시지 로드 URL: ${apiUrl}?id=${chatId}`);
+      console.log(`🔗 Message load URL: ${apiUrl}?id=${chatId}`);
       
       const response = await fetch(`${apiUrl}?id=${chatId}`);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ 메시지 로드 오류: ${response.status} ${errorText}`);
-        setError(`메시지를 불러오는 중 오류가 발생했습니다 (${response.status})`);
+        console.error(`❌ Message load error: ${response.status} ${errorText}`);
+        setError(`An error occurred while loading messages (${response.status})`);
         setLoading(false);
         return;
       }
       
       const data = await response.json();
-      console.log(`✅ 메시지 로드 완료: ${data.messages?.length}개 메시지`);
+      console.log(`✅ Message load complete: ${data.messages?.length}items message`);
       
-      // 메시지 정렬 (오래된 것부터)
       const sortedMessages = data.messages?.sort((a: ChatMessage, b: ChatMessage) => {
         return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
       }) || [];
       
-      // NPC ID를 수집하여 미리 상세 정보 로드
       const npcIds = new Set<string>();
       sortedMessages.forEach((msg: ChatMessage) => {
         if (!msg.isUser && msg.sender) {
@@ -1220,23 +1168,22 @@ Namespace: ${rawSocket.nsp || '/'}
         }
       });
       
-      console.log(`🔍 메시지에서 발견된 NPC ID: ${Array.from(npcIds).join(', ')}`);
+      console.log(`🔍 NPC IDs discovered in messages: ${Array.from(npcIds).join(', ')}`);
       
-      // NPC 상세 정보 미리 로드 (병렬로 실행)
+      // NPC ( )
       const loadNpcDetailsPromises = Array.from(npcIds).map(async (npcId) => {
         try {
           const details = await fetchNpcDetails(npcId);
-          console.log(`✅ NPC 정보 미리 로드됨: ${npcId} → ${details.name}`);
+          console.log(`✅ NPC info preloaded: ${npcId} → ${details.name}`);
           return { id: npcId, details };
         } catch (e) {
-          console.error(`❌ NPC 정보 로드 실패: ${npcId}`, e);
+          console.error(`❌ NPC info load failed: ${npcId}`, e);
           return { id: npcId, details: null };
         }
       });
       
       const loadedNpcDetails = await Promise.all(loadNpcDetailsPromises);
       
-      // NPC 정보를 상태에 업데이트
       const newNpcDetails = { ...npcDetails };
       loadedNpcDetails.forEach(item => {
         if (item.details) {
@@ -1244,7 +1191,7 @@ Namespace: ${rawSocket.nsp || '/'}
         }
       });
       
-      // 메시지에 NPC 이름과 프로필 URL 직접 추가 (렌더링을 위해)
+      // NPC URL ( )
       const enhancedMessages = sortedMessages.map((msg: ChatMessage) => {
         if (!msg.isUser && (msg.npc_id || msg.sender)) {
           const npcId = msg.npc_id || msg.sender;
@@ -1261,30 +1208,29 @@ Namespace: ${rawSocket.nsp || '/'}
         return msg;
       });
       
-      console.log('🔄 강화된 메시지 설정 중...');
+      console.log('Setting enriched message...');
       setMessages(enhancedMessages);
       setNpcDetails(newNpcDetails);
       setIsLoaded(true);
       
-      // 스크롤을 마지막 메시지로 이동
       setTimeout(() => {
         if (endOfMessagesRef.current) {
           endOfMessagesRef.current.scrollIntoView({ behavior: 'smooth' });
         }
       }, 100);
     } catch (error) {
-      console.error('❌ 메시지 로드 중 예외 발생:', error);
-      setError('메시지를 불러오는 중 오류가 발생했습니다.');
+      console.error('❌ Exception during message load:', error);
+      setError('Error loading messages.');
     } finally {
       setLoading(false);
     }
   };
 
-  // fetchNpcDetails 함수 수정 - 정적 기본 정보만 사용
+  // fetchNpcDetails -
   const fetchNpcDetails = async (npcId: string): Promise<NpcDetail> => {
-    console.log(`🔍 NPC 정보 생성 중 (정적): ${npcId}`);
+    console.log(`🔍 Generating NPC info (static): ${npcId}`);
     
-    // API 호출 제거 - 기본 정보 반환
+    // API -
     return {
       id: npcId,
       name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
@@ -1292,12 +1238,11 @@ Namespace: ${rawSocket.nsp || '/'}
     };
   };
 
-  // NPC 정보 변경 시 메시지 업데이트를 위한 useEffect 추가
+  // NPC useEffect
   useEffect(() => {
     if (isLoaded && messages.length > 0) {
-      console.log('🔄 NPC 정보 변경으로 메시지 업데이트');
+      console.log('Updating message due to NPC info change');
       
-      // 메시지에 최신 NPC 정보 반영
       setMessages(prev => prev.map(msg => {
         if (!msg.isUser && (msg.npc_id || msg.sender)) {
           const npcId = msg.npc_id || msg.sender;
@@ -1316,15 +1261,12 @@ Namespace: ${rawSocket.nsp || '/'}
     }
   }, [npcDetails, isLoaded]);
 
-  // 메시지 스타일 모든 메시지에 NPC 이름 표시를 위한 코드
   const getMessageStyle = (msg: ChatMessage) => {
-    // 현재 사용자의 메시지인지 확인
     const isCurrentUserMessage = msg.isUser && 
       (msg.sender === username || msg.sender === sessionStorage.getItem('chat_username'));
     
     let style = "chat-message-bubble ";
     
-    // 메시지 발신자에 따라 스타일 적용
     if (isCurrentUserMessage) {
       style += "chat-message-bubble-mine";
     } else if (msg.isUser) {
@@ -1336,38 +1278,34 @@ Namespace: ${rawSocket.nsp || '/'}
     return style;
   };
 
-  // 메시지 발신자 이름 표시 함수 개선
   const getMessageSenderName = (msg: ChatMessage) => {
-    // 사용자 메시지인 경우
     if (msg.isUser) {
       return msg.sender === username || msg.sender === sessionStorage.getItem('chat_username') 
         ? 'You' 
         : msg.sender;
     }
     
-    // NPC 메시지인 경우 - senderName이 있으면 사용, 없으면 getNpcDisplayName 활용
+    // NPC - senderName , getNpcDisplayName
     const npcId = msg.npc_id || msg.sender;
     return msg.senderName || getNpcDisplayName(npcId);
   };
 
-  // NPC 상세 정보를 로드하는 함수 추가
   const loadNpcDetails = async () => {
     try {
-      // 참여 중인 NPC들의 정보를 가져옴
       const details: Record<string, NpcDetail> = {};
       
       for (const npcId of participants.npcs) {
         try {
-          // API 호출 제거 - 기본 NPC 정보 생성
+          // API - NPC
           const npcDetail = {
             id: npcId,
             name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
             is_custom: false
           };
           details[npcId] = npcDetail;
-          console.log(`✅ Loaded NPC details for ${npcId}:`, npcDetail.name);
+          console.log(`✅ Loaded NPC details  ${npcId}:`, npcDetail.name);
         } catch (error) {
-          console.error(`❌ Error loading NPC details for ${npcId}:`, error);
+          console.error(`❌ Error loading NPC details  ${npcId}:`, error);
         }
       }
       
@@ -1377,58 +1315,52 @@ Namespace: ${rawSocket.nsp || '/'}
     }
   };
 
-  // 컴포넌트 마운트 시 NPC 상세 정보 로드
   useEffect(() => {
     loadNpcDetails();
   }, [participants.npcs]);
 
-  // 기본 아바타 URL 생성 함수 추가
   const getDefaultAvatar = (name: string) => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128&font-size=0.5`;
   };
 
-  // NPC 실제 이름 가져오기 함수 수정 - null 체크 추가
+  // NPC - null
   const getNpcDisplayName = (npcId: string | null): string => {
     if (!npcId) {
       return "Unknown AI";
     }
     
-    // 메시지에 senderName이 직접 포함된 경우 (자동 대화 메시지)
+    // senderName ( )
     if (typeof npcId === 'object' && (npcId as { senderName?: string }).senderName) {
       return (npcId as { senderName: string }).senderName;
     }
     
-    // 상세 정보에서 실제 이름 찾기
     if (npcDetails[npcId]) {
       return npcDetails[npcId].name;
     }
-    // 없으면 ID 그대로 반환
     return npcId;
   };
 
-  // NPC 프로필 이미지 URL 가져오기 함수 수정 - null 체크 추가
+  // NPC URL - null
   const getNpcProfileImage = (npcId: string | null): string => {
     if (!npcId) {
       return getDefaultAvatar("Unknown AI");
     }
     
-    // 메시지에 portrait_url이 직접 포함된 경우 (자동 대화 메시지)
+    // portrait_url ( )
     if (typeof npcId === 'object' && (npcId as { portrait_url?: string }).portrait_url) {
       return (npcId as { portrait_url: string }).portrait_url;
     }
     
-    // 상세 정보에서 프로필 이미지 URL 찾기
     if (npcDetails[npcId] && npcDetails[npcId].portrait_url) {
       return npcDetails[npcId].portrait_url;
     }
-    // 없으면 기본 아바타 생성
     const displayName = getNpcDisplayName(npcId);
     return getDefaultAvatar(displayName);
   };
 
-  // Add CSS for chat bubbles - ensure consistent rounded corners
+  // Add CSS  chat bubbles - ensure consistent rounded corners
   useEffect(() => {
-    // Add styles for chat bubbles
+    // Add styles  chat bubbles
     const style = document.createElement('style');
     style.textContent = `
       .chat-message-bubble {
@@ -1477,78 +1409,66 @@ Namespace: ${rawSocket.nsp || '/'}
     };
   }, []);
 
-  // 인용 모달 열기 함수
   const openCitationModal = (citation: Citation) => {
-    console.log("📚 인용 모달 열기:", citation);
+    console.log("📚 Open citation modal:", citation);
     setSelectedCitation(citation);
     setIsCitationModalOpen(true);
   };
   
-  // 인용 모달 닫기 함수
   const closeCitationModal = () => {
-    console.log("📚 인용 모달 닫기");
+    console.log("📚 Close citation modal");
     setIsCitationModalOpen(false);
-    setTimeout(() => setSelectedCitation(null), 300); // 닫힌 후 데이터 초기화
+    setTimeout(() => setSelectedCitation(null), 300);
   };
   
-  // 각주가 포함된 텍스트를 렌더링하는 함수
   const renderMessageWithCitations = (text: string, citations?: Citation[]) => {
-    console.log("📚 텍스트 렌더링 시작, 인용 정보:", citations);
+    console.log("📚 Starting text render with citations:", citations);
     
     if (!citations || !Array.isArray(citations) || citations.length === 0) {
-      console.log("⚠️ 인용 정보 없음, 원본 텍스트 반환:", text.substring(0, 50) + "...");
+      console.log("⚠️ citation info not found, returning original text:", text.substring(0, 50) + "...");
       return text;
     }
     
-    // 각주 패턴 정규식: [1], [2] 등을 찾음
     const citationPattern = /\[(\d+)\]/g;
     
-    // 패턴에 맞는 위치 찾기
     let match;
     const matches: { index: number; citation: string; id: string }[] = [];
     
-    // 텍스트에서 모든 [숫자] 패턴 찾기
     while ((match = citationPattern.exec(text)) !== null) {
-      const id = match[1]; // 숫자 부분 (괄호 안)
-      console.log(`📚 각주 발견: [${id}] at index ${match.index}`);
+      const id = match[1];
+      console.log(`📚 footnote found: [${id}] at index ${match.index}`);
       matches.push({
         index: match.index,
-        citation: match[0], // 전체 매치 ([숫자] 형태)
+        citation: match[0],
         id: id
       });
     }
     
-    // 매치가 없으면 원본 텍스트 반환
     if (matches.length === 0) {
-      console.log("⚠️ 각주 패턴 없음, 원본 텍스트 반환");
+      console.log("⚠️ footnote pattern not found, returning original text");
       return text;
     }
     
-    console.log(`📚 발견된 각주 ${matches.length}개:`, matches);
-    console.log(`📚 사용 가능한 인용 정보 ${citations.length}개:`, citations);
+    console.log(`📚 Found footnotes ${matches.length}items:`, matches);
+    console.log(`📚 Available citations ${citations.length}items:`, citations);
     
-    // 결과 JSX 조합
     const result: React.ReactNode[] = [];
     let lastIndex = 0;
     
-    // 각 매치에 대해 처리
     matches.forEach((match, i) => {
-      // 이전 텍스트 추가
       if (match.index > lastIndex) {
         result.push(text.substring(lastIndex, match.index));
       }
       
-      // 해당 ID의 인용 정보 찾기
       const citation = citations.find(cit => cit.id === match.id);
       
       if (citation) {
-        console.log(`📚 각주 ${match.id}에 대한 인용 정보 발견:`, citation);
-        // 클릭 가능한 각주 렌더링 - 스타일 개선
+        console.log(`📚 footnote ${match.id}citation found:`, citation);
         result.push(
               <button 
             key={`citation-${i}`}
                 onClick={() => {
-              console.log(`📚 각주 ${match.id} 클릭됨`);
+              console.log(`📚 footnote ${match.id} clicked`);
               openCitationModal(citation);
             }}
             className="inline bg-transparent border-none p-0 m-0 text-xs font-semibold cursor-pointer"
@@ -1566,63 +1486,56 @@ Namespace: ${rawSocket.nsp || '/'}
               </button>
         );
       } else {
-        console.log(`⚠️ 각주 ${match.id}에 대한 인용 정보 없음`);
-        // 인용 정보가 없는 경우 원본 텍스트로 표시
+        console.log(`⚠️ footnote ${match.id}citation not found`);
         result.push(match.citation);
       }
       
       lastIndex = match.index + match.citation.length;
     });
     
-    // 마지막 텍스트 추가
     if (lastIndex < text.length) {
       result.push(text.substring(lastIndex));
     }
     
-    console.log("📚 텍스트 렌더링 완료");
+    console.log("📚 Text rendering complete");
     return result;
   };
 
-  // 각 메시지 컴포넌트
   const MessageComponent = ({ message, isNew = false }: { message: ChatMessage, isNew?: boolean }) => {
-    // 강조된 메시지 영역 표시 (새 메시지)
     const messageRef = useRef<HTMLDivElement>(null);
 
-    // 새 메시지가 추가되면 자동 스크롤
     useEffect(() => {
       if (isNew && messageRef.current) {
         messageRef.current.scrollIntoView({ behavior: 'smooth' });
       }
     }, [isNew]);
 
-    // NPC 정보 가져오기 (portrait_url 등)
+    // NPC (portrait_url )
     useEffect(() => {
       if (!message.isUser && !message.portrait_url && message.sender) {
         fetchNpcDetails(message.sender).then((npcDetails) => {
           if (npcDetails) {
-            // 상태 업데이트 로직
           }
         });
       }
     }, [message]);
 
-    // 메시지 내용에 특수 라벨 추가
     const processMessageText = (text: string | React.ReactNode) => {
       if (typeof text !== 'string') return text;
       
-      // 각주 처리가 필요한 경우 renderMessageWithCitations 사용
+      // renderMessageWithCitations
       if (message.citations && Array.isArray(message.citations) && message.citations.length > 0) {
-        console.log("📚 각주가 있는 메시지 렌더링:", message.citations);
+        console.log("📚 Rendering message with footnotes:", message.citations);
         return renderMessageWithCitations(text, message.citations);
       }
       
-      // URL 패턴 매칭 (기존 로직)
+      // URL ( )
       const urlPattern = /(https?:\/\/[^\s]+)/g;
       if (!text.match(urlPattern)) {
         return text;
       }
       
-      // URL이 있는 경우 처리 로직 (기존 로직 유지)
+      // URL ( )
       const parts = text.split(urlPattern);
       const result: React.ReactNode[] = [];
       
@@ -1653,7 +1566,7 @@ Namespace: ${rawSocket.nsp || '/'}
         className={`flex flex-col ${message.isUser ? 'items-end' : 'items-start'} mb-4 transition-opacity duration-500 
           ${isNew ? 'animate-fadeIn' : 'opacity-100'}`}
       >
-        {/* 발신자 표시 (사용자 또는 NPC 이름) */}
+        {/* Sender display (user or NPC name) */}
         <div className="flex items-center mb-1">
           {!message.isUser && (
             <div className="w-8 h-8 rounded-full overflow-hidden mr-2 bg-gray-200 dark:bg-gray-700">
@@ -1679,7 +1592,7 @@ Namespace: ${rawSocket.nsp || '/'}
           </div>
         </div>
         
-        {/* 메시지 내용 표시 (말풍선) */}
+        {/* Message content (speech bubble) */}
         <div 
           className={`max-w-[80%] px-4 py-2 rounded-lg ${
             message.isUser 
@@ -1695,9 +1608,8 @@ Namespace: ${rawSocket.nsp || '/'}
     );
   };
 
-  // Auto-dialogue thinking 상태가 변경되면 UI 상태 업데이트
+  // Auto-dialogue thinking UI
   useEffect(() => {
-    // 모니터링은 필요하지만 로그 출력은 제거
   }, [isThinking, thinkingNpcId]);
 
   return (
@@ -1738,7 +1650,7 @@ Namespace: ${rawSocket.nsp || '/'}
           </p>
           </div>
           
-        {/* 오른쪽 영역에 자동 대화 버튼 및 연결 상태 표시 */}
+        {/* Auto-conversation button and connection status on the right */}
         <div 
           style={{ 
             position: 'absolute', 
@@ -1751,7 +1663,7 @@ Namespace: ${rawSocket.nsp || '/'}
         >
           {/* RAG toggle button removed */}
           
-          {/* 자동 대화 버튼 */}
+          {/* Auto-conversation button */}
           <button 
             onClick={toggleAutoDialogueMode}
             className={`px-3 py-1 text-xs ${
@@ -1763,7 +1675,7 @@ Namespace: ${rawSocket.nsp || '/'}
             {isAutoDialogueRunning ? 'Stop Auto' : 'Start Auto'}
           </button>
           
-          {/* 연결 상태 표시 (점만) */}
+          {/* Connection indicator (dot only) */}
           <div className={`w-2.5 h-2.5 rounded-full ${isSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
           
           {!isSocketConnected && (
@@ -1810,8 +1722,8 @@ Namespace: ${rawSocket.nsp || '/'}
             WebkitOverflowScrolling: 'touch', 
             maxWidth: '100%',
             width: '100%',
-            padding: '1rem 0 1rem 0',  // 좌측 패딩 0, 우측도 0으로 설정
-            paddingRight: '16px'  // 우측에만 별도로 16px 패딩 추가
+            padding: '1rem 0 1rem 0',
+            paddingRight: '16px'
           }}
         >
           <div className="max-w-2xl mx-auto space-y-2 pb-4 px-3">  
@@ -1835,16 +1747,16 @@ Namespace: ${rawSocket.nsp || '/'}
                   
                   {/* Message bubble */}
                   <div className={`flex ${
-                    // 현재 사용자(나)의 메시지만 오른쪽에 표시 - check against stored username too
+                    // () - check against stored username too
                     (msg.isUser && (msg.sender === username || msg.sender === sessionStorage.getItem('chat_username'))) 
                       ? 'justify-end' 
                       : 'justify-start'
                   } mb-3`}>
-                    {/* 프로필 아바타 - 내 메시지가 아닐 때만 표시 */}
+                    {/* Profile avatar — shown only when not your own message */}
                     {((!msg.isUser || (msg.sender !== username && msg.sender !== sessionStorage.getItem('chat_username')))) && (
                       <div className="flex-shrink-0 mr-2">
                         <div className="w-12 h-12 min-w-[48px] min-h-[48px] max-w-[48px] max-h-[48px] overflow-hidden rounded-full npc-profile-container">
-                          {/* 디버깅 로그는 JSX에서 제거하고 useEffect에서 처리함 */}
+                          {/* Debug logs are removed from JSX and handled in useEffect */}
                           <img 
                             src={msg.isUser 
                                 ? getDefaultAvatar(msg.sender) 
@@ -1861,7 +1773,7 @@ Namespace: ${rawSocket.nsp || '/'}
                     )}
                     
                     <div className="flex flex-col" style={{ maxWidth: '70%', width: 'auto' }}>
-                      {/* Sender name - 메시지를 보낸 사람의 이름 표시 (내 메시지 제외) */}
+                      {/* Sender name — shown  incoming messages */}
                       {((!msg.isUser || (msg.sender !== username && msg.sender !== sessionStorage.getItem('chat_username')))) && (
                         <span className="text-xs font-medium text-gray-600 ml-2 mb-1">
                           {msg.isUser 
@@ -1871,9 +1783,9 @@ Namespace: ${rawSocket.nsp || '/'}
                         </span>
                       )}
                       
-                      {/* 간소화된 말풍선 UI - CSS 클래스 사용 */}
+                      {/* Simplified speech-bubble UI using CSS classes */}
                       <div className={`${getMessageStyle(msg)}`}>
-                        {/* 메시지 텍스트 - 인용 정보가 있으면 각주 포함하여 표시 */}
+                        {/* Message text — renders citations as footnotes when present */}
                         <div className="message-text">
                           {msg.citations && Array.isArray(msg.citations) && msg.citations.length > 0 
                             ? renderMessageWithCitations(msg.text, msg.citations)
@@ -1881,7 +1793,7 @@ Namespace: ${rawSocket.nsp || '/'}
                           }
                         </div>
                           
-                          {/* Time stamp - 조건부 렌더링으로 유효하지 않은 timestamp 처리 */}
+                          {/* Time stamp — conditional rendering handles invalid timestamps */}
                           {msg.timestamp && !isNaN(new Date(msg.timestamp).getTime()) && (
                             <p className="chat-message-time">
                               {formatTime(msg.timestamp)}
@@ -1896,7 +1808,7 @@ Namespace: ${rawSocket.nsp || '/'}
             {/* Thinking indicator */}
             {isThinking && (
               <>
-                {/* 향상된 디버깅 정보 (개발 모드에서만 표시) - 삭제 */}
+                {/* Enhanced debug info (dev only) — removed */}
                 
               <div className="flex justify-start mb-3">
                   <div className="bg-gray-100 text-gray-600 rounded-lg p-3 shadow-md flex items-center" style={{
@@ -2032,7 +1944,7 @@ Namespace: ${rawSocket.nsp || '/'}
         </form>
       </div>
       
-      {/* 인용 모달 */}
+      {/* Citation modal */}
       <CitationModal
         isOpen={isCitationModalOpen}
         onClose={closeCitationModal}

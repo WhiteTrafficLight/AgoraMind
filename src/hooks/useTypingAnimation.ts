@@ -48,15 +48,12 @@ export const useTypingAnimation = ({
     
     intervalRef.current = setInterval(() => {
       if (index < text.length) {
-        // 현재 위치에서 링크 시작 확인
         const remainingText = text.slice(index);
         const linkMatch = remainingText.match(linkRegex);
         
         if (linkMatch && remainingText.indexOf(linkMatch[0]) === 0) {
-          // 링크 전체를 한번에 추가
           index += linkMatch[0].length;
         } else {
-          // 일반 텍스트는 한 글자씩
           index++;
         }
         
@@ -87,7 +84,6 @@ export const useTypingAnimation = ({
     }
   };
 
-  // 컴포넌트 언마운트 시 클리어
   useEffect(() => {
     return () => {
       if (intervalRef.current) {
@@ -99,8 +95,8 @@ export const useTypingAnimation = ({
     };
   }, []);
 
-  // 텍스트가 변경되면 리셋. !enabled 케이스는 아래 return 문에서
-  // displayedText 대신 text를 직접 반환해 처리하므로 setState 불필요.
+  // . !enabled return
+  // displayedText text setState .
   /* eslint-disable react-hooks/set-state-in-effect -- legacy reset-on-prop-change pattern; behavior-preserving refactor needs full hook overhaul. */
   useEffect(() => {
     if (enabled) {

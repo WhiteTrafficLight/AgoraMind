@@ -25,36 +25,31 @@ class Logger {
     const isProd = process.env.NODE_ENV === 'production';
     this.useEmojis = config.useEmojis !== undefined ? config.useEmojis : !isProd;
 
-    // 환경변수에서 로그 레벨 결정
     this.level = this.determineLogLevel(config.level);
 
-    // 브라우저에서 런타임 제어 기능 초기화
     if (typeof window !== 'undefined') {
       this.initBrowserControls();
     }
   }
 
   private determineLogLevel(configLevel?: LogLevel): LogLevel {
-    // 1. 설정에서 명시적으로 지정된 레벨
     if (configLevel !== undefined) {
       return configLevel;
     }
 
-    // 2. 브라우저에서 localStorage 확인
+    // 2. localStorage
     if (typeof window !== 'undefined') {
       const savedLevel = localStorage.getItem(`debug_log_level_${this.name}`);
       if (savedLevel && LogLevel[savedLevel as keyof typeof LogLevel] !== undefined) {
         return LogLevel[savedLevel as keyof typeof LogLevel];
       }
 
-      // URL 파라미터 확인
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.has('debug')) {
         return LogLevel.DEBUG;
       }
     }
 
-    // 3. 환경변수 확인
     const envLevel = process.env.NEXT_PUBLIC_LOG_LEVEL || 
                      process.env[`NEXT_PUBLIC_${this.name}_LOG_LEVEL`];
     
@@ -62,12 +57,11 @@ class Logger {
       return LogLevel[envLevel as keyof typeof LogLevel];
     }
 
-    // 4. 기본값: 프로덕션에서는 ERROR, 개발환경에서는 DEBUG
+    // 4. : ERROR, DEBUG
     return process.env.NODE_ENV === 'production' ? LogLevel.ERROR : LogLevel.DEBUG;
   }
 
   private initBrowserControls() {
-    // 글로벌 객체에 로그 제어 함수들 추가
     const w = window as unknown as { loggerControls?: Record<string, unknown> };
     w.loggerControls = {
       ...w.loggerControls,
@@ -126,12 +120,10 @@ class Logger {
     }
   }
 
-  // 항상 출력되는 강제 로그 (긴급 디버깅용)
   force(...args: unknown[]) {
     console.log(...this.formatMessage('FORCE', this.useEmojis ? '🔧' : '', ...args));
   }
 
-  // 그룹 로깅
   group(name: string, collapsed: boolean = false) {
     if (this.level >= LogLevel.DEBUG) {
       if (collapsed) {
@@ -148,7 +140,6 @@ class Logger {
     }
   }
 
-  // 성능 측정
   time(label: string) {
     if (this.level >= LogLevel.DEBUG) {
       console.time(`${this.name}: ${label}`);
@@ -162,10 +153,8 @@ class Logger {
   }
 }
 
-// 기본 로거
 export const logger = new Logger({ name: 'GLOBAL' });
 
-// 카테고리별 로거들
 export const loggers = {
   socket: new Logger({ name: 'SOCKET' }),
   chat: new Logger({ name: 'CHAT' }),
@@ -180,7 +169,7 @@ export const loggers = {
 // Factory for creating custom loggers externally without exposing class
 export const createLogger = (config: LoggerConfig = {}) => new Logger(config);
 
-// 기존 console.log 호환성을 위한 래퍼
+// console.log
 export const createCompatLogger = () => ({
   log: (...args: unknown[]) => logger.debug(...args),
   warn: (...args: unknown[]) => logger.warn(...args),
@@ -194,7 +183,6 @@ export const createCompatLogger = () => ({
   timeEnd: (label: string) => logger.timeEnd(label)
 });
 
-// 개발자 도구용 헬퍼
 if (typeof window !== 'undefined') {
   (window as unknown as { AgoraLoggers: Record<string, unknown> }).AgoraLoggers = {
     setGlobalLevel: (level: string) => {
@@ -210,7 +198,6 @@ if (typeof window !== 'undefined') {
     }
   };
 
-  // 초기 도움말 표시 (개발환경에서만)
   if (process.env.NODE_ENV === 'development') {
     setTimeout(() => {
       console.log('Type AgoraLoggers.showHelp() for logger help');

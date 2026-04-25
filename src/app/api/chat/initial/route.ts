@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { philosopherProfiles } from '@/lib/data/philosophers';
 
-// 백엔드 API URL
 const BACKEND_API_URL = 'http://0.0.0.0:8000';
 
-// NPC 데이터 인터페이스
 interface NpcData {
   name: string;
   description?: string;
@@ -15,37 +13,32 @@ interface NpcData {
   id?: string;
 }
 
-// 간단한 언어 감지 함수
 function detectLanguage(text: string): string {
-  // 한국어 감지 (한글 유니코드 범위: AC00-D7A3, 1100-11FF)
+  // ( : AC00-D7A3, 1100-11FF)
   const koreanRegex = /[\uAC00-\uD7A3\u1100-\u11FF]/;
   if (koreanRegex.test(text)) return 'Korean';
   
-  // 일본어 감지 (히라가나, 카타카나 유니코드 범위: 3040-309F, 30A0-30FF)
+  // (, : 3040-309F, 30A0-30FF)
   const japaneseRegex = /[\u3040-\u309F\u30A0-\u30FF]/;
   if (japaneseRegex.test(text)) return 'Japanese';
   
-  // 중국어 감지 (한자 유니코드 범위: 4E00-9FFF)
+  // ( : 4E00-9FFF)
   const chineseRegex = /[\u4E00-\u9FFF]/;
   if (chineseRegex.test(text)) return 'Chinese';
   
-  // 기본값은 영어
   return 'English';
 }
 
-// 프리픽스 제거 함수
 function removeNamePrefix(text: string): string {
-  // "Name: " 패턴 찾기 (이름: 또는 이름 : 형식)
+  // "Name: " (: : )
   const prefixRegex = /^[A-Za-z\s]+[:：]\s*/;
   return text.replace(prefixRegex, '');
 }
 
-// NPC 설명 준비 함수
 function prepareNpcDescription(philosopher: string, npcData: NpcData | null, isCustomNpc: boolean, language: string): string {
   let description;
   
   if (isCustomNpc && npcData) {
-    // 커스텀 NPC 정보 사용
     description = `Name: ${npcData.name}
 Role: Custom Philosopher
 Voice Style: ${npcData.voice_style || 'conversational'}
@@ -55,7 +48,6 @@ ${npcData.description ? `Description: ${npcData.description}` : ''}
 ${npcData.reference_philosophers && npcData.reference_philosophers.length > 0 ? 
   `Influenced by: ${npcData.reference_philosophers.join(', ')}` : ''}`;
   } else {
-    // 기본 철학자 프로필 가져오기
     const profile = philosopherProfiles[philosopher.toLowerCase()];
     if (!profile) {
       console.error(`❌ Philosopher profile not found for: ${philosopher}`);
@@ -75,7 +67,6 @@ Philosophical Background: ${profile.key_concepts ? profile.key_concepts.join(', 
     }
   }
   
-  // 언어 설정 추가하여 다국어 지원
   const languageInstruction = `IMPORTANT: Respond in ${language} language to match the topic language.
 DO NOT include your name as a prefix in your response.
 DO NOT start with "${philosopher}: " or any other name prefix.
@@ -84,12 +75,11 @@ Just provide your philosophical response directly.`;
   return `${description}\n${languageInstruction}`;
 }
 
-// 폴백 응답 생성 함수
 function generateFallbackResponse(topic: string, dialogueType?: string): NextResponse {
-  // Debate 타입에서는 fallback 메시지 생성하지 않음
+  // Debate fallback
   if (dialogueType === 'debate') {
-    console.log('⚠️ Debate 타입에서 fallback 응답 생성 건너뛰기');
-    return NextResponse.json({ text: '' }); // 빈 응답 반환
+    console.log('Skipping fallback response in debate type');
+    return NextResponse.json({ text: '' });
   }
   
   const topicLanguage = detectLanguage(topic);
@@ -98,12 +88,12 @@ function generateFallbackResponse(topic: string, dialogueType?: string): NextRes
     'English': [
       `I find this topic of "${topic}" quite fascinating. What aspects of it interest you the most?`,
       `Let's explore "${topic}" together. What questions come to mind when you consider this subject?`,
-      `The question of "${topic}" has intrigued philosophers for centuries. Where shall we begin our inquiry?`
+      `The question of "${topic}" has intrigued philosophers  centuries. Where shall we begin our inquiry?`
     ],
     'Korean': [
-      `"${topic}"에 대한 주제가 매우 흥미롭습니다. 어떤 측면이 가장 관심이 있으신가요?`,
-      `함께 "${topic}"에 대해 탐구해 봅시다. 이 주제를 생각할 때 어떤 질문이 떠오르나요?`,
-      `"${topic}"에 대한 질문은 수세기 동안 철학자들을 매료시켜 왔습니다. 어디서부터 시작할까요?`
+      `"${topic}" is a very interesting topic. Which aspect interests you most?`,
+      `Together "${topic}"let's explore. What questions come to mind on this topic?`,
+      `"${topic}" has fascinated philosophers  centuries. Where should we begin?`
     ],
     'Japanese': [
       `"${topic}"というテーマは非常に興味深いです。どのような側面に最も興味がありますか？`,
@@ -117,10 +107,8 @@ function generateFallbackResponse(topic: string, dialogueType?: string): NextRes
     ]
   };
   
-  // 감지된 언어 또는 폴백으로 영어 사용
   const languageResponses = fallbackResponses[topicLanguage] || fallbackResponses['English'];
   
-  // 랜덤 응답 선택
   const randomResponse = languageResponses[Math.floor(Math.random() * languageResponses.length)];
   console.log(`⚠️ Using fallback response due to backend error`);
   return NextResponse.json({ text: randomResponse });
@@ -128,27 +116,23 @@ function generateFallbackResponse(topic: string, dialogueType?: string): NextRes
 
 export async function POST(req: NextRequest) {
   try {
-    // 요청 데이터 파싱
     const { philosopher, topic, context, npcData } = await req.json();
 
-    console.log(`💬 Generating initial message for ${philosopher} on topic: ${topic}`);
+    console.log(`💬 Generating initial message  ${philosopher} on topic: ${topic}`);
     
-    // 헤더에서 LLM 설정 확인
+    // LLM
     const llmProvider = req.headers.get('x-llm-provider') || 'openai';
     const llmModel = req.headers.get('x-llm-model') || '';
 
-    // 주제의 언어 감지
     const topicLanguage = detectLanguage(topic);
     console.log(`Detected language: ${topicLanguage}`);
 
-    // NPC 데이터 확인
     const isCustomNpc = npcData && Object.keys(npcData).length > 0;
     console.log(`Using ${isCustomNpc ? 'custom' : 'default'} NPC data`);
 
-    // NPC 설명 준비
     const npcDescription = prepareNpcDescription(philosopher, npcData, isCustomNpc, topicLanguage);
     
-    // 백엔드 API 호출 (재시도 로직)
+    // API ( )
     const MAX_RETRIES = 3;
     let retryCount = 0;
     let backendData;
@@ -179,21 +163,19 @@ export async function POST(req: NextRequest) {
         }
 
         backendData = await backendResponse.json();
-        break; // 성공 시 반복 종료
+        break;
       } catch (error) {
         retryCount++;
         console.error(`Backend API error (attempt ${retryCount}/${MAX_RETRIES}):`, error);
         
         if (retryCount >= MAX_RETRIES) {
-          throw error; // 최대 재시도 횟수 초과 시 오류 전파
+          throw error;
         }
         
-        // 지수 백오프
         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)));
       }
     }
     
-    // 응답 처리
     let generatedText = backendData.response || backendData.text || backendData.message;
     generatedText = removeNamePrefix(generatedText);
     

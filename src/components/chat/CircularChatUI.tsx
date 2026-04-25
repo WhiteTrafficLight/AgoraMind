@@ -160,7 +160,6 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         const instance = await socketClient.init(username);
         console.log('Socket client initialization completed');
         
-        // 타입 단언을 사용하여 임시로 에러 해결
         const socketInstance = instance as unknown as SocketClientLike;
         
         // Ensure chatId is always a string for consistency
@@ -264,7 +263,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
       const details: Record<string, NpcDetail> = {};
       
       for (const npcId of participants.npcs) {
-        // API 호출 제거 - 기본 NPC 정보 생성
+        // API - NPC
         details[npcId] = {
           id: npcId,
           name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
@@ -416,7 +415,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         return;
       }
       
-      // 🔧 Fix: Use roomId directly as string (parseInt 제거)
+      // 🔧 Fix: Use roomId directly as string (parseInt )
       const roomId = String(chatId);
       
       // Send message via socket with error handling
@@ -464,7 +463,6 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
     if (userProfilePicture && userProfilePicture.length > 0) {
       return userProfilePicture;
     }
-    // 기본 아바타 URL
     return `/Profile.png`;
   };
   
@@ -476,7 +474,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
     return npcId;
   };
   
-  // Generate philosopher portrait path from static files (DebateTopicModal.tsx와 동일한 함수)
+  // Generate philosopher portrait path from static files (DebateTopicModal.tsx )
   const getPhilosopherPortraitPath = (philosopherName: string): string => {
     // Map philosopher names to actual file names (using last names mostly)
     const nameMapping: Record<string, string> = {
@@ -525,7 +523,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
     if (npcDetails[npcId] && npcDetails[npcId].portrait_url) {
       return npcDetails[npcId].portrait_url;
     }
-    // 철학자 포트레이트 경로 사용 (DebateTopicModal.tsx와 동일)
+    // (DebateTopicModal.tsx )
     return getPhilosopherPortraitPath(npcId);
   };
   
@@ -596,7 +594,6 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         try {
           setIsLoadingRoom(true);
           
-          // 초기 메시지가 이미 있는 경우 API 호출 생략
           if (initialMessages && initialMessages.length > 0) {
             console.log(`✅ Using ${initialMessages.length} initial messages from props`);
             setMessages(initialMessages);
@@ -604,10 +601,8 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
             return;
           }
           
-          // 메시지가 없거나 빈 배열인 경우에만 API에서 메시지 로딩
           console.log(`🔄 Loading messages for chat ID: ${chatId} (${typeof chatId})`);
           
-          // ID 유효성 검사 - 문자열이든 숫자든 존재하면 유효
           if (!chatId || chatId === '') {
             console.error(`❌ Invalid chat ID: ${chatId}`);
             setError('Invalid chat room ID format');
@@ -615,7 +610,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
             return;
           }
           
-          // API 호출에 사용할 ID (문자열 그대로 사용)
+          // API ID ( )
           const apiChatId = String(chatId);
           
           const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rooms`;
@@ -631,7 +626,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
           const data = await response.json();
           console.log(`📝 API Response:`, data ? `Room found (title: ${data.title})` : 'Room not found');
           
-          // data가 null이거나 undefined인 경우 체크
+          // data null undefined
           if (!data) {
             console.error(`❌ No data returned from API for room ID: ${chatId}`);
             setError('Chat room not found or has been deleted.');
@@ -639,7 +634,6 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
             return;
           }
           
-          // id 필드 확인
           if (data.id === undefined) {
             console.error(`❌ Response missing ID field for room ID: ${chatId}`);
             setError('Invalid room data received from server');
@@ -647,7 +641,6 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
             return;
           }
           
-          // ID 일치 여부 확인 (문자열로 비교)
           const responseId = String(data.id);
           if (responseId !== apiChatId) {
             console.error(`❌ ID mismatch: requested=${apiChatId}, received=${data.id}`);
@@ -656,7 +649,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
             return;
           }
           
-          // messages 필드가 없는 경우 체크
+          // messages
           if (!data.messages) {
             console.log(`⚠️ No messages field in room data for ID: ${apiChatId}, initializing empty array`);
             data.messages = [];
@@ -665,7 +658,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
           console.log(`✅ Loaded ${data.messages.length} messages from API`);
           
           try {
-            // Sort messages by timestamp (null 체크 추가)
+            // Sort messages by timestamp (null )
             const sortedMessages = data.messages.sort((a: ChatMessage, b: ChatMessage) => {
               return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
             });
@@ -677,7 +670,6 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
             setActiveMessageIndex(null);
           } catch (sortError) {
             console.error('❌ Error sorting messages:', sortError);
-            // 정렬 실패 시 원본 메시지 그대로 사용
             setMessages(data.messages);
           }
         } catch (error) {
@@ -1176,7 +1168,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
                           onError={(e) => {
                             console.error("NPC image loading error:", e);
                             const target = e.target as HTMLImageElement;
-                            target.onerror = null; // 무한 루프 방지
+                            target.onerror = null;
                             target.src = getDefaultAvatar(getNpcDisplayName(npcId));
                           }}
                         />
@@ -1242,7 +1234,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
                       onError={(e) => {
                         console.error("Profile image loading error:", e);
                         const target = e.target as HTMLImageElement;
-                        target.onerror = null; // 무한 루프 방지
+                        target.onerror = null;
                         target.src = getDefaultAvatar(username || 'User');
                       }}
                     />

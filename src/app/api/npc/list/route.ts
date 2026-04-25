@@ -6,19 +6,15 @@ import CustomNpc from '@/models/Npc';
 
 export async function GET(req: NextRequest) {
   try {
-    // 인증 확인
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
     }
     const userId = session.user.id || session.user.email;
 
-    // DB 연결
     await connectDB();
-    // 사용자 NPC 조회
     const docs = await CustomNpc.find({ created_by: userId }).lean();
 
-    // JSON 반환
     const npcs = docs.map(doc => ({
       id: doc.backend_id || String(doc._id),
       name: doc.name,

@@ -1,4 +1,3 @@
-// 토론 채팅 시스템의 핵심 타입 정의
 
 export enum DebateStage {
   OPENING = 'opening',
@@ -132,7 +131,6 @@ export interface ParticipantInfo {
   isSelected: boolean;
 }
 
-// 소켓 이벤트 관련 타입들
 export interface SocketEvents {
   'new-message': (data: { message: ChatMessage; roomId: string }) => void;
   'user_turn': (data: { is_user: boolean; speaker_id?: string }) => void;
@@ -141,7 +139,7 @@ export interface SocketEvents {
   'next-speaker-update': (data: { roomId: string; nextSpeaker: { speaker_id?: string; role?: string; [key: string]: unknown } }) => void;
 }
 
-// 컴포넌트 Props 타입들
+// Props
 export interface DebateChatContainerProps {
   room: DebateRoom;
   messages: ChatMessage[];

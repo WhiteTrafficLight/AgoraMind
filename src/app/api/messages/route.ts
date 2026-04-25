@@ -2,29 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 
-// Define interfaces for our DB objects
+// Define interfaces  our DB objects
 interface DBMessage {
-  messageId: string;     // 메시지 고유 ID
-  roomId: string;        // 방 ID (문자열)
+  messageId: string;
+  roomId: string;
   text: string;
   sender: string;
   isUser: boolean;
   timestamp: Date;
-  role?: string;         // 토론에서 역할 (pro, con, moderator)
-  senderType?: string;   // 발신자 타입 (npc, user, moderator)
-  stage?: string;        // 토론 단계 (opening, pro_argument, etc.)
+  role?: string;  // (pro, con, moderator)
+  senderType?: string;  // (npc, user, moderator)
+  stage?: string;  // (opening, pro_argument, etc.)
   citations?: Citation[]; // Add citations field to match the rest of the app
 }
 
 // Add Citation interface to match other files
 interface Citation {
-  id: string;       // 각주 ID (예: "1", "2")
-  text: string;     // 원문 텍스트
-  source: string;   // 출처 (책 이름)
-  location?: string; // 위치 정보 (선택사항)
+  id: string;
+  text: string;
+  source: string;
+  location?: string;
 }
 
-// chatMessages 컬렉션 스키마 (개별 메시지)
+// chatMessages ( )
 const chatMessageSchema = new mongoose.Schema({
   messageId: {
     type: String,
@@ -32,9 +32,9 @@ const chatMessageSchema = new mongoose.Schema({
     unique: true
   },
   roomId: {
-    type: String,  // Number → String으로 변경
+    type: String,  // Number → String
     required: true,
-    index: true  // 방별 조회를 위한 인덱스
+    index: true
   },
   text: {
     type: String,
@@ -51,11 +51,11 @@ const chatMessageSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     required: true,
-    index: true  // 시간순 정렬을 위한 인덱스
+    index: true
   },
-  role: String,        // 토론에서 역할
-  senderType: String,  // 발신자 타입 
-  stage: String,       // 토론 단계
+  role: String,
+  senderType: String,
+  stage: String,
   citations: [{
     id: String,
     text: String,
@@ -63,10 +63,9 @@ const chatMessageSchema = new mongoose.Schema({
     location: String
   }]
 }, { 
-  timestamps: true  // createdAt, updatedAt 자동 추가
+  timestamps: true  // createdAt, updatedAt
 });
 
-// 방별, 시간순 조회를 위한 복합 인덱스
 chatMessageSchema.index({ roomId: 1, timestamp: 1 });
 
 export async function GET(req: NextRequest) {
@@ -89,7 +88,7 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    // roomId를 문자열로 정규화
+    // roomId
     const normalizedRoomId = String(roomId).trim();
     if (!normalizedRoomId) {
       return NextResponse.json(
@@ -98,21 +97,19 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    console.log(`🔍 [GET] Loading messages for room "${normalizedRoomId}"`);
+    console.log(`🔍 [GET] Loading messages  room "${normalizedRoomId}"`);
     
-    // MongoDB 연결
     await connectDB();
     
-    // chatMessages 컬렉션 모델 생성
+    // chatMessages
     const ChatMessageModel = mongoose.models.chatMessages || 
                            mongoose.model('chatMessages', chatMessageSchema, 'chatMessages');
     
-    // 해당 방의 메시지들을 시간순으로 조회
     const messages = await ChatMessageModel.find({ roomId: normalizedRoomId })
-      .sort({ timestamp: 1 })  // 시간순 정렬
-      .lean();  // 성능 최적화
+      .sort({ timestamp: 1 })
+      .lean();
     
-    console.log(`✅ [GET] Found ${messages.length} messages for room "${normalizedRoomId}"`);
+    console.log(`✅ [GET] Found ${messages.length} messages  room "${normalizedRoomId}"`);
     
     return NextResponse.json({
       success: true,
@@ -133,14 +130,12 @@ export async function POST(req: NextRequest) {
   try {
     console.log('🔄 Processing message POST request');
     
-    // 요청 바디 파싱
     const body = await req.json();
     const { roomId, message, isInitial = false } = body;
     
     console.log(`Message details - RoomID: ${roomId}, IsInitial: ${isInitial}`);
     console.log(`Sender: ${message?.sender}, Length: ${message?.text?.length || 0}`);
     
-    // 유효성 검사 - 필수 필드 확인
     if (!roomId) {
       console.error('❌ Missing required field: roomId');
       return NextResponse.json(
@@ -166,26 +161,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // MongoDB 연결
     await connectDB();
     
-    // 디버깅: 실제 DB 연결 상태 확인
-    console.log('🔍 [DEBUG] MongoDB 연결 상태:');
+    console.log('[DEBUG] MongoDB connection status:');
     console.log('🔍 [DEBUG] - DB Name:', mongoose.connection.db?.databaseName);
     console.log('🔍 [DEBUG] - Connection State:', mongoose.connection.readyState);
     
-    // chatMessages 컬렉션 모델 생성
+    // chatMessages
     const ChatMessageModel = mongoose.models.chatMessages || 
                            mongoose.model('chatMessages', chatMessageSchema, 'chatMessages');
 
-    // 컬렉션 목록 확인
     if (mongoose.connection && mongoose.connection.db) {
       const collections = await mongoose.connection.db.listCollections().toArray();
       const collectionNames = collections.map(c => c.name);
-      console.log('🔍 [DEBUG] 사용 가능한 컬렉션들:', collectionNames.join(', '));
+      console.log('[DEBUG] Available collections:', collectionNames.join(', '));
     }
 
-    // roomId를 문자열로 정규화
+    // roomId
     const normalizedRoomId = String(roomId).trim();
     if (!normalizedRoomId) {
       console.error('❌ Invalid roomId format:', roomId);
@@ -195,7 +187,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 중복 메시지 확인
     const existingMessage = await ChatMessageModel.findOne({ messageId: message.id });
     if (existingMessage) {
       console.log(`⚠️ Duplicate message ID detected: ${message.id}, skipping save`);
@@ -205,12 +196,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 타임스탬프 처리
     const timestamp = typeof message.timestamp === 'string' 
       ? new Date(message.timestamp) 
       : (message.timestamp || new Date());
 
-    // 새로운 메시지 객체 구성
     const newMessage: DBMessage = {
       messageId: message.id,
       roomId: normalizedRoomId,
@@ -218,19 +207,17 @@ export async function POST(req: NextRequest) {
       sender: message.sender,
       isUser: message.isUser,
       timestamp,
-      role: message.role,           // 토론 역할
-      senderType: message.senderType, // 발신자 타입  
-      stage: message.stage          // 토론 단계
+      role: message.role,
+      senderType: message.senderType,
+      stage: message.stage
     };
     
-    // 인용 정보가 있으면 포함
     if (message.citations && Array.isArray(message.citations) && message.citations.length > 0) {
       console.log('📚 Citations data found:', JSON.stringify(message.citations));
       newMessage.citations = message.citations;
     }
     
-    // 디버깅: 저장할 메시지 내용 확인
-    console.log('🔍 [DEBUG] 저장할 메시지 객체:');
+    console.log('[DEBUG] Message to save:');
     console.log('🔍 [DEBUG] - MessageID:', newMessage.messageId);
     console.log('🔍 [DEBUG] - RoomID:', newMessage.roomId);
     console.log('🔍 [DEBUG] - Sender:', newMessage.sender);
@@ -238,16 +225,15 @@ export async function POST(req: NextRequest) {
     console.log('🔍 [DEBUG] - SenderType:', newMessage.senderType);
     console.log('🔍 [DEBUG] - Stage:', newMessage.stage);
 
-    // chatMessages 컬렉션에 개별 메시지로 저장
+    // chatMessages
     try {
       const savedMessage = await ChatMessageModel.create(newMessage);
       console.log(`✅ Message saved to chatMessages collection with _id: ${savedMessage._id}`);
       
-      // 저장 후 즉시 확인
-      console.log('🔍 [VERIFY] 저장 후 즉시 DB에서 확인 중...');
+      console.log('[VERIFY] Verifying in DB immediately after save...');
       const verifyMessage = await ChatMessageModel.findOne({ messageId: message.id });
       if (verifyMessage) {
-        console.log('🔍 [VERIFY] ✅ 메시지 저장 확인됨');
+        console.log('[VERIFY] Message save verified');
         console.log('🔍 [VERIFY] - _id:', verifyMessage._id);
         console.log('🔍 [VERIFY] - messageId:', verifyMessage.messageId);
         console.log('🔍 [VERIFY] - roomId:', verifyMessage.roomId);
@@ -255,19 +241,18 @@ export async function POST(req: NextRequest) {
         console.log('🔍 [VERIFY] - senderType:', verifyMessage.senderType);
         console.log('🔍 [VERIFY] - stage:', verifyMessage.stage);
       } else {
-        console.error('❌ [VERIFY] 저장 후 메시지를 찾을 수 없음!');
+        console.error('[VERIFY] Message not found after save!');
       }
       
-      // 해당 방의 총 메시지 수 확인
       const totalMessages = await ChatMessageModel.countDocuments({ roomId: normalizedRoomId });
-      console.log(`📊 방 "${normalizedRoomId}"의 총 메시지 수: ${totalMessages}개`);
+      console.log(`📊 room "${normalizedRoomId}"'s total message count: ${totalMessages}items`);
       
     } catch (dbError) {
-      console.error('❌ chatMessages 저장 오류:', dbError);
+      console.error('chatMessages save error:', dbError);
       throw dbError;
     }
     
-    console.log(`✅ Message saved to chatMessages collection for room "${normalizedRoomId}"`);
+    console.log(`✅ Message saved to chatMessages collection  room "${normalizedRoomId}"`);
 
     return NextResponse.json({ 
       success: true, 

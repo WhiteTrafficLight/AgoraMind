@@ -20,7 +20,6 @@ interface UseSocketOptions {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-// 전역 소켓 인스턴스 관리
 let globalSocket: Socket | null = null;
 let connectionCount = 0;
 
@@ -40,7 +39,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     onDisconnect
   } = options;
 
-  // 안정적인 콜백 함수들
   /* eslint-disable @typescript-eslint/no-explicit-any -- socket payload shapes vary by event; consumers narrow at use site. */
   const stableOnMessage = useCallback((data: any) => {
     onMessage?.(data);
@@ -65,31 +63,29 @@ export const useSocket = (options: UseSocketOptions = {}) => {
 
   /* eslint-disable react-hooks/set-state-in-effect -- legacy effect that reuses a global Socket.IO singleton; refactor would require a context/provider redesign. */
   useEffect(() => {
-    // 이미 연결된 소켓이 있으면 재사용
     if (globalSocket && globalSocket.connected) {
-      loggers.socket.debug('기존 Socket.IO 연결 재사용 중');
+      loggers.socket.debug('Reusing existing Socket.IO connection');
       socketRef.current = globalSocket;
       setIsConnected(true);
       setTransport(globalSocket.io.engine.transport.name);
       connectionCount++;
       
-      // 방 참여 (roomId와 userId가 있는 경우)
+      // (roomId userId )
       if (roomId && userId && !hasJoinedRoom.current) {
         globalSocket.emit('join_room', {
           room_id: roomId,
           user_id: userId
         });
         hasJoinedRoom.current = true;
-        loggers.socket.info(`방 참여: ${roomId} (사용자: ${userId})`);
+        loggers.socket.info(`room join: ${roomId} (user: ${userId})`);
       }
       
       return;
     }
 
-    // 새로운 연결이 필요한 경우에만 생성
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     
-    loggers.socket.info('새 Socket.IO 연결 생성 중', { url: backendUrl });
+    loggers.socket.info('Creating new Socket.IO connection', { url: backendUrl });
     
     const socket = io(backendUrl, {
       autoConnect: true,
@@ -100,7 +96,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       reconnectionDelay: 2000,
       reconnectionAttempts: 3,
       withCredentials: false,
-      // Engine.IO 프로토콜 호환성 설정
+      // Engine.IO
       forceBase64: false,
       timestampRequests: false
     });
@@ -109,26 +105,25 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     socketRef.current = socket;
     connectionCount++;
 
-    // 연결 상태 이벤트
     socket.on('connect', () => {
-      loggers.socket.info('Socket.IO 연결 성공', { socketId: socket.id });
+      loggers.socket.info('Socket.IO connected successfully', { socketId: socket.id });
       setIsConnected(true);
       setTransport(socket.io.engine.transport.name);
       stableOnConnect();
       
-      // 방 참여 (roomId와 userId가 있는 경우)
+      // (roomId userId )
       if (roomId && userId && !hasJoinedRoom.current) {
         socket.emit('join_room', {
           room_id: roomId,
           user_id: userId
         });
         hasJoinedRoom.current = true;
-        loggers.socket.info(`방 참여: ${roomId} (사용자: ${userId})`);
+        loggers.socket.info(`room join: ${roomId} (user: ${userId})`);
       }
     });
 
     socket.on('disconnect', (reason) => {
-      loggers.socket.warn('Socket.IO 연결 해제됨', { reason });
+      loggers.socket.warn('Socket.IO disconnected', { reason });
       setIsConnected(false);
       setTransport('N/A');
       hasJoinedRoom.current = false;
@@ -136,72 +131,67 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     });
 
     socket.on('connect_error', (error) => {
-      loggers.socket.error('Socket.IO 연결 오류', error);
+      loggers.socket.error('Socket.IO connection error', error);
       setIsConnected(false);
     });
 
     socket.on('reconnect', (attemptNumber) => {
-      loggers.socket.info(`Socket.IO 재연결 성공 (시도 횟수: ${attemptNumber})`);
-      hasJoinedRoom.current = false; // 재연결시 방 재참여 허용
+      loggers.socket.info(`Socket.IO reconnected successfully (attempt: ${attemptNumber})`);
+      hasJoinedRoom.current = false;
     });
 
     socket.on('reconnect_error', (error) => {
-      loggers.socket.error('Socket.IO 재연결 오류', error);
+      loggers.socket.error('Socket.IO reconnection error', error);
     });
 
     socket.on('reconnect_failed', () => {
-      loggers.socket.error('Socket.IO 재연결 실패');
-      globalSocket = null; // 연결 실패시 전역 소켓 초기화
+      loggers.socket.error('Socket.IO reconnection failed');
+      globalSocket = null;
     });
 
-    // 백엔드 이벤트 리스너들
     socket.on('new_message', stableOnMessage);
     socket.on('user_joined', stableOnUserJoined);
     socket.on('user_left', stableOnUserLeft);
 
-    // 방 생성/삭제 이벤트
     socket.on('room_created', (data) => {
-      loggers.socket.info('채팅방 생성됨', data);
+      loggers.socket.info('Chat room created', data);
     });
 
     socket.on('room_deleted', (data) => {
-      loggers.socket.info('채팅방 삭제됨', data);
+      loggers.socket.info('Chat room deleted', data);
     });
 
-    // 전송 상태 변경 시
     socket.io.engine.on('upgrade', () => {
       setTransport(socket.io.engine.transport.name);
     });
 
     return () => {
-      loggers.socket.debug('Socket.IO 연결 정리 중');
+      loggers.socket.debug('Cleaning up Socket.IO connection');
       connectionCount--;
       
-      // 방 떠나기 (roomId와 userId가 있는 경우)
+      // (roomId userId )
       if (roomId && userId && socket.connected && hasJoinedRoom.current) {
         socket.emit('leave_room', {
           room_id: roomId,
           user_id: userId
         });
         hasJoinedRoom.current = false;
-        loggers.socket.info(`방 떠나기: ${roomId} (사용자: ${userId})`);
+        loggers.socket.info(`Leaving room: ${roomId} (user: ${userId})`);
       }
       
-      // 마지막 연결이면 소켓 해제
       if (connectionCount <= 0) {
-        loggers.socket.info('마지막 연결 해제 - 전역 소켓 종료');
+        loggers.socket.info('Last connection released - shutting down global socket');
         socket.disconnect();
         globalSocket = null;
         connectionCount = 0;
       }
     };
-  }, [roomId, userId]); // 함수 의존성 제거
+  }, [roomId, userId]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  // 메시지 전송 함수
   const sendMessage = (message: string, side: string = 'neutral') => {
     if (!socketRef.current || !roomId || !userId) {
-      loggers.socket.error('메시지 전송 불가: 소켓, roomId 또는 userId 누락', {
+      loggers.socket.error('Cannot send message: socket, roomId or userId missing', {
         hasSocket: !!socketRef.current,
         roomId,
         userId
@@ -217,15 +207,14 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       timestamp: new Date().toISOString()
     };
 
-    loggers.socket.debug('메시지 전송 중', { roomId, userId, messageLength: message.length });
+    loggers.socket.debug('Sending message', { roomId, userId, messageLength: message.length });
     socketRef.current.emit('send_message', messageData);
     return true;
   };
 
-  // 방 참여 함수
   const joinRoom = (newRoomId: string, newUserId: string) => {
     if (!socketRef.current) {
-      loggers.socket.error('방 참여 불가: 소켓이 연결되지 않음');
+      loggers.socket.error('Cannot join room: socket not connected');
       return false;
     }
 
@@ -234,14 +223,13 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       user_id: newUserId
     });
     
-    loggers.socket.info(`방 참여: ${newRoomId} (사용자: ${newUserId})`);
+    loggers.socket.info(`room join: ${newRoomId} (user: ${newUserId})`);
     return true;
   };
 
-  // 방 떠나기 함수
   const leaveRoom = (roomIdToLeave: string, userIdToLeave: string) => {
     if (!socketRef.current) {
-      loggers.socket.error('방 떠나기 불가: 소켓이 연결되지 않음');
+      loggers.socket.error('Cannot leave room: socket not connected');
       return false;
     }
 
@@ -250,7 +238,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       user_id: userIdToLeave
     });
     
-    loggers.socket.info(`방 떠나기: ${roomIdToLeave} (사용자: ${userIdToLeave})`);
+    loggers.socket.info(`Leaving room: ${roomIdToLeave} (user: ${userIdToLeave})`);
     return true;
   };
 

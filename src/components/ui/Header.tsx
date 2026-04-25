@@ -43,7 +43,6 @@ const Header = () => {
     return pathname === path;
   };
 
-  // 로그인 페이지나 회원가입 페이지에서는 헤더를 표시하지 않음
   if (pathname === '/login' || pathname === '/register') {
     return null;
   }

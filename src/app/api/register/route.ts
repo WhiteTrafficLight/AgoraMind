@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     // Validate input
     if (!username || !email || !password) {
       return NextResponse.json(
-        { success: false, message: '모든 필드를 입력해주세요.' },
+        { success: false, message: 'Please fill in all fields.' },
         { status: 400 }
       );
     }
@@ -26,13 +26,13 @@ export async function POST(req: NextRequest) {
     if (existingUser) {
       if (existingUser.email === email) {
         return NextResponse.json(
-          { success: false, message: '이미 사용 중인 이메일입니다.' },
+          { success: false, message: 'Email already in use.' },
           { status: 400 }
         );
       }
       if (existingUser.username === username) {
         return NextResponse.json(
-          { success: false, message: '이미 사용 중인 사용자 이름입니다.' },
+          { success: false, message: 'Username already in use.' },
           { status: 400 }
         );
       }
@@ -47,14 +47,14 @@ export async function POST(req: NextRequest) {
     
     // Return success without exposing user data
     return NextResponse.json(
-      { success: true, message: '회원가입이 완료되었습니다.' },
+      { success: true, message: 'Registration complete.' },
       { status: 201 }
     );
     
   } catch (error: unknown) {
     console.error('Register error:', error);
     return NextResponse.json(
-      { success: false, message: '회원가입 중 오류가 발생했습니다.', error: error instanceof Error ? error.message : 'Unknown error' },
+      { success: false, message: 'An error occurred during registration.', error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

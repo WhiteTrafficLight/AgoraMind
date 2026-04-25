@@ -69,7 +69,7 @@ const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           );
         })}
         
-        {/* 모더레이터 */}
+        {/* Moderator */}
         <div key="moderator" className="debate-participant-card">
           <div className="debate-participant-avatar moderator">
             <img

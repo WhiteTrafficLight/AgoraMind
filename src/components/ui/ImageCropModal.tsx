@@ -9,7 +9,7 @@ interface ImageCropModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (croppedImageBase64: string) => void;
-  imageSrc?: string; // 외부에서 전달받는 이미지
+  imageSrc?: string;
 }
 
 export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: externalImageSrc }: ImageCropModalProps) {
@@ -29,7 +29,6 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      // 외부에서 이미지가 전달되면 바로 설정
       if (externalImageSrc) {
         setImgSrc(externalImageSrc);
       }

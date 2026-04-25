@@ -205,7 +205,7 @@ export function useOpenChatState() {
       if (!state.isLoading && !state.showCreateChatModal) {
         loadChatRooms();
       }
-    }, 60000); // 1분마다
+    }, 60000);
     
     return () => clearInterval(intervalId);
   }, [state.isLoading, state.showCreateChatModal]);

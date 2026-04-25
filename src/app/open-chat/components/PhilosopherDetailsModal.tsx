@@ -21,7 +21,6 @@ const PhilosopherDetailsModal: React.FC<PhilosopherDetailsModalProps> = ({
     return null;
   }
 
-  // 기본 아바타 생성 함수
   const getDefaultAvatar = () => {
     const name = philosopher.name || 'Philosopher';
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128&font-size=0.5`;
