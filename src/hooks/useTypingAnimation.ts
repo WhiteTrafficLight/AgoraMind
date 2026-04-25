@@ -99,23 +99,15 @@ export const useTypingAnimation = ({
     };
   }, []);
 
-  // 텍스트가 변경되면 리셋
+  // 텍스트가 변경되면 리셋. !enabled 케이스는 아래 return 문에서
+  // displayedText 대신 text를 직접 반환해 처리하므로 setState 불필요.
+  /* eslint-disable react-hooks/set-state-in-effect -- legacy reset-on-prop-change pattern; behavior-preserving refactor needs full hook overhaul. */
   useEffect(() => {
-    if (!enabled) {
-      setDisplayedText(text);
-      return;
+    if (enabled) {
+      resetTyping();
     }
-    
-    resetTyping();
   }, [text, enabled]);
-
-  // enabled가 false면 즉시 전체 텍스트 표시
-  useEffect(() => {
-    if (!enabled) {
-      setDisplayedText(text);
-      setIsTyping(false);
-    }
-  }, [enabled, text]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return {
     displayedText: enabled ? displayedText : text,

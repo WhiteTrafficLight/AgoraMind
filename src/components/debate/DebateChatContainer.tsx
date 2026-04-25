@@ -2,12 +2,10 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
-import { useSocketConnection } from '@/hooks/useSocketConnection';
-import { useDebateState } from '@/hooks/useDebateState';
 import MessageInput from './MessageInput';
 import ParticipantGrid from './ParticipantGrid';
 import MessageList from './MessageList';
-import { DebateChatContainerProps, ChatMessage, ParticipantInfo } from '@/types/debate';
+import { DebateChatContainerProps, NpcDetail } from '@/types/debate';
 import { loggers } from '@/utils/logger';
 
 const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
@@ -39,7 +37,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
 
   const [messageText, setMessageText] = useState('');
   const [userProfilePicture, setUserProfilePicture] = useState<string | null>(null);
-  const [npcDetails, setNpcDetails] = useState<Record<string, any>>({});
+  const [npcDetails, setNpcDetails] = useState<Record<string, NpcDetail>>({});
   const [selectedNpcId, setSelectedNpcId] = useState<string | null>(null);
   const [isUserTurn, setIsUserTurn] = useState<boolean>(false);
   const [turnIndicatorVisible, setTurnIndicatorVisible] = useState<boolean>(false);
@@ -68,7 +66,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
 
   // 모더레이터 정보 가져오기
   const getModeratorInfo = useMemo(() => {
-    const moderatorConfig = (room as any).moderator;
+    const moderatorConfig = (room as { moderator?: { style_id?: string } }).moderator;
     
     if (moderatorConfig && moderatorConfig.style_id) {
       const style = moderatorStyles.find(s => s.id === moderatorConfig.style_id);
@@ -97,7 +95,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
           setUserProfilePicture(profileData.profileImage || profileData.profilePicture);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       loggers.auth.error('사용자 프로필 가져오기 실패', error);
     }
   };
@@ -105,7 +103,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   // NPC 세부 정보 로드
   useEffect(() => {
     const loadNpcDetails = async () => {
-      const details: Record<string, any> = {};
+      const details: Record<string, NpcDetail> = {};
       
       if (initialNpcDetails && initialNpcDetails.length > 0) {
         initialNpcDetails.forEach(npc => {
@@ -134,6 +132,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     loadNpcDetails();
   }, [initialNpcDetails, room.pro, room.con, room.neutral, room.participants.users]);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- legacy effect orchestration; refactor deferred to monolith decomposition phase. */
   // 사용자 프로필 가져오기
   useEffect(() => {
     if (username) {
@@ -153,7 +152,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (messages.length > lastMessageCount) {
       const newMessages = messages.slice(lastMessageCount);
       const newTypingIds = new Set(typingMessageIds);
-      
+
       newMessages.forEach(message => {
         const isUser = room.participants.users.includes(message.sender) || message.sender === username;
         // skipAnimation이 true인 경우 (새로고침으로 로드된 메시지) 타이핑 애니메이션 스킵
@@ -161,11 +160,12 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
           newTypingIds.add(message.id);
         }
       });
-      
+
       setTypingMessageIds(newTypingIds);
       setLastMessageCount(messages.length);
     }
   }, [messages.length, lastMessageCount, typingMessageIds, room.participants.users, username]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // 사용자 차례일 때 입력창에 포커스
   useEffect(() => {
@@ -229,11 +229,10 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   const displayUserTurn = waitingForUserInput || isUserTurn;
   const shouldShowNextButton = (
     isDebateRoom: boolean,
-    onRequestNextMessage: any,
-    messagesLength: number
+    onRequestNextMessage: (() => void) | undefined,
   ) => {
     // Next 버튼을 항상 표시 (토론방이고 함수가 있으면)
-    return isDebateRoom && onRequestNextMessage;
+    return isDebateRoom && !!onRequestNextMessage;
   };
 
   const getNameFromId = (id: string, isUser: boolean): string => {
@@ -399,7 +398,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
           getProfileImage={getProfileImage}
           isUserParticipant={isUserParticipant}
           handleTypingComplete={activeOnTypingComplete}
-          showNextButton={shouldShowNextButton(isDebateRoom, onRequestNextMessage, messages.length)}
+          showNextButton={shouldShowNextButton(isDebateRoom, onRequestNextMessage)}
           onRequestNext={handleNextMessage}
           isGeneratingNext={isGeneratingNext}
         />

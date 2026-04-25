@@ -1,6 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { useTypingAnimation } from '@/hooks/useTypingAnimation';
 
+interface CitationLike {
+  url?: string;
+  text?: string;
+  title?: string;
+}
+
 interface TypingMessageProps {
   text: string;
   speed?: number;
@@ -11,11 +17,11 @@ interface TypingMessageProps {
   onTypingComplete?: () => void;
   className?: string;
   style?: React.CSSProperties;
-  citations?: any[];
+  citations?: CitationLike[];
 }
 
 // 마크다운 링크를 JSX로 변환하는 함수
-const parseMarkdownToJSX = (text: string, citations: any[] = []) => {
+const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;

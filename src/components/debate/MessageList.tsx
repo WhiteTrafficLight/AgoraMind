@@ -2,9 +2,16 @@ import React from 'react';
 import { ArrowDownCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import TypingMessage from '@/components/chat/TypingMessage';
 import { loggers } from '@/utils/logger';
+import type { ChatMessage, Citation, RagSource } from '@/types/debate';
+
+interface CitationLike {
+  url?: string;
+  text?: string;
+  title?: string;
+}
 
 interface MessageListProps {
-  messages: any[];
+  messages: ChatMessage[];
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   isUserTurn: boolean;
   typingMessageIds: Set<string>;
@@ -18,7 +25,7 @@ interface MessageListProps {
 }
 
 // 마크다운 링크를 JSX로 변환하는 함수
-const parseMarkdownToJSX = (text: string, citations: any[] = []) => {
+const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -111,7 +118,7 @@ const MessageList: React.FC<MessageListProps> = ({
   onRequestNext,
   isGeneratingNext
 }) => {
-  const renderRagTooltip = (message: any) => {
+  const renderRagTooltip = (message: ChatMessage) => {
     // RAG information logging
     loggers.rag.debug('RAG Tooltip data', {
       rag_used: message.rag_used,
@@ -130,7 +137,7 @@ const MessageList: React.FC<MessageListProps> = ({
       return null;
     }
 
-    const handleSourceClick = (source: any) => {
+    const handleSourceClick = (source: RagSource | Citation) => {
       loggers.rag.info('Source clicked', source);
       
       if (hasCitations) {
@@ -156,7 +163,7 @@ const MessageList: React.FC<MessageListProps> = ({
       }
     };
 
-    const isClickable = (source: any) => {
+    const isClickable = (source: RagSource | Citation) => {
       if (hasCitations) {
         return source.url && source.url.startsWith('http');
       } else {
@@ -179,7 +186,7 @@ const MessageList: React.FC<MessageListProps> = ({
             Sources ({sourceCount})
           </div>
           <div className="debate-rag-tooltip-content">
-            {sources.slice(0, 3).map((source: any, idx: number) => (
+            {sources.slice(0, 3).map((source: RagSource | Citation, idx: number) => (
               <div 
                 key={idx} 
                 className={`debate-rag-source-item ${isClickable(source) ? 'clickable' : ''}`}
@@ -253,7 +260,7 @@ const MessageList: React.FC<MessageListProps> = ({
     );
   };
 
-  const renderMessage = (message: any, index: number) => {
+  const renderMessage = (message: ChatMessage, index: number) => {
     const isUser = isUserParticipant(message.sender);
     const senderName = getNameFromId(message.sender, isUser);
     const avatar = getProfileImage(message.sender, isUser);
@@ -336,7 +343,7 @@ const MessageList: React.FC<MessageListProps> = ({
         messages.map((message, index) => renderMessage(message, index))
       ) : (
         <div className="debate-no-messages">
-          Please click the "Next" button to begin the debate.
+          Please click the &ldquo;Next&rdquo; button to begin the debate.
         </div>
       )}
       

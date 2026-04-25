@@ -33,6 +33,13 @@ export interface FreeDiscussionMessage {
   timestamp: string;
   message_type: 'moderator' | 'philosopher' | 'user' | 'system';
   metadata?: Record<string, unknown>;
+  // Optional extras carried over from DB / socket layer
+  text?: string;
+  isUser?: boolean;
+  role?: string;
+  senderType?: string;
+  stage?: string;
+  citations?: Array<{ id: string; text: string; source: string; location?: string }>;
 }
 
 export interface CreateFreeDiscussionRequest {

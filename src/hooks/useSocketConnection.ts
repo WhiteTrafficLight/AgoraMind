@@ -1,14 +1,18 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { SocketEvents, TurnInfo } from '@/types/debate';
+import { TurnInfo } from '@/types/debate';
+import type socketClientType from '@/lib/socket/socketClient';
+import type { ChatMessage } from '@/lib/ai/chatService';
+
+type SocketClient = typeof socketClientType;
 
 interface UseSocketConnectionProps {
   roomId: string;
   username: string;
   onTurnUpdate?: (turnInfo: TurnInfo) => void;
   onNpcSelected?: (npcId: string) => void;
-  onNewMessage?: (message: any) => void;
-  onUserJoined?: (data: any) => void;
-  onUserLeft?: (data: any) => void;
+  onNewMessage?: (message: ChatMessage) => void;
+  onUserJoined?: (data: { username?: string; userCount?: number }) => void;
+  onUserLeft?: (data: { username?: string; userCount?: number }) => void;
 }
 
 export function useSocketConnection({
@@ -17,10 +21,8 @@ export function useSocketConnection({
   onTurnUpdate,
   onNpcSelected,
   onNewMessage,
-  onUserJoined,
-  onUserLeft,
 }: UseSocketConnectionProps) {
-  const socketRef = useRef<any>(null);
+  const socketRef = useRef<SocketClient | null>(null);
   const isInitializedRef = useRef(false);
 
   // 소켓 초기화
@@ -49,7 +51,7 @@ export function useSocketConnection({
   }, [roomId, username]);
 
   // 이벤트 리스너 설정
-  const setupEventListeners = useCallback((socketInstance: any) => {
+  const setupEventListeners = useCallback((socketInstance: SocketClient) => {
     if (!socketInstance) return;
 
     // NPC 선택 이벤트
@@ -70,7 +72,7 @@ export function useSocketConnection({
     };
 
     // 새 메시지 이벤트
-    const handleNewMessage = (data: { message: any; roomId: string }) => {
+    const handleNewMessage = (data: { message: ChatMessage; roomId: string }) => {
       console.log('New message received from socket:', data);
       onNewMessage?.(data.message);
     };
@@ -101,7 +103,7 @@ export function useSocketConnection({
   }, [roomId, username]);
 
   // 메시지 전송
-  const emitMessage = useCallback((eventName: string, data: any) => {
+  const emitMessage = useCallback((eventName: string, data: unknown) => {
     if (socketRef.current) {
       socketRef.current.emit(eventName, data);
     } else {
@@ -135,10 +137,12 @@ export function useSocketConnection({
     };
   }, [roomId, initializeSocket, setupEventListeners, cleanupSocket]);
 
+  /* eslint-disable react-hooks/refs -- consumers expect a snapshot of the current socket; alternative is exposing socketRef directly which leaks the ref API. */
   return {
     socket: socketRef.current,
     isConnected: isConnected(),
     emitMessage,
     cleanupSocket,
   };
+  /* eslint-enable react-hooks/refs */
 } 

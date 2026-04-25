@@ -2,12 +2,16 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { loggers } from '@/utils/logger';
 
+interface SocketPayload {
+  [key: string]: unknown;
+}
+
 interface UseSocketOptions {
   roomId?: string;
   userId?: string;
-  onMessage?: (data: any) => void;
-  onUserJoined?: (data: any) => void;
-  onUserLeft?: (data: any) => void;
+  onMessage?: (data: SocketPayload) => void;
+  onUserJoined?: (data: SocketPayload) => void;
+  onUserLeft?: (data: SocketPayload) => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
 }
@@ -33,15 +37,15 @@ export const useSocket = (options: UseSocketOptions = {}) => {
   } = options;
 
   // 안정적인 콜백 함수들
-  const stableOnMessage = useCallback((data: any) => {
+  const stableOnMessage = useCallback((data: SocketPayload) => {
     onMessage?.(data);
   }, [onMessage]);
 
-  const stableOnUserJoined = useCallback((data: any) => {
+  const stableOnUserJoined = useCallback((data: SocketPayload) => {
     onUserJoined?.(data);
   }, [onUserJoined]);
 
-  const stableOnUserLeft = useCallback((data: any) => {
+  const stableOnUserLeft = useCallback((data: SocketPayload) => {
     onUserLeft?.(data);
   }, [onUserLeft]);
 
@@ -53,6 +57,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     onDisconnect?.();
   }, [onDisconnect]);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- legacy effect that reuses a global Socket.IO singleton; refactor would require a context/provider redesign. */
   useEffect(() => {
     // 이미 연결된 소켓이 있으면 재사용
     if (globalSocket && globalSocket.connected) {
@@ -185,6 +190,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       }
     };
   }, [roomId, userId]); // 함수 의존성 제거
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // 메시지 전송 함수
   const sendMessage = (message: string, side: string = 'neutral') => {
@@ -242,6 +248,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     return true;
   };
 
+  /* eslint-disable react-hooks/refs -- consumers expect a snapshot of the current socket; alternative is exposing socketRef directly which leaks the ref API. */
   return {
     socket: socketRef.current,
     isConnected,
@@ -250,4 +257,5 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     joinRoom,
     leaveRoom
   };
-}; 
+  /* eslint-enable react-hooks/refs */
+};
