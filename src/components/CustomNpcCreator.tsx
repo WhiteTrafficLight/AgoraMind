@@ -235,9 +235,8 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
 
     return (
       <div 
-        className="fixed inset-0 bg-black bg-opacity-30 z-50 transition-opacity opacity-100 pointer-events-auto flex items-center justify-center"
+        className="fixed inset-0 bg-black/30 z-50 transition-opacity opacity-100 pointer-events-auto flex items-center justify-center"
         onClick={() => setShowPhilosopherDetails(false)}
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
       >
         <div 
           className="fixed bg-white rounded-2xl w-full max-h-[80vh] overflow-y-auto z-[101]"

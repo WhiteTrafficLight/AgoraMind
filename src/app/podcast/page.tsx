@@ -150,7 +150,7 @@ export default function PodcastPage() {
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 <div className="w-full md:w-40 h-40 bg-gray-200 rounded-lg flex items-center justify-center relative">
                   {isPlaying ? (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 rounded-lg">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
                       <button 
                         onClick={handleStopPodcast}
                         className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg"
@@ -207,7 +207,7 @@ export default function PodcastPage() {
                 >
                   <div className="relative h-48 bg-gray-200 cursor-pointer" onClick={() => handlePlayPodcast(podcast)}>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-white bg-opacity-80 flex items-center justify-center shadow-md">
+                      <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center shadow-md">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

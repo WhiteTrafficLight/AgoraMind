@@ -178,7 +178,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
             {/* 업로드 진행 중 오버레이 */}
             {isUploading && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-md flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50 rounded-md flex items-center justify-center">
                 <div className="text-center text-white">
                   <Loader2 className="animate-spin mx-auto mb-2" size={24} />
                   <div className="text-sm">업로드 중...</div>
