@@ -55,6 +55,35 @@ npm run dev
 
 또는 [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)를 사용하여 클라우드 데이터베이스를 설정할 수 있습니다. 이 경우 `.env.local` 파일에 있는 `MONGODB_URI`를 Atlas 연결 문자열로 변경하세요.
 
+## Project Structure
+
+```
+src/
+  app/                 — Next.js App Router (pages and Route Handlers)
+    api/               — Route Handlers (no Pages Router; src/pages/ removed)
+    chat/, open-chat/, podcast/, settings/, ...
+  components/
+    chat/              — chat-room shells (ChatUI, CircularChatUI, ...)
+    debate/            — debate-mode components and DebateChatContainer
+    ui/                — shared UI primitives
+  hooks/               — useSocket, useFreeDiscussion, useDebateState, ...
+  lib/                 — domain libraries (ai, db, dialogue, messaging, socket)
+  types/               — cross-cutting domain types (debate.ts, next-auth.d.ts)
+  models/              — Mongoose models
+  utils/               — logger and tooling helpers
+  app/globals.css      — sole CSS entrypoint; Tailwind v4 @theme tokens live here
+```
+
+Notable conventions:
+
+- Tailwind v4 is configured entirely in CSS (`@theme {}` in
+  `src/app/globals.css`). There is no `tailwind.config.js`.
+- App Router only — every API endpoint is a Route Handler in
+  `src/app/api/*/route.ts`.
+- `next.config.ts` does **not** ignore TypeScript or ESLint errors at
+  build time. `npm run build` is the real gate for type and lint
+  correctness.
+
 ## Getting Started
 
 First, run the development server:
