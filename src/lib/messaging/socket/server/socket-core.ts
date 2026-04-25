@@ -98,13 +98,13 @@ export class SocketCore {
   }
 
   // 방송 메서드들
-  broadcastToRoom(roomId: string, event: string, data: any): void {
+  broadcastToRoom(roomId: string, event: string, data: unknown): void {
     if (this.io) {
       this.io.to(roomId).emit(event, data);
     }
   }
 
-  broadcastToAll(event: string, data: any): void {
+  broadcastToAll(event: string, data: unknown): void {
     if (this.io) {
       this.io.emit(event, data);
     }

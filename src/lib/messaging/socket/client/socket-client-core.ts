@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { BaseMessage, SocketEvents } from '../../types/common.types';
+import { SocketEvents } from '../../types/common.types';
 import { loggers } from '@/utils/logger';
 
 export class SocketClientCore {
@@ -88,9 +88,9 @@ export class SocketClientCore {
         resolve();
       };
 
-      const errorHandler = (error: any) => {
+      const errorHandler = (error: unknown) => {
         loggers.socket.error('Connection error during wait', error);
-        reject(error);
+        reject(error instanceof Error ? error : new Error(String(error)));
       };
 
       this.socket.once('connect', connectHandler);
@@ -142,9 +142,9 @@ export class SocketClientCore {
       this.isConnected = false;
     });
 
-    this.socket.on('connect_error', (error: any) => {
+    this.socket.on('connect_error', (error: Error & { type?: string; description?: string; context?: string; code?: string }) => {
       loggers.socket.error('Socket connection error', {
-        message: error.message || error,
+        message: error.message || String(error),
         type: error.type || 'unknown',
         description: error.description || 'No description',
         context: error.context || 'No context',
@@ -232,7 +232,7 @@ export class SocketClientCore {
   }
 
   // 이벤트 발송
-  emit(event: string, data: any): void {
+  emit(event: string, data: unknown): void {
     if (!this.socket || !this.isConnected) {
       loggers.socket.warn(`Cannot emit ${event}: Socket not connected`);
       return;
@@ -263,7 +263,14 @@ export class SocketClientCore {
   }
 
   // 디버그 정보 출력
-  getDebugInfo(): any {
+  getDebugInfo(): {
+    connected: boolean;
+    socketId: string | undefined;
+    roomId: string | null;
+    username: string | null;
+    reconnectAttempts: number;
+    transport: string | undefined;
+  } {
     return {
       connected: this.isConnected,
       socketId: this.socket?.id,

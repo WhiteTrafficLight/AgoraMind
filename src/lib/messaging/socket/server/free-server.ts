@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io';
 import { socketCore } from './socket-core';
-import { FreeMessage, FreeSocketEvents } from '../../types/free.types';
+import { FreeMessage } from '../../types/free.types';
+import type { ChatMessage, ChatRoom } from '@/lib/ai/chatService';
 import { SendMessageData } from '../../types/common.types';
 import chatRoomDB from '@/lib/db/chatRoomDB';
 
@@ -48,8 +49,8 @@ export class FreeSocketServer {
 
       // MongoDB에 메시지 저장
       try {
-        const dbMessage = { ...message, timestamp: message.timestamp as Date };
-        await chatRoomDB.addMessage(roomId, dbMessage as any);
+        const dbMessage: ChatMessage = { ...message, timestamp: message.timestamp as Date };
+        await chatRoomDB.addMessage(roomId, dbMessage);
         console.log(`✅ [FREE] Message saved to MongoDB: ${message.id}`);
       } catch (dbError) {
         console.error('❌ [FREE] MongoDB 저장 오류:', dbError);
@@ -109,7 +110,7 @@ export class FreeSocketServer {
   }
 
   // Python 백엔드에 AI 응답 요청
-  private async requestAIResponse(roomId: string, userMessage: FreeMessage, room: any): Promise<FreeMessage | null> {
+  private async requestAIResponse(roomId: string, userMessage: FreeMessage, room: ChatRoom): Promise<FreeMessage | null> {
     try {
       const response = await fetch('http://localhost:8000/api/chat/generate', {
         method: 'POST',
@@ -150,8 +151,8 @@ export class FreeSocketServer {
         };
 
         // MongoDB에 AI 메시지 저장
-        const dbMessage = { ...aiMessage, timestamp: aiMessage.timestamp as Date };
-        await chatRoomDB.addMessage(roomId, dbMessage as any);
+        const dbMessage: ChatMessage = { ...aiMessage, timestamp: aiMessage.timestamp as Date };
+        await chatRoomDB.addMessage(roomId, dbMessage);
         return aiMessage;
       }
 

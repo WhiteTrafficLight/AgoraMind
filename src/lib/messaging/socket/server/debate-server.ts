@@ -3,6 +3,7 @@ import { socketCore } from './socket-core';
 import { DebateMessage, NextSpeaker } from '../../types/debate.types';
 import { SendMessageData } from '../../types/common.types';
 import chatRoomDB from '@/lib/db/chatRoomDB';
+import type { ChatMessage } from '@/lib/ai/chatService';
 
 export class DebateSocketServer {
   
@@ -53,8 +54,8 @@ export class DebateSocketServer {
 
       // MongoDB에 메시지 저장
       try {
-        const dbMessage = { ...message, timestamp: message.timestamp as Date };
-        await chatRoomDB.addMessage(roomId, dbMessage as any);
+        const dbMessage: ChatMessage = { ...message, timestamp: message.timestamp as Date };
+        await chatRoomDB.addMessage(roomId, dbMessage);
         console.log(`✅ [DEBATE] Message saved to MongoDB: ${message.id}`);
       } catch (dbError) {
         console.error('❌ [DEBATE] MongoDB 저장 오류:', dbError);
@@ -88,7 +89,7 @@ export class DebateSocketServer {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        await response.json();
         console.log(`✅ [DEBATE] Next message generation initiated for room ${data.roomId}`);
         
         // 응답은 Python 백엔드에서 Socket.IO로 직접 전송됨

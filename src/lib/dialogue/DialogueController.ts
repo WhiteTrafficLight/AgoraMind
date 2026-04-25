@@ -9,20 +9,32 @@ import { ChatRoom, ChatMessage } from '../ai/chatService';
 
 export type DialogueType = 'standard' | 'debate' | 'socratic' | 'panel';
 
+export interface SpeakerInfo {
+  speaker_id?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
 export interface DialogueState {
   roomId: string;
   dialogueType: DialogueType;
   currentStage?: string;
   turnCount?: number;
   nextSpeaker?: string;
-  additionalInfo?: Record<string, any>;
+  additionalInfo?: Record<string, unknown>;
 }
 
 export interface DialogueControllerOptions {
   room: ChatRoom;
   onStateUpdate?: (state: DialogueState) => void;
-  onNextSpeaker?: (speakerInfo: any) => void;
+  onNextSpeaker?: (speakerInfo: SpeakerInfo) => void;
   onError?: (error: Error) => void;
+}
+
+export interface DialogueProcessResult {
+  debate_stage?: string;
+  next_speaker?: SpeakerInfo;
+  [key: string]: unknown;
 }
 
 /**
@@ -33,7 +45,7 @@ class DialogueController {
   private dialogueType: DialogueType;
   private state: DialogueState;
   private onStateUpdate?: (state: DialogueState) => void;
-  private onNextSpeaker?: (speakerInfo: any) => void;
+  private onNextSpeaker?: (speakerInfo: SpeakerInfo) => void;
   private onError?: (error: Error) => void;
 
   /**
@@ -92,7 +104,7 @@ class DialogueController {
   /**
    * 다음 발언자 정보 조회
    */
-  async getNextSpeaker(): Promise<any> {
+  async getNextSpeaker(): Promise<SpeakerInfo | null> {
     try {
       const response = await fetch(`/api/dialogue/${this.room.id}/next-speaker`, {
         method: 'POST',
@@ -124,7 +136,7 @@ class DialogueController {
    * @param message 사용자 메시지
    * @param userId 사용자 ID
    */
-  async processUserMessage(message: string, userId: string): Promise<any> {
+  async processUserMessage(message: string, userId: string): Promise<DialogueProcessResult | null> {
     try {
       const response = await fetch(`/api/dialogue/${this.room.id}/process-message`, {
         method: 'POST',
@@ -163,7 +175,7 @@ class DialogueController {
    * AI 응답 생성 요청
    * @param recentMessages 최근 메시지 목록
    */
-  async generateResponse(recentMessages: ChatMessage[]): Promise<any> {
+  async generateResponse(recentMessages: ChatMessage[]): Promise<unknown> {
     try {
       const response = await fetch(`/api/dialogue/${this.room.id}/generate`, {
         method: 'POST',

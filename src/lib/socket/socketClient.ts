@@ -2,8 +2,10 @@
 // 기존 코드와의 호환성을 위한 래퍼
 
 import { socketClientCore } from '@/lib/messaging/socket/client/socket-client-core';
-import { BaseMessage } from '@/lib/messaging/types/common.types';
+import { SocketEvents } from '@/lib/messaging/types/common.types';
 import { Socket } from 'socket.io-client';
+
+type SocketHandler = (...args: unknown[]) => void;
 
 // 기존 인터페이스와의 호환성을 위한 래퍼 클래스
 class SocketClient {
@@ -15,10 +17,8 @@ class SocketClient {
   }
 
   // 기존 코드 호환성을 위한 init 메서드 (initialize의 별칭)
-  async init(username?: string): Promise<Socket> {
-    const socket = await this.core.connect();
-    // username이 제공된 경우 저장 (필요시 사용)
-    return socket;
+  async init(_username?: string): Promise<Socket> {
+    return await this.core.connect();
   }
 
   // 방 입장
@@ -26,7 +26,7 @@ class SocketClient {
     this.core.joinRoom(roomId, username);
   }
 
-  // 방 떠나기  
+  // 방 떠나기
   leaveRoom(roomId: string, username: string): void {
     this.core.leaveRoom(roomId, username);
   }
@@ -37,17 +37,17 @@ class SocketClient {
   }
 
   // 이벤트 리스너 등록
-  on(event: string, handler: (...args: any[]) => void): void {
-    this.core.on(event as any, handler);
+  on(event: string, handler: SocketHandler): void {
+    this.core.on(event as keyof SocketEvents, handler as SocketEvents[keyof SocketEvents]);
   }
 
   // 이벤트 리스너 제거
-  off(event: string, handler?: (...args: any[]) => void): void {
-    this.core.off(event as any, handler);
+  off(event: string, handler?: SocketHandler): void {
+    this.core.off(event as keyof SocketEvents, handler as SocketEvents[keyof SocketEvents] | undefined);
   }
 
   // 이벤트 발송
-  emit(event: string, data: any): void {
+  emit(event: string, data: unknown): void {
     this.core.emit(event, data);
   }
 
@@ -67,7 +67,7 @@ class SocketClient {
   }
 
   // 디버그 정보
-  getDebugInfo(): any {
+  getDebugInfo(): ReturnType<typeof socketClientCore.getDebugInfo> {
     return this.core.getDebugInfo();
   }
 }

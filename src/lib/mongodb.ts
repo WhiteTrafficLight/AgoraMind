@@ -12,7 +12,7 @@ if (!MONGODB_DB) {
 }
 
 // Global variable to maintain connection across hot reloads
-let globalWithMongoose = global as typeof global & {
+const globalWithMongoose = global as typeof global & {
   mongoose: {
     conn: typeof mongoose | null;
     promise: Promise<typeof mongoose> | null;

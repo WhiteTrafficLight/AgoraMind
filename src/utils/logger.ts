@@ -68,8 +68,9 @@ class Logger {
 
   private initBrowserControls() {
     // 글로벌 객체에 로그 제어 함수들 추가
-    (window as any).loggerControls = {
-      ...(window as any).loggerControls,
+    const w = window as unknown as { loggerControls?: Record<string, unknown> };
+    w.loggerControls = {
+      ...w.loggerControls,
       [`set${this.name}LogLevel`]: (level: string) => {
         if (LogLevel[level as keyof typeof LogLevel] !== undefined) {
           localStorage.setItem(`debug_log_level_${this.name}`, level);
@@ -94,39 +95,39 @@ class Logger {
     }
   }
 
-  private formatMessage(level: string, emoji: string, ...args: any[]): any[] {
+  private formatMessage(level: string, emoji: string, ...args: unknown[]): unknown[] {
     const timestamp = new Date().toISOString().substr(11, 12);
     const prefix = this.prefix ? `${this.prefix} ` : '';
     const emojiPart = this.useEmojis && emoji ? `${emoji} ` : '';
     return [`${emojiPart}[${timestamp}] ${prefix}${this.name}:`, ...args];
   }
 
-  error(...args: any[]) {
+  error(...args: unknown[]) {
     if (this.level >= LogLevel.ERROR) {
       console.error(...this.formatMessage('ERROR', this.useEmojis ? '🚨' : '', ...args));
     }
   }
 
-  warn(...args: any[]) {
+  warn(...args: unknown[]) {
     if (this.level >= LogLevel.WARN) {
       console.warn(...this.formatMessage('WARN', this.useEmojis ? '⚠️' : '', ...args));
     }
   }
 
-  info(...args: any[]) {
+  info(...args: unknown[]) {
     if (this.level >= LogLevel.INFO) {
       console.log(...this.formatMessage('INFO', this.useEmojis ? 'ℹ️' : '', ...args));
     }
   }
 
-  debug(...args: any[]) {
+  debug(...args: unknown[]) {
     if (this.level >= LogLevel.DEBUG) {
       console.log(...this.formatMessage('DEBUG', this.useEmojis ? '🐛' : '', ...args));
     }
   }
 
   // 항상 출력되는 강제 로그 (긴급 디버깅용)
-  force(...args: any[]) {
+  force(...args: unknown[]) {
     console.log(...this.formatMessage('FORCE', this.useEmojis ? '🔧' : '', ...args));
   }
 
@@ -180,12 +181,12 @@ export const loggers = {
 export const createLogger = (config: LoggerConfig = {}) => new Logger(config);
 
 // 기존 console.log 호환성을 위한 래퍼
-export const createCompatLogger = (originalConsole = console) => ({
-  log: (...args: any[]) => logger.debug(...args),
-  warn: (...args: any[]) => logger.warn(...args),
-  error: (...args: any[]) => logger.error(...args),
-  info: (...args: any[]) => logger.info(...args),
-  debug: (...args: any[]) => logger.debug(...args),
+export const createCompatLogger = () => ({
+  log: (...args: unknown[]) => logger.debug(...args),
+  warn: (...args: unknown[]) => logger.warn(...args),
+  error: (...args: unknown[]) => logger.error(...args),
+  info: (...args: unknown[]) => logger.info(...args),
+  debug: (...args: unknown[]) => logger.debug(...args),
   group: (name: string) => logger.group(name),
   groupCollapsed: (name: string) => logger.group(name, true),
   groupEnd: () => logger.groupEnd(),
@@ -195,7 +196,7 @@ export const createCompatLogger = (originalConsole = console) => ({
 
 // 개발자 도구용 헬퍼
 if (typeof window !== 'undefined') {
-  (window as any).AgoraLoggers = {
+  (window as unknown as { AgoraLoggers: Record<string, unknown> }).AgoraLoggers = {
     setGlobalLevel: (level: string) => {
       Object.values(loggers).forEach(logger => {
         if (LogLevel[level as keyof typeof LogLevel] !== undefined) {

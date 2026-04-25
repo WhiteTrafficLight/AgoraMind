@@ -6,8 +6,8 @@ export interface BaseMessage {
   senderType: 'user' | 'npc' | 'moderator' | 'system';
   isUser: boolean;
   timestamp: Date | string;
-  metadata?: Record<string, any>;
-  citations?: any[];
+  metadata?: Record<string, unknown>;
+  citations?: Citation[];
   // RAG 관련 정보 추가
   rag_used?: boolean;
   rag_source_count?: number;
@@ -91,7 +91,7 @@ export interface ChatMessage {
   role?: string;
   skipAnimation?: boolean;
   isGenerating?: boolean;
-  metadata?: { [key: string]: any };
+  metadata?: { [key: string]: unknown };
   // RAG 관련 정보 추가
   rag_used?: boolean;
   rag_source_count?: number;
@@ -109,7 +109,7 @@ export interface ClientToServerEvents {
   'user-left': (data: { roomId: string; username: string; userCount: number }) => void;
   'new-message': (message: ChatMessage) => void;
   'typing': (data: { username: string; isTyping: boolean }) => void;
-  'room-updated': (room: any) => void;
+  'room-updated': (room: BaseRoom) => void;
   'error': (error: { message: string; code?: string }) => void;
   'notification': (data: { type: string; message: string }) => void;
   'debate-turn-changed': (data: { 

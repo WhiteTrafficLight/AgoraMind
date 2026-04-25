@@ -19,7 +19,7 @@ export interface ChatMessage {
   role?: string; // 메시지 역할 (moderator 등)
   skipAnimation?: boolean; // 새로고침으로 로드된 메시지는 애니메이션 스킵
   isGenerating?: boolean; // 메시지 생성 중임을 표시하는 플래그
-  metadata?: { [key: string]: any }; // 메타데이터 정보
+  metadata?: { [key: string]: unknown }; // 메타데이터 정보
 }
 
 export interface ChatRoom {
@@ -98,18 +98,15 @@ export interface ChatRoomCreationParams {
   }; // 모더레이터 스타일 정보
 }
 
-// 디버그 모드 설정 - 로깅 제어용
-const DEBUG = false;
-
 // Enhanced logging function for better debugging
-function log(...args: any[]) {
+function log(...args: unknown[]) {
   if (process.env.NODE_ENV !== 'production') {
     loggers.api.debug('[ChatService]', ...args);
   }
 }
 
 // Helper function to safely parse JSON and detect HTML responses
-async function safeParseJson(response: Response): Promise<any> {
+async function safeParseJson(response: Response): Promise<unknown> {
   // Check content type before reading the response
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('text/html')) {
@@ -486,7 +483,16 @@ class ChatService {
             });
             
             // chatMessages 컬렉션의 메시지들을 ChatMessage 형태로 변환
-            const loadedMessages: ChatMessage[] = messagesData.messages.map((msg: any) => ({
+            interface RawDBMessage {
+              messageId: string;
+              text: string;
+              sender: string;
+              isUser: boolean;
+              timestamp: string | Date;
+              role?: string;
+              citations?: Citation[];
+            }
+            const loadedMessages: ChatMessage[] = messagesData.messages.map((msg: RawDBMessage) => ({
               id: msg.messageId,           // messageId -> id 변환
               text: msg.text,
               sender: msg.sender,
@@ -958,16 +964,16 @@ class ChatService {
   }
 
   // Helper to generate initial prompts based on topic
-  private getInitialPrompt(topic: string, context?: string): string {
+  private getInitialPrompt(topic: string): string {
     loggers.api.debug('getInitialPrompt called - disabled');
     loggers.api.info('Topic', { topic });
-    
+
     // Mock 메시지 생성 완전 비활성화 - 서버에서만 메시지 생성
     return "";
   }
 
   // Send user message to a chat room
-  async sendMessage(roomId: string | number, message: string, messageData: any = {}): Promise<ChatMessage> {
+  async sendMessage(roomId: string | number, message: string, messageData: Partial<ChatMessage> = {}): Promise<ChatMessage> {
     loggers.api.debug('Sending message to room', { roomId });
     loggers.api.info('Message data', { messageData });
 

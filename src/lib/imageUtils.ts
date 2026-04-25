@@ -71,7 +71,7 @@ export function getImageUrl(
       return `${S3_BASE_URL}/${config.folder}/${identifier}${s3SizePath}/image.${extension}`;
       
     default:
-      throw new Error(`Unknown image type: ${(config as any).type}`);
+      throw new Error(`Unknown image type: ${(config as { type: string }).type}`);
   }
 }
 
