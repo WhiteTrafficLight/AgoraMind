@@ -75,7 +75,7 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
 
   const renderTopicCard = (topic: DebateTopic, categoryKey: string, topicIndex: number) => {
     const topicId = `${categoryKey}-${topicIndex}`;
-    const effectiveType = getEffectiveContextType((topic as any).context);
+    const effectiveType = getEffectiveContextType((topic as { context?: unknown }).context);
 
     return (
       <div 

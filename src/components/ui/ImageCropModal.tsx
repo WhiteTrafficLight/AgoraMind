@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect -- legacy effect-driven crop init; refactor tracked in Phase 4c. */
 
 import React, { useState, useRef, useEffect } from 'react';
 import ReactCrop, { type Crop } from 'react-image-crop';

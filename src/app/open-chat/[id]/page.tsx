@@ -3,21 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import ChatUI from '@/components/chat/ChatUI';
-import chatService from '@/lib/ai/chatService';
+import chatService, { ChatRoom as ChatRoomType } from '@/lib/ai/chatService';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-
-interface ChatPageProps {
-  params: {
-    id: string;
-  };
-}
 
 export default function ChatRoom() {
   const params = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chatRoom, setChatRoom] = useState<any>(null);
+  const [chatRoom, setChatRoom] = useState<ChatRoomType | null>(null);
   const chatId = params?.id as string;
 
   useEffect(() => {
@@ -79,7 +73,7 @@ export default function ChatRoom() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center p-4">
           <h2 className="text-xl font-semibold mb-2">Chat room not found</h2>
-          <p className="text-gray-700 mb-6">The chat room you're looking for might have been deleted or never existed.</p>
+          <p className="text-gray-700 mb-6">The chat room you&apos;re looking for might have been deleted or never existed.</p>
           <button
             onClick={() => router.push('/open-chat')}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"

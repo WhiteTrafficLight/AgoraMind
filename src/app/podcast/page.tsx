@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/immutability -- legacy mutation of HTMLAudioElement playback state via state-stored refs; cleanup tracked in Phase 4c. */
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
@@ -291,7 +292,7 @@ export default function PodcastPage() {
       <div className="mt-16 bg-gray-50 rounded-xl p-8 text-center">
         <h2 className="text-2xl font-bold mb-4">More episodes coming soon</h2>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          We're working on bringing you more thought-provoking conversations with the greatest philosophers of all time.
+          We&apos;re working on bringing you more thought-provoking conversations with the greatest philosophers of all time.
           Stay tuned for weekly updates!
         </p>
       </div>

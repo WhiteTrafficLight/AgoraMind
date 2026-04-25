@@ -101,7 +101,7 @@ export default function CustomNpcPage() {
       } else {
         setPortraitError(prev => ({ ...prev, [npc.id]: data.detail || data.message || 'Portrait generation failed' }));
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Portrait generation error', e);
       setPortraitError(prev => ({ ...prev, [npc.id]: e.message || 'Error generating portrait' }));
     } finally {
@@ -206,7 +206,7 @@ export default function CustomNpcPage() {
 
             {!isLoading && npcs.length === 0 && (
               <div className="text-center py-10">
-                <p className="text-gray-600 mb-4">You haven't created any custom philosophers yet.</p>
+                <p className="text-gray-600 mb-4">You haven&apos;t created any custom philosophers yet.</p>
                 <button onClick={() => setShowModal(true)} className="inline-flex items-center px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">
                   Create Your First Philosopher
                 </button>

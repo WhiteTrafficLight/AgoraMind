@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/static-components -- PhilosopherDetailsModal is intentionally defined inside CustomNpcCreator to share its scope; refactor tracked in Phase 4c. */
 
 import { useState, useEffect } from 'react';
 
@@ -299,7 +300,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
               className="mt-3 italic border-l-4 border-gray-200 pl-3 py-1 text-gray-600 text-sm"
               style={{ borderLeftColor: '#e5e7eb', paddingLeft: '12px' }}
             >
-              "{selectedPhilosopherDetails.quote}"
+              &ldquo;{selectedPhilosopherDetails.quote}&rdquo;
             </div>
           )}
           

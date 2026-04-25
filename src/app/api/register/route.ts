@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Register error:', error);
     return NextResponse.json(
       { success: false, message: '회원가입 중 오류가 발생했습니다.', error: error.message },

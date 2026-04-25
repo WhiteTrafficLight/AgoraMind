@@ -202,7 +202,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
       const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        const philosopher = data.philosophers.find((p: any) => 
+        const philosopher = data.philosophers.find((p: { id: string; name?: string }) => 
           p.id.toLowerCase() === philosopherId.toLowerCase()
         );
         if (philosopher) {

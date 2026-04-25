@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components, react-hooks/set-state-in-effect, react-hooks/immutability -- Pre-existing patterns: helper function hoisting and effect-driven state syncing; cleanup tracked alongside CreateChatModal split (Phase 4c). */
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, LinkIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { DebateTopic } from '../utils/debateTopics';
@@ -273,7 +274,7 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
       const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        const philosopher = data.philosophers.find((p: any) => 
+        const philosopher = data.philosophers.find((p: { id: string; name?: string }) => 
           p.id.toLowerCase() === philosopherId.toLowerCase()
         );
         if (philosopher) {

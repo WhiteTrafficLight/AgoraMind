@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/immutability -- Legacy 1400-line monolith; behavior-preserving compliance with React 19 hook rules requires structural decomposition tracked in Phase 4c. */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { PaperAirplaneIcon, ArrowLeftIcon, StopIcon } from '@heroicons/react/24/outline';
@@ -6,6 +7,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
 import socketClient from '@/lib/socket/socketClient';
+
+type SocketClientLike = typeof socketClient;
 
 // Extend the ChatMessage interface to include NPC information
 interface ChatMessage extends ChatMessageBase {
@@ -51,7 +54,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [npcDetails, setNpcDetails] = useState<Record<string, NpcDetail>>({});
-  const [socketClientInstance, setSocketClientInstance] = useState<any>(null);
+  const [socketClientInstance, setSocketClientInstance] = useState<SocketClientLike | null>(null);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [timelinePosition, setTimelinePosition] = useState(1); // 1 = newest message, 0 = oldest
   const [activeMessageIndex, setActiveMessageIndex] = useState<number | null>(null);
@@ -147,7 +150,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
         console.log('Socket client initialization completed');
         
         // 타입 단언을 사용하여 임시로 에러 해결
-        const socketInstance = instance as any;
+        const socketInstance = instance as unknown as SocketClientLike;
         
         // Ensure chatId is always a string for consistency
         const chatIdString = String(chatId);
@@ -349,7 +352,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
     try {
       console.log('🔄 Manual reconnection attempt...');
       const instance = await socketClient.init(username);
-      const socketInstance = instance as any;
+      const socketInstance = instance as unknown as SocketClientLike;
       setSocketClientInstance(socketInstance);
       
       console.log('🔄 Trying to join room after reconnection:', chatId);
@@ -409,7 +412,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
       console.log(`Emitting send-message event for room ${roomId}`, messageObj);
       
       try {
-        const socketInstance = socketClientInstance as any;
+        const socketInstance = socketClientInstance as unknown as SocketClientLike;
         socketInstance?.emit?.('send-message', {
           roomId: roomId,
           message: messageObj
@@ -530,7 +533,7 @@ const CircularChatUI: React.FC<CircularChatUIProps> = ({
     
     // Start from user position + one segment 
     // (skip user's position at 90 degrees/6 o'clock)
-    let angle = (90 + degreesPerParticipant + (index * degreesPerParticipant)) % 360;
+    const angle = (90 + degreesPerParticipant + (index * degreesPerParticipant)) % 360;
     
     // Convert angle to radians for calculation
     const angleInRadians = (angle * Math.PI) / 180;

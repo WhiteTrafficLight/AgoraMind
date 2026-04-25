@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/immutability -- Legacy 2000-line monolith with mature effect orchestration; behavior-preserving compliance with React 19 hook rules requires the decomposition tracked in the AgoraMind cleanup plan, Phase 4c. */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PaperAirplaneIcon, ArrowLeftIcon, UsersIcon } from '@heroicons/react/24/outline';
@@ -6,6 +7,11 @@ import { useRouter } from 'next/navigation';
 import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
 import socketClient from '@/lib/socket/socketClient';
 import Image from 'next/image';
+
+// The wrapper exposes joinRoom/getActiveUsers/isConnected/etc., but
+// socketClient.init() declares its return type as the underlying Socket.
+// Treat the resolved instance as also having the wrapper API.
+type SocketClientLike = typeof socketClient;
 
 // Extend the ChatMessage interface to include additional NPC information
 interface ChatMessage extends ChatMessageBase {
@@ -150,7 +156,7 @@ const CitationModal: React.FC<CitationModalProps> = ({ isOpen, onClose, citation
           color: '#4b5563', 
           borderLeft: '4px solid #3b82f6' 
         }}>
-          "{citation.text}"
+          &ldquo;{citation.text}&rdquo;
         </div>
         
         {citation.location && (
@@ -186,7 +192,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [socketClientInstance, setSocketClientInstance] = useState<any | null>(null);
+  const [socketClientInstance, setSocketClientInstance] = useState<SocketClientLike | null>(null);
   const [loading, setLoading] = useState(true);
   const [sentMessageIds, setSentMessageIds] = useState<string[]>([]);
   
@@ -342,13 +348,13 @@ const ChatUI: React.FC<ChatUIProps> = ({
           setError('');
           
           // Join room and get active users after connection
-          const joinResult = (instance as any).joinRoom?.(chatId);
+          const joinResult = (instance as unknown as SocketClientLike).joinRoom?.(chatId);
           console.log('재연결 후 방 참가 요청 결과:', joinResult ? '성공' : '실패');
-          (instance as any).getActiveUsers?.(chatId);
+          (instance as unknown as SocketClientLike).getActiveUsers?.(chatId);
         });
         
         // Check if socket is already connected and update state accordingly
-        if ((instance as any).isConnected?.()) {
+        if ((instance as unknown as SocketClientLike).isConnected?.()) {
           console.log('⚡️ Socket is already connected - setting state immediately');
           setIsSocketConnected(true);
         } else {
@@ -361,10 +367,10 @@ const ChatUI: React.FC<ChatUIProps> = ({
         // ⚡️ 항상 방에 참가 - 연결 성공 여부와 상관없이 시도
         // 소켓이 아직 연결 중이면 소켓 라이브러리 내부에서 큐에 저장됨
         console.log('✅ 소켓 초기화 후 즉시 방 참가 시도:', chatId);
-        const joinResult = (instance as any).joinRoom?.(chatId);
+        const joinResult = (instance as unknown as SocketClientLike).joinRoom?.(chatId);
         console.log('방 참가 요청 결과:', joinResult ? '성공' : '실패 (큐에 저장됨)');
         
-        (instance as any).getActiveUsers?.(chatId);
+        (instance as unknown as SocketClientLike).getActiveUsers?.(chatId);
         
         // Set up the event listeners and get the cleanup function
         cleanupFn = setupEventListeners(instance);
@@ -380,7 +386,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     };
 
     // Set up all event listeners
-    const setupEventListeners = (instance: any) => {
+    const setupEventListeners = (instance: SocketClientLike) => {
       // 소켓 연결 상태 업데이트
       const onConnect = () => {
         console.log('✅ Socket.IO connected!');
@@ -575,7 +581,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
       };
       
       // Handle user joining event
-      const onUserJoined = (data: { username: string; usersInRoom: string[]; participants: any }) => {
+      const onUserJoined = (data: { username: string; usersInRoom: string[]; participants: { users: string[]; npcs: string[] } }) => {
         setActiveUsers(data.usersInRoom);
         
         // Add system message about user joining
@@ -672,7 +678,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
         
         // Use type casting for missing method (best compromise for fix)
         if ('addEventHandler' in instance) {
-          (instance as any).addEventHandler('send-message', handler);
+          (instance as unknown as { addEventHandler: (event: string, handler: (...args: unknown[]) => void) => void }).addEventHandler('send-message', handler);
         }
         
         // Return cleanup function
@@ -689,8 +695,8 @@ const ChatUI: React.FC<ChatUIProps> = ({
           instance.off('disconnect', onDisconnect);
           
           // Leave the room when component unmounts
-          if ((instance as any).isConnected?.()) {
-            (instance as any).leaveRoom?.(chatId);
+          if ((instance as unknown as SocketClientLike).isConnected?.()) {
+            (instance as unknown as SocketClientLike).leaveRoom?.(chatId);
           }
         };
       } catch (error) {
@@ -716,8 +722,8 @@ const ChatUI: React.FC<ChatUIProps> = ({
   // Handle back button click
   const handleBackButtonClick = () => {
     // Leave the room before navigating away
-    if (socketClientInstance && (socketClientInstance as any).isConnected?.()) {
-      (socketClientInstance as any).leaveRoom?.(chatId);
+    if (socketClientInstance && (socketClientInstance as unknown as SocketClientLike).isConnected?.()) {
+      (socketClientInstance as unknown as SocketClientLike).leaveRoom?.(chatId);
     }
     
     if (onBack) {
@@ -873,9 +879,9 @@ const ChatUI: React.FC<ChatUIProps> = ({
       // 재연결 후 즉시 방에 참가 시도
       console.log('🔄 재연결 후 방 참가 시도:', chatId);
       if (instance) {
-        const joinResult = (instance as any).joinRoom?.(chatId);
+        const joinResult = (instance as unknown as SocketClientLike).joinRoom?.(chatId);
         console.log('수동 재연결 후 방 참가 결과:', joinResult ? '성공' : '실패');
-        (instance as any).getActiveUsers?.(chatId);
+        (instance as unknown as SocketClientLike).getActiveUsers?.(chatId);
       }
       
       setError(null);  // 성공하면 에러 메시지 제거
@@ -904,7 +910,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     };
     
     // Access the socket directly for debugging
-    const socketObj = (socketClientInstance as any).socket;
+    const socketObj = (socketClientInstance as unknown as SocketClientLike).socket;
     
     if (!socketObj) {
       console.error('No socket object available');
@@ -937,7 +943,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     console.log('🔎 Testing basic message with simplified object');
     
     // Access the socket directly for debugging
-    const socketObj = (socketClientInstance as any).socket;
+    const socketObj = (socketClientInstance as unknown as SocketClientLike).socket;
     
     if (!socketObj) {
       console.error('No socket object available');
@@ -983,7 +989,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     
     try {
       // Access the raw socket object for debugging
-      const rawSocket = (socketClientInstance as any).socket;
+      const rawSocket = (socketClientInstance as unknown as SocketClientLike).socket;
       
       if (!rawSocket) {
         console.log('❌ No raw socket available in instance');
@@ -1385,8 +1391,8 @@ Namespace: ${rawSocket.nsp || '/'}
     }
     
     // 메시지에 senderName이 직접 포함된 경우 (자동 대화 메시지)
-    if (typeof npcId === 'object' && (npcId as any).senderName) {
-      return (npcId as any).senderName;
+    if (typeof npcId === 'object' && (npcId as { senderName?: string }).senderName) {
+      return (npcId as { senderName: string }).senderName;
     }
     
     // 상세 정보에서 실제 이름 찾기
@@ -1404,8 +1410,8 @@ Namespace: ${rawSocket.nsp || '/'}
     }
     
     // 메시지에 portrait_url이 직접 포함된 경우 (자동 대화 메시지)
-    if (typeof npcId === 'object' && (npcId as any).portrait_url) {
-      return (npcId as any).portrait_url;
+    if (typeof npcId === 'object' && (npcId as { portrait_url?: string }).portrait_url) {
+      return (npcId as { portrait_url: string }).portrait_url;
     }
     
     // 상세 정보에서 프로필 이미지 URL 찾기

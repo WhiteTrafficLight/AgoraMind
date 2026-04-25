@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect -- Legacy effect-driven state syncing in app/chat page; cleanup tracked in Phase 4c. */
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -543,7 +544,7 @@ function ChatContent() {
 
   // 브라우저 콘솔에서 디버깅할 수 있도록 window 객체에 노출
   useEffect(() => {
-    (window as any).debugChat = debugHelpers;
+    (window as unknown as { debugChat: typeof debugHelpers }).debugChat = debugHelpers;
     loggers.chat.info('Debug helpers available: window.debugChat');
   }, [waitingForUserInput, currentUserTurn, username, chatData, isGeneratingResponse]);
 

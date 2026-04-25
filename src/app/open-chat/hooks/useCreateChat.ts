@@ -67,7 +67,7 @@ export const useCreateChat = () => {
         }
 
         // Return minimal info (not used after redirect)
-        return { ...dbRoom, dialogueType: 'free', freeDiscussionSessionId: session.session_id } as any;
+        return { ...dbRoom, dialogueType: 'free' as const, freeDiscussionSessionId: session.session_id };
       } else {
         console.log('🎪 Creating regular chat room...');
         
