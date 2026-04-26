@@ -37,15 +37,12 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
   const FINE_TUNED = new Set(['sartre', 'camus', 'nietzsche', 'plato', 'buddha']);
 
   // Reset selections when modal opens or topic changes
-  /* eslint-disable react-hooks/set-state-in-effect -- legacy reset-on-prop-change pattern. */
   useEffect(() => {
     if (isOpen) {
       setSelectedPhilosophers([]);
       setSelectedCustomNpcs([]);
     }
   }, [isOpen, topic]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
   const renderContextIcon = (contextType: string) => {
     switch (contextType) {
       case 'url':

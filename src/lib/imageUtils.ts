@@ -1,5 +1,4 @@
 const S3_BASE_URL = process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://sapiens-engine-assets.s3.ap-northeast-2.amazonaws.com';
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface ImageConfig {
   type: 'static' | 's3';

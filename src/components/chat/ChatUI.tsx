@@ -1,6 +1,4 @@
 'use client';
-/* eslint-disable react-hooks/set-state-in-effect, react-hooks/immutability -- Legacy 2000-line monolith with mature effect orchestration; behavior-preserving compliance with React 19 hook rules requires the decomposition tracked in the AgoraMind cleanup plan, Phase 4c. */
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PaperAirplaneIcon, ArrowLeftIcon, UsersIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';

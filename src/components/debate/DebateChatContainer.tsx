@@ -126,7 +126,6 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     loadNpcDetails();
   }, [initialNpcDetails, room.pro, room.con, room.neutral, room.participants.users]);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- legacy effect orchestration; refactor deferred to monolith decomposition phase. */
   useEffect(() => {
     if (username) {
       fetchUserProfile(username);
@@ -156,8 +155,6 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
       setLastMessageCount(messages.length);
     }
   }, [messages.length, lastMessageCount, typingMessageIds, room.participants.users, username]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
   useEffect(() => {
     if (waitingForUserInput && inputRef.current) {
       setTimeout(() => {

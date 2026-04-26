@@ -1,6 +1,4 @@
 'use client';
-/* eslint-disable react-hooks/set-state-in-effect -- Legacy effect-driven state syncing in app/chat page; cleanup tracked in Phase 4c. */
-
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DebateChatContainer from '@/components/debate/DebateChatContainer';

@@ -14,8 +14,11 @@ class SocketClient {
     return await this.core.connect();
   }
 
-  // init (initialize )
-  async init(_username?: string): Promise<Socket> {
+  // Compatibility alias for the legacy init() entry point.
+  // The username is currently unused but retained to match the historical
+  // call sites; the underlying transport tracks the user via joinRoom().
+  async init(username?: string): Promise<Socket> {
+    void username;
     return await this.core.connect();
   }
 

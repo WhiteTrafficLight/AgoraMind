@@ -1,9 +1,6 @@
 'use client';
-/* eslint-disable react-hooks/set-state-in-effect -- legacy mounted-flag pattern for portal; refactor tracked in Phase 4c. */
-
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { XMarkIcon } from '@heroicons/react/24/outline';
 
 interface ModalProps {
   isOpen: boolean;

@@ -1,6 +1,4 @@
 'use client';
-/* eslint-disable react-hooks/static-components -- PhilosopherDetailsModal is intentionally defined inside CustomNpcCreator to share its scope; refactor tracked in Phase 4c. */
-
 import { useState, useEffect } from 'react';
 
 interface Philosopher {

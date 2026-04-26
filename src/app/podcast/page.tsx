@@ -1,6 +1,4 @@
 'use client';
-/* eslint-disable react-hooks/immutability -- legacy mutation of HTMLAudioElement playback state via state-stored refs; cleanup tracked in Phase 4c. */
-
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';

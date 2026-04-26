@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/static-components, react-hooks/set-state-in-effect, react-hooks/immutability -- Pre-existing patterns: helper function hoisting and effect-driven state syncing; cleanup tracked alongside CreateChatModal split (Phase 4c). */
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, LinkIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { DebateTopic } from '../utils/debateTopics';

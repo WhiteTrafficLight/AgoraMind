@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/refs, react-hooks/set-state-in-effect -- stateRef.current is intentionally read in update callbacks to give consumers access to the latest state; refactor tracked in Phase 4c. */
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';

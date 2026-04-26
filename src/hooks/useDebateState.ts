@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { DebateStage, DebateState, TurnInfo } from '@/types/debate';
 
 export function useDebateState() {
@@ -66,7 +66,6 @@ export function useDebateState() {
   const shouldShowNextMessageButton = useCallback((
     isDebateRoom: boolean,
     onRequestNextMessage?: () => void,
-    messagesLength = 0
   ): boolean => {
     if (!isDebateRoom || !onRequestNextMessage || debateState.isGeneratingResponse) {
       return false;

@@ -125,12 +125,10 @@ export function useSocketConnection({
     };
   }, [roomId, initializeSocket, setupEventListeners, cleanupSocket]);
 
-  /* eslint-disable react-hooks/refs -- consumers expect a snapshot of the current socket; alternative is exposing socketRef directly which leaks the ref API. */
   return {
     socket: socketRef.current,
     isConnected: isConnected(),
     emitMessage,
     cleanupSocket,
   };
-  /* eslint-enable react-hooks/refs */
 } 

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect -- legacy expand-on-prop pattern; refactor tracked in Phase 4c. */
 import React from 'react';
 import { PlayIcon, PauseIcon, ForwardIcon, BackwardIcon } from '@heroicons/react/24/solid';
 import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';

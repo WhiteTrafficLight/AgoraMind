@@ -1,6 +1,4 @@
 'use client';
-/* eslint-disable react-hooks/set-state-in-effect, react-hooks/immutability -- Legacy 1400-line monolith; behavior-preserving compliance with React 19 hook rules requires structural decomposition tracked in Phase 4c. */
-
 import React, { useState, useRef, useEffect } from 'react';
 import { PaperAirplaneIcon, ArrowLeftIcon, StopIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';

@@ -61,7 +61,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     onDisconnect?.();
   }, [onDisconnect]);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- legacy effect that reuses a global Socket.IO singleton; refactor would require a context/provider redesign. */
   useEffect(() => {
     if (globalSocket && globalSocket.connected) {
       loggers.socket.debug('Reusing existing Socket.IO connection');
@@ -187,8 +186,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       }
     };
   }, [roomId, userId]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
   const sendMessage = (message: string, side: string = 'neutral') => {
     if (!socketRef.current || !roomId || !userId) {
       loggers.socket.error('Cannot send message: socket, roomId or userId missing', {
@@ -242,7 +239,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     return true;
   };
 
-  /* eslint-disable react-hooks/refs -- consumers expect a snapshot of the current socket; alternative is exposing socketRef directly which leaks the ref API. */
   return {
     socket: socketRef.current,
     isConnected,
@@ -251,5 +247,4 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     joinRoom,
     leaveRoom
   };
-  /* eslint-enable react-hooks/refs */
 };

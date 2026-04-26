@@ -97,14 +97,11 @@ export const useTypingAnimation = ({
 
   // . !enabled return
   // displayedText text setState .
-  /* eslint-disable react-hooks/set-state-in-effect -- legacy reset-on-prop-change pattern; behavior-preserving refactor needs full hook overhaul. */
   useEffect(() => {
     if (enabled) {
       resetTyping();
     }
   }, [text, enabled]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
   return {
     displayedText: enabled ? displayedText : text,
     isTyping,
