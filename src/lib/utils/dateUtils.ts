@@ -1,4 +1,5 @@
 // Date formatting utilities
+import { loggers } from '@/utils/logger';
 
 /**
  * Formats a timestamp to a readable format
@@ -48,7 +49,7 @@ export function formatTimestamp(timestamp: Date | string | number): string {
       day: 'numeric'
     });
   } catch (error) {
-    console.error('Error formatting timestamp:', error);
+    loggers.ui.error('Error formatting timestamp:', error);
     return 'Unknown date';
   }
 }
@@ -112,7 +113,7 @@ export function getRelativeTime(timestamp: Date | string | number): string {
     const years = Math.floor(diffInSeconds / 31536000);
     return `${years} ${years === 1 ? 'year' : 'years'} ago`;
   } catch (error) {
-    console.error('Error getting relative time:', error);
+    loggers.ui.error('Error getting relative time:', error);
     return 'Unknown time';
   }
 } 

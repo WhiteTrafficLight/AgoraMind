@@ -1,6 +1,7 @@
 'use server';
 
 import chatService, { ChatRoomCreationParams } from '@/lib/ai/chatService';
+import { loggers } from '@/utils/logger';
 
 interface CreateChatParams {
   title: string;
@@ -21,7 +22,7 @@ export async function createNewChat(params: CreateChatParams) {
     const newChat = await chatService.createChatRoom(chatParams);
     return newChat;
   } catch (error) {
-    console.error('Failed to create chat room:', error);
+    loggers.chat.error('Failed to create chat room:', error);
     throw error;
   }
 } 

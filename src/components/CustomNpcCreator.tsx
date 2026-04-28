@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 interface Philosopher {
   id: string;
@@ -72,10 +73,10 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
           const data = await response.json();
           setPhilosophers(data.philosophers);
         } else {
-          console.error('Failed to fetch philosophers');
+          loggers.npc.error('Failed to fetch philosophers');
         }
       } catch (error) {
-        console.error('Error fetching philosophers:', error);
+        loggers.npc.error('Error fetching philosophers:', error);
         setPhilosophers([
           { id: 'socrates', name: 'Socrates' },
           { id: 'plato', name: 'Plato' },
@@ -108,10 +109,10 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
         setSelectedPhilosopherDetails(data);
         setShowPhilosopherDetails(true);
       } else {
-        console.error(`Failed to fetch details  philosopher: ${philosopherId}`);
+        loggers.npc.error(`Failed to fetch details  philosopher: ${philosopherId}`);
       }
     } catch (error) {
-      console.error('Error fetching philosopher details:', error);
+      loggers.npc.error('Error fetching philosopher details:', error);
     }
   };
 
@@ -172,7 +173,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
       }
 
       const data = await response.json();
-      console.log('Created NPC:', data);
+      loggers.npc.info('Created NPC:', data);
       setSuccess(true);
       
       // Notify parent of new NPC
@@ -195,7 +196,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
         debate_approach: 'dialectical'
       });
     } catch (err) {
-      console.error('Error creating NPC:', err);
+      loggers.npc.error('Error creating NPC:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setLoading(false);

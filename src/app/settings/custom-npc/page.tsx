@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Header from '@/components/ui/Header';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 interface CustomNpc {
   id: string;
@@ -34,9 +35,9 @@ export default function CustomNpcPage() {
       const res = await fetch('/api/npc/list');
       const data = await res.json();
       if (res.ok) setNpcs(data.npcs || []);
-      else console.error('Failed to fetch NPCs', data);
+      else loggers.ui.error('Failed to fetch NPCs', data);
     } catch (err) {
-      console.error('Error fetching NPCs', err);
+      loggers.ui.error('Error fetching NPCs', err);
     } finally {
       setIsLoading(false);
     }
@@ -62,12 +63,12 @@ export default function CustomNpcPage() {
       });
       
       if (!res.ok) {
-        console.error('Failed to update NPC portrait in DB:', await res.json());
+        loggers.ui.error('Failed to update NPC portrait in DB:', await res.json());
       } else {
-        console.log('NPC portrait updated in DB successfully');
+        loggers.ui.info('NPC portrait updated in DB successfully');
       }
     } catch (err) {
-      console.error('Error updating NPC portrait in DB:', err);
+      loggers.ui.error('Error updating NPC portrait in DB:', err);
     }
   };
 
@@ -90,7 +91,7 @@ export default function CustomNpcPage() {
         })
       });
       const data = await res.json();
-      console.log('Portrait generation response:', data, 'status:', res.status);
+      loggers.ui.info('Portrait generation response:', data, 'status:', res.status);
       if (res.ok && data.url) {
         const relativeUrl = getRelativePortraitUrl(data.url);
         setPortraitMap(prev => ({ ...prev, [npc.id]: relativeUrl }));
@@ -100,7 +101,7 @@ export default function CustomNpcPage() {
         setPortraitError(prev => ({ ...prev, [npc.id]: data.detail || data.message || 'Portrait generation failed' }));
       }
     } catch (e: unknown) {
-      console.error('Portrait generation error', e);
+      loggers.ui.error('Portrait generation error', e);
       setPortraitError(prev => ({ ...prev, [npc.id]: e instanceof Error ? e.message : 'Error generating portrait' }));
     } finally {
       setLoadingPortrait(null);

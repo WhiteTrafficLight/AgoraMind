@@ -15,7 +15,7 @@ export const useCreateChat = () => {
     setError(null);
 
     try {
-      console.log('🚀 useCreateChat: Starting chat creation...', { dialogueType: params.dialogueType });
+      loggers.chat.info('🚀 useCreateChat: Starting chat creation...', { dialogueType: params.dialogueType });
       
       // Check if this is a free discussion
       if (params.dialogueType === 'free' && params.freeDiscussionConfig) {
@@ -69,7 +69,7 @@ export const useCreateChat = () => {
         // Return minimal info (not used after redirect)
         return { ...dbRoom, dialogueType: 'free' as const, freeDiscussionSessionId: session.session_id };
       } else {
-        console.log('🎪 Creating regular chat room...');
+        loggers.chat.info('🎪 Creating regular chat room...');
         
         // Handle regular chat creation (debate, socratic, etc.)
         const response = await fetch('/api/rooms', {

@@ -1,5 +1,6 @@
 // chatStorage.ts -
 import { ChatRoom, ChatMessage } from '@/lib/ai/chatService';
+import { loggers } from '@/utils/logger';
 
 // Next.js
 const chatStorage: {
@@ -61,25 +62,25 @@ const chatStorage: {
 
   getChatRoomById: function(id: string | number) {
     const idStr = String(id);
-    console.log(`Storage: chat room ${idStr} lookup request`);
+    loggers.chat.info(`Storage: chat room ${idStr} lookup request`);
     const room = this.chatRooms.find(r => String(r.id) === idStr);
-    console.log(`Storage: chat room ${idStr} lookup result:`, room ? 'found' : 'not found');
+    loggers.chat.info(`Storage: chat room ${idStr} lookup result:`, room ? 'found' : 'not found');
     return room;
   },
 
   createChatRoom: function(room: ChatRoom) {
-    console.log(`Storage: chat room ${room.id} create`);
+    loggers.chat.info(`Storage: chat room ${room.id} create`);
     this.chatRooms.push(room);
     return room;
   },
 
   addMessage: function(roomId: string | number, message: ChatMessage) {
     const idStr = String(roomId);
-    console.log(`Storage: chat room ${idStr}add message request`);
+    loggers.chat.info(`Storage: chat room ${idStr}add message request`);
     
     const roomIndex = this.chatRooms.findIndex(r => String(r.id) === idStr);
     if (roomIndex === -1) {
-      console.log(`Storage: chat room ${idStr} not found`);
+      loggers.chat.info(`Storage: chat room ${idStr} not found`);
       return false;
     }
     
@@ -92,14 +93,14 @@ const chatStorage: {
     );
     
     if (isDuplicate) {
-      console.log(`Storage: duplicate message ${message.id}, skipped`);
+      loggers.chat.info(`Storage: duplicate message ${message.id}, skipped`);
       return false;
     }
     
     this.chatRooms[roomIndex].messages?.push(message);
     this.chatRooms[roomIndex].lastActivity = 'Just now';
     
-    console.log(`Storage: Message added; current count: ${this.chatRooms[roomIndex].messages?.length}`);
+    loggers.chat.info(`Storage: Message added; current count: ${this.chatRooms[roomIndex].messages?.length}`);
     return true;
   },
 

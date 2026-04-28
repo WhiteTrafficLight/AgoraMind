@@ -6,6 +6,7 @@ import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatServic
 import socketClient from '@/lib/socket/socketClient';
 import Image from 'next/image';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 // socketClient.init() declares its return type as the underlying Socket,
 // but the codebase treats it as a duck-typed bag with optional helper
@@ -214,15 +215,15 @@ const ChatUI: React.FC<ChatUIProps> = ({
   
   // NPC -
   const onNpcSelected = useCallback((data: { npc_id: string, npc_name?: string }) => {
-    console.log('🎯 NPC selected event received:', data);
+    loggers.chat.info('🎯 NPC selected event received:', data);
     
     // NPC ID thinking
     if (data.npc_id) {
       setThinkingNpcId(data.npc_id);
       setIsThinking(true);
-      console.log(`🎯 NPC ${data.npc_id}${data.npc_name ? ` (${data.npc_name})` : ''} is now thinking...`);
+      loggers.chat.info(`🎯 NPC ${data.npc_id}${data.npc_name ? ` (${data.npc_name})` : ''} is now thinking...`);
     } else {
-      console.warn('🎯 Invalid NPC selected event - missing npc_id:', data);
+      loggers.chat.warn('🎯 Invalid NPC selected event - missing npc_id:', data);
     }
   }, []);
   
@@ -252,7 +253,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
           })
           .catch(err => {
             // Fallback on error
-            console.error('Error fetching user:', err);
+            loggers.chat.error('Error fetching user:', err);
             const randomUsername = `User_${Math.floor(Math.random() * 10000)}`;
             setUsername(randomUsername);
             sessionStorage.setItem('chat_username', randomUsername);
@@ -282,7 +283,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
 
   useEffect(() => {
     // chatId
-    console.log(`🔄 Chat room ID changed: ${chatId}`);
+    loggers.chat.info(`🔄 Chat room ID changed: ${chatId}`);
     
     setMessages([]);
     setIsThinking(false);
@@ -290,7 +291,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     setError(null);
     
     if (initialMessages && initialMessages.length > 0) {
-      console.log(`⚡ Chat room ${chatId} ${initialMessages.length}initial messages set`);
+      loggers.chat.info(`⚡ Chat room ${chatId} ${initialMessages.length}initial messages set`);
       // Mark existing messages as not new to avoid animation
       const existingMessages = initialMessages.map(msg => ({
         ...msg,
@@ -323,39 +324,39 @@ const ChatUI: React.FC<ChatUIProps> = ({
     // Initialize socket
     const initSocket = async () => {
       try {
-        console.log('Starting socket initialization...');
+        loggers.chat.info('Starting socket initialization...');
         
         // Initialize socket client and wait  it to complete
         const instance = await socketClient.init(username);
         
-        console.log('Socket client initialization completed');
+        loggers.chat.info('Socket client initialization completed');
         
         // Immediately bind the connect listener to ensure state update
         instance.on('connect', () => {
-          console.log('⚡️ Socket connected event received - updating UI state');
+          loggers.chat.info('⚡️ Socket connected event received - updating UI state');
           setIsSocketConnected(true);
           setError('');
           
           // Join room and get active users after connection
           const joinResult = (instance as unknown as SocketClientLike).joinRoom?.(chatId);
-          console.log('Room rejoin result after reconnect:', joinResult ? 'success' : 'failed');
+          loggers.chat.info('Room rejoin result after reconnect:', joinResult ? 'success' : 'failed');
           (instance as unknown as SocketClientLike).getActiveUsers?.(chatId);
         });
         
         // Check if socket is already connected and update state accordingly
         if ((instance as unknown as SocketClientLike).isConnected?.()) {
-          console.log('⚡️ Socket is already connected - setting state immediately');
+          loggers.chat.info('⚡️ Socket is already connected - setting state immediately');
           setIsSocketConnected(true);
         } else {
-          console.log('⚡️ Socket is not yet connected - waiting  connect event');
+          loggers.chat.info('⚡️ Socket is not yet connected - waiting  connect event');
         }
         
         // Update state with the instance
         setSocketClientInstance(instance);
         
-        console.log('✅ Joining room immediately after socket init:', chatId);
+        loggers.chat.info('✅ Joining room immediately after socket init:', chatId);
         const joinResult = (instance as unknown as SocketClientLike).joinRoom?.(chatId);
-        console.log('Room join result:', joinResult ? 'success' : 'failed (queued)');
+        loggers.chat.info('Room join result:', joinResult ? 'success' : 'failed (queued)');
         
         (instance as unknown as SocketClientLike).getActiveUsers?.(chatId);
         
@@ -364,7 +365,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
         
         setLoading(false);
       } catch (error) {
-        console.error('Error initializing socket:', error);
+        loggers.chat.error('Error initializing socket:', error);
         setError('Failed to initialize socket connection. Using API fallback mode.');
         setIsSocketConnected(false);
         setLoading(false);
@@ -374,13 +375,13 @@ const ChatUI: React.FC<ChatUIProps> = ({
     // Set up all event listeners
     const setupEventListeners = (instance: SocketClientLike) => {
       const onConnect = () => {
-        console.log('✅ Socket.IO connected!');
+        loggers.chat.info('✅ Socket.IO connected!');
         setIsSocketConnected(true);
         setError('');
         
-        console.log('✅ Joining room on connect/reconnect:', chatId);
+        loggers.chat.info('✅ Joining room on connect/reconnect:', chatId);
         const joinResult = instance.joinRoom?.(chatId);
-        console.log('Room rejoin result after reconnect:', joinResult ? 'success' : 'failed');
+        loggers.chat.info('Room rejoin result after reconnect:', joinResult ? 'success' : 'failed');
 
         instance.getActiveUsers?.(chatId);
       };
@@ -391,7 +392,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
       instance.on('connect', onConnect);
 
       const onDisconnect = () => {
-        console.log('Socket.IO disconnected');
+        loggers.chat.info('Socket.IO disconnected');
         setIsSocketConnected(false);
         
         setError('Disconnected from server. Attempting to reconnect.');
@@ -404,34 +405,34 @@ const ChatUI: React.FC<ChatUIProps> = ({
       
       // Handle new messages received through socket
       const onNewMessage = async (data: { roomId: string, message: ChatMessage }) => {
-        console.log('🔍 New message received:', data);
+        loggers.chat.info('🔍 New message received:', data);
         
         const currentRoomId = String(chatId);
         const receivedRoomId = String(data.roomId);
         
         if (currentRoomId !== receivedRoomId) {
-          console.log(`❌ Ignoring message: message from a different room (${receivedRoomId} != ${currentRoomId})`);
+          loggers.chat.info(`❌ Ignoring message: message from a different room (${receivedRoomId} != ${currentRoomId})`);
           return;
         }
         
         if (!data.message) {
-          console.error('❌ Invalid message data:', data);
+          loggers.chat.error('❌ Invalid message data:', data);
           return;
         }
         
-        console.log('✅ Valid message; reviewing  UI add:', data.message);
-        console.log('📋 Message details:');
-        console.log(`- ID: ${data.message.id}`);
-        console.log(`- Sender: ${data.message.sender}`);
-        console.log(`- SenderName: ${data.message.senderName}`);
-        console.log(`- SenderType: ${data.message.senderType}`);
-        console.log(`- NPC ID: ${data.message.npc_id}`);
-        console.log(`- Portrait URL: ${data.message.portrait_url}`);
-        console.log(`- Text preview: ${data.message.text.substring(0, 100)}...`);
+        loggers.chat.info('✅ Valid message; reviewing  UI add:', data.message);
+        loggers.chat.info('📋 Message details:');
+        loggers.chat.info(`- ID: ${data.message.id}`);
+        loggers.chat.info(`- Sender: ${data.message.sender}`);
+        loggers.chat.info(`- SenderName: ${data.message.senderName}`);
+        loggers.chat.info(`- SenderType: ${data.message.senderType}`);
+        loggers.chat.info(`- NPC ID: ${data.message.npc_id}`);
+        loggers.chat.info(`- Portrait URL: ${data.message.portrait_url}`);
+        loggers.chat.info(`- Text preview: ${data.message.text.substring(0, 100)}...`);
         
         // sentMessageIds ID ( )
         if (sentMessageIds.includes(data.message.id)) {
-          console.log('Ignoring echo of own message:', data.message.id);
+          loggers.chat.info('Ignoring echo of own message:', data.message.id);
           return;
         }
         
@@ -447,7 +448,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
           );
           
           if (existingSimilarMessage) {
-            console.log('Similar message already displayed; ignoring:', data.message.text);
+            loggers.chat.info('Similar message already displayed; ignoring:', data.message.text);
             return;
           }
         }
@@ -457,7 +458,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
           
           try {
             if (npcId && !npcDetails[npcId]) {
-              console.log(`🔍 Loading NPC info  new message: ${npcId}`);
+              loggers.chat.info(`🔍 Loading NPC info  new message: ${npcId}`);
               const npcInfo = await fetchNpcDetails(npcId);
               setNpcDetails(prev => ({
                 ...prev,
@@ -469,16 +470,16 @@ const ChatUI: React.FC<ChatUIProps> = ({
                 data.message.portrait_url = npcInfo.portrait_url;
               }
               
-              console.log(`✅ NPC info loaded: ${npcId} → ${npcInfo.name}`);
+              loggers.chat.info(`✅ NPC info loaded: ${npcId} → ${npcInfo.name}`);
             } else if (npcId && npcDetails[npcId]) {
               data.message.senderName = npcDetails[npcId].name;
               if (!data.message.portrait_url) {
                 data.message.portrait_url = npcDetails[npcId].portrait_url;
               }
-              console.log(`✅ Using cached NPC info: ${npcId} → ${npcDetails[npcId].name}`);
+              loggers.chat.info(`✅ Using cached NPC info: ${npcId} → ${npcDetails[npcId].name}`);
             }
           } catch (e) {
-            console.error(`❌ NPC info load failed: ${npcId}`, e);
+            loggers.chat.error(`❌ NPC info load failed: ${npcId}`, e);
           }
         }
         
@@ -486,18 +487,18 @@ const ChatUI: React.FC<ChatUIProps> = ({
           const isDuplicate = prev.some(msg => msg.id === data.message.id);
           
           if (isDuplicate) {
-            console.log('Ignoring duplicate message (matching ID):', data.message.id);
+            loggers.chat.info('Ignoring duplicate message (matching ID):', data.message.id);
             return prev;
           }
           
-          console.log('Adding new message:', data.message);
+          loggers.chat.info('Adding new message:', data.message);
           // Mark the message as new  animation
           const isCurrentUserMessage = data.message.isUser && 
             (data.message.sender === username || data.message.sender === storedUsername);
             
           // (message.id auto- )
           const isAutoMessage = data.message.id.startsWith('auto-');
-          console.log('Is auto-conversation message:', isAutoMessage);
+          loggers.chat.info('Is auto-conversation message:', isAutoMessage);
           
           const newMessage = {
             ...data.message,
@@ -506,9 +507,9 @@ const ChatUI: React.FC<ChatUIProps> = ({
             sender: isCurrentUserMessage ? username : data.message.sender
           };
           
-          console.log('Final message object:', newMessage);
-          console.log(`- Final SenderName: ${newMessage.senderName}`);
-          console.log(`- Final Portrait URL: ${newMessage.portrait_url}`);
+          loggers.chat.info('Final message object:', newMessage);
+          loggers.chat.info(`- Final SenderName: ${newMessage.senderName}`);
+          loggers.chat.info(`- Final Portrait URL: ${newMessage.portrait_url}`);
           
           return [...prev, newMessage];
         });
@@ -600,12 +601,12 @@ const ChatUI: React.FC<ChatUIProps> = ({
       
       // Add handler  auto-dialogue message sent
       const onAutoMessageSent = () => {
-        console.log('🤖 Auto-dialogue message sent event received');
+        loggers.chat.info('🤖 Auto-dialogue message sent event received');
         
         // thinking
         setThinkingNpcId(null);
         setIsThinking(false);
-        console.log('🤖 Cleared thinking state after message sent');
+        loggers.chat.info('🤖 Cleared thinking state after message sent');
       };
       
       try {
@@ -631,7 +632,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
         
         const timeoutId = setTimeout(() => {
           if (!instance.isConnected?.()) {
-            console.warn('Socket connection timeout - falling back to direct API mode');
+            loggers.chat.warn('Socket connection timeout - falling back to direct API mode');
             setError('Network connection limited. Using API fallback mode.');
             setIsSocketConnected(false);
           }
@@ -639,7 +640,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
         
         // Type fix: Define the addEventHandler method on SocketClient
         const handler = (data: { roomId: string | number; message: ChatMessage }) => {
-          console.log(`🚨 'send-message' event received - room ID: ${data.roomId}, message:`, data.message);
+          loggers.chat.info(`🚨 'send-message' event received - room ID: ${data.roomId}, message:`, data.message);
           // Return unmodified data - RAG parameter is no longer needed
           return data;
         };
@@ -667,7 +668,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
           }
         };
       } catch (error) {
-        console.error('Error setting up socket event listeners:', error);
+        loggers.chat.error('Error setting up socket event listeners:', error);
         setError('Failed to set up connection. Using API fallback mode.');
         setIsSocketConnected(false);
         return () => {};
@@ -742,7 +743,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
     if (message.trim() === '' || isSending) return;
 
     try {
-      console.log('📝 sending message:', message);
+      loggers.chat.info('📝 sending message:', message);
       setIsSending(true);
       
       const timestamp = new Date(); // Fix: Use Date object instead of string
@@ -761,7 +762,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
       scrollToBottom();
       
       if (!socketClientInstance || !isSocketConnected) {
-        console.error('No socket connection; cancelling send');
+        loggers.chat.error('No socket connection; cancelling send');
         setError('Disconnected. Please refresh and try again.');
         setIsSending(false);
           return;
@@ -773,11 +774,11 @@ const ChatUI: React.FC<ChatUIProps> = ({
         message: messageObj
       });
       
-      console.log(`✅ Message sent through socket:`);
+      loggers.chat.info(`✅ Message sent through socket:`);
       setIsThinking(true);
       
       } catch (error) {
-      console.error('❌ message send error:', error);
+      loggers.chat.error('❌ message send error:', error);
       setError('An error occurred while sending the message.');
     } finally {
       setIsSending(false);
@@ -786,9 +787,9 @@ const ChatUI: React.FC<ChatUIProps> = ({
 
   // Handle key press in textarea (Enter to send, Shift+Enter  new line)
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    console.log('🎮 Key pressed:', e.key, 'shiftKey:', e.shiftKey);
+    loggers.chat.info('🎮 Key pressed:', e.key, 'shiftKey:', e.shiftKey);
     if (e.key === 'Enter' && !e.shiftKey) {
-      console.log('🎮 Enter pressed without shift - submitting message');
+      loggers.chat.info('🎮 Enter pressed without shift - submitting message');
       e.preventDefault();
       handleSendMessage(e);
     }
@@ -808,7 +809,7 @@ const ChatUI: React.FC<ChatUIProps> = ({
         hour12: true 
       });
     } catch (error) {
-      console.error("Time formatting error:", error);
+      loggers.chat.error("Time formatting error:", error);
       return "";
     }
   };
@@ -831,20 +832,20 @@ const ChatUI: React.FC<ChatUIProps> = ({
   const handleReconnect = async () => {
     try {
       // - use init method instead of constructor
-      console.log('Attempting manual reconnect...');
+      loggers.chat.info('Attempting manual reconnect...');
       const instance = await socketClient.init(username);
       setSocketClientInstance(instance);
       
-      console.log('Attempting to rejoin room after reconnect:', chatId);
+      loggers.chat.info('Attempting to rejoin room after reconnect:', chatId);
       if (instance) {
         const joinResult = (instance as unknown as SocketClientLike).joinRoom?.(chatId);
-        console.log('Manual reconnect rejoin result:', joinResult ? 'success' : 'failed');
+        loggers.chat.info('Manual reconnect rejoin result:', joinResult ? 'success' : 'failed');
         (instance as unknown as SocketClientLike).getActiveUsers?.(chatId);
       }
       
       setError(null);
     } catch (error) {
-      console.error('Reconnect failed:', error);
+      loggers.chat.error('Reconnect failed:', error);
       setError('Reconnection failed. Please try again.');
     }
   };
@@ -852,11 +853,11 @@ const ChatUI: React.FC<ChatUIProps> = ({
   // Add a test function
   const testSendDirectMessage = () => {
     if (!socketClientInstance) {
-      console.error('No socket client instance available');
+      loggers.chat.error('No socket client instance available');
       return;
     }
     
-    console.log('🧪 Testing direct message sending');
+    loggers.chat.info('🧪 Testing direct message sending');
     
     // Create a test message
     const testMsg = {
@@ -871,40 +872,40 @@ const ChatUI: React.FC<ChatUIProps> = ({
     const socketObj = (socketClientInstance as unknown as SocketClientLike).socket;
     
     if (!socketObj) {
-      console.error('No socket object available');
+      loggers.chat.error('No socket object available');
       return;
     }
     
     // Try to emit directly
     try {
-      console.log('🧪 Emitting test message directly');
+      loggers.chat.info('🧪 Emitting test message directly');
       socketObj.emit('send-message', {
         roomId: chatId,
         message: testMsg
       });
-      console.log('🧪 Test message emitted');
+      loggers.chat.info('🧪 Test message emitted');
       
       // Update UI immediately
       setMessages(prev => [...prev, testMsg]);
     } catch (err) {
-      console.error('🧪 Error sending test message:', err);
+      loggers.chat.error('🧪 Error sending test message:', err);
     }
   };
 
   // Add an additional test function with an extremely simple message
   const testBasicMessage = () => {
     if (!socketClientInstance) {
-      console.error('No socket client instance available');
+      loggers.chat.error('No socket client instance available');
       return;
     }
     
-    console.log('🔎 Testing basic message with simplified object');
+    loggers.chat.info('🔎 Testing basic message with simplified object');
     
     // Access the socket directly  debugging
     const socketObj = (socketClientInstance as unknown as SocketClientLike).socket;
     
     if (!socketObj) {
-      console.error('No socket object available');
+      loggers.chat.error('No socket object available');
       return;
     }
     
@@ -918,43 +919,43 @@ const ChatUI: React.FC<ChatUIProps> = ({
         timestamp: new Date()
       };
       
-      console.log('🔎 Emitting basic message:', basicMsg);
+      loggers.chat.info('🔎 Emitting basic message:', basicMsg);
       socketObj.emit('send-message', {
         roomId: String(chatId),
         message: basicMsg
       });
-      console.log('🔎 Basic message emit complete');
+      loggers.chat.info('🔎 Basic message emit complete');
       
       // Update UI
       setMessages(prev => [...prev, basicMsg]);
     } catch (err) {
-      console.error('🔎 Error sending basic message:', err);
+      loggers.chat.error('🔎 Error sending basic message:', err);
     }
   };
 
   // Add a dedicated socket connection debugging function
   const debugSocketConnection = () => {
-    console.log('🔍 Socket Connection Debug:');
-    console.log('UI isSocketConnected state:', isSocketConnected);
+    loggers.chat.info('🔍 Socket Connection Debug:');
+    loggers.chat.info('UI isSocketConnected state:', isSocketConnected);
     
     if (!socketClientInstance) {
-      console.log('❌ No socketClientInstance available');
+      loggers.chat.info('❌ No socketClientInstance available');
       return;
     }
     
-    console.log('✅ Socket client exists');
-    console.log('Socket connected (client):', socketClientInstance.isConnected?.());
+    loggers.chat.info('✅ Socket client exists');
+    loggers.chat.info('Socket connected (client):', socketClientInstance.isConnected?.());
     
     try {
       // Access the raw socket object  debugging
       const rawSocket = (socketClientInstance as unknown as SocketClientLike).socket;
       
       if (!rawSocket) {
-        console.log('❌ No raw socket available in instance');
+        loggers.chat.info('❌ No raw socket available in instance');
         return;
       }
       
-      console.log('Socket details:', {
+      loggers.chat.info('Socket details:', {
         id: rawSocket.id,
         connected: rawSocket.connected,
         disconnected: rawSocket.disconnected,
@@ -964,13 +965,13 @@ const ChatUI: React.FC<ChatUIProps> = ({
       
       // Check socket's internal state
       if (rawSocket.io) {
-        console.log('Transport:', rawSocket.io.engine?.transport?.name);
-        console.log('Reconnection attempts:', rawSocket.io.reconnectionAttempts());
-        console.log('Reconnection delay:', rawSocket.io.reconnectionDelay());
+        loggers.chat.info('Transport:', rawSocket.io.engine?.transport?.name);
+        loggers.chat.info('Reconnection attempts:', rawSocket.io.reconnectionAttempts());
+        loggers.chat.info('Reconnection delay:', rawSocket.io.reconnectionDelay());
       }
       
       // List active event listeners
-      console.log('Event listeners:', rawSocket._events ? Object.keys(rawSocket._events) : 'Not available');
+      loggers.chat.info('Event listeners:', rawSocket._events ? Object.keys(rawSocket._events) : 'Not available');
       
       // Alert summary  quick visual feedback
       alert(`Socket Debug:
@@ -980,14 +981,14 @@ Transport: ${rawSocket.io?.engine?.transport?.name || 'none'}
 Namespace: ${rawSocket.nsp || '/'}
 `);
     } catch (err) {
-      console.error('Error accessing socket details:', err);
+      loggers.chat.error('Error accessing socket details:', err);
     }
   };
 
   // Add a test function  direct API call
   const testDirectAPICall = async () => {
     try {
-      console.log('🧪 Testing direct API call');
+      loggers.chat.info('🧪 Testing direct API call');
       setIsThinking(true);
       
       // Create a simple test message
@@ -1003,7 +1004,7 @@ Namespace: ${rawSocket.nsp || '/'}
       setMessages(prev => [...prev, testMsg]);
       
       // Call API directly
-      console.log('🧪 Calling chat API directly...');
+      loggers.chat.info('🧪 Calling chat API directly...');
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -1026,12 +1027,12 @@ Namespace: ${rawSocket.nsp || '/'}
       
       // Process response
       const aiResponse = await response.json();
-      console.log('🧪 Direct API response:', aiResponse);
+      loggers.chat.info('🧪 Direct API response:', aiResponse);
       
       // Add to UI
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
-      console.error('🧪 Direct API test error:', error);
+      loggers.chat.error('🧪 Direct API test error:', error);
       alert('API test failed: ' + error);
     } finally {
       setIsThinking(false);
@@ -1040,7 +1041,7 @@ Namespace: ${rawSocket.nsp || '/'}
 
   // Toggle automatic dialogue mode
   const toggleAutoDialogueMode = () => {
-    console.log('Auto-conversation toggle called');
+    loggers.chat.info('Auto-conversation toggle called');
     
     if (isAutoDialogueRunning) {
       stopAutoDialogue();
@@ -1052,7 +1053,7 @@ Namespace: ${rawSocket.nsp || '/'}
   // Start automatic dialogue
   const startAutoDialogue = async () => {
     try {
-      console.log('🚀 Auto-conversation start called');
+      loggers.chat.info('🚀 Auto-conversation start called');
       
       // Remove setLoading(true) to prevent triggering message reload
       // setLoading(true);
@@ -1073,18 +1074,18 @@ Namespace: ${rawSocket.nsp || '/'}
       });
       
       const data = await response.json();
-      console.log('Python API response:', data);
+      loggers.chat.info('Python API response:', data);
       
       if (response.ok) {
-        console.log('Auto conversation started successfully');
+        loggers.chat.info('Auto conversation started successfully');
         setIsAutoDialogueRunning(true);
         setAutoDialogueMode(true);
       } else {
-        console.error('Auto conversation start failed:', data);
+        loggers.chat.error('Auto conversation start failed:', data);
         setError(`Auto-conversation start failed: ${data.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error starting auto conversation:', error);
+      loggers.chat.error('Error starting auto conversation:', error);
       setError(`Auto-conversation start failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       // setLoading(false); // Remove this to prevent message reloading
@@ -1094,14 +1095,14 @@ Namespace: ${rawSocket.nsp || '/'}
   // Stop automatic dialogue
   const stopAutoDialogue = async () => {
     try {
-      console.log('🛑 Auto-conversation stop called');
+      loggers.chat.info('🛑 Auto-conversation stop called');
       
       // Remove setLoading(true) to prevent triggering message reload
       // setLoading(true);
       
       // Python API - room_id
       const requestUrl = `${API_BASE_URL}/api/auto-conversation?room_id=${chatId.toString()}`;
-      console.log('Request URL:', requestUrl);
+      loggers.chat.info('Request URL:', requestUrl);
       
       const response = await fetch(requestUrl, {
         method: 'DELETE',
@@ -1111,18 +1112,18 @@ Namespace: ${rawSocket.nsp || '/'}
       });
       
       const data = await response.json();
-      console.log('Python API response:', data);
+      loggers.chat.info('Python API response:', data);
       
       if (response.ok) {
-        console.log('✅ Auto-conversation stopped successfully');
+        loggers.chat.info('✅ Auto-conversation stopped successfully');
         setIsAutoDialogueRunning(false);
         setAutoDialogueMode(false);
       } else {
-        console.error('❌ Auto-conversation stop failed:', data);
+        loggers.chat.error('❌ Auto-conversation stop failed:', data);
         setError(`Auto-conversation stop failed: ${data.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('❌ Error during auto-conversation stop:', error);
+      loggers.chat.error('❌ Error during auto-conversation stop:', error);
       setError(`Auto-conversation stop failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       // setLoading(false); // Remove this to prevent message reloading
@@ -1136,25 +1137,25 @@ Namespace: ${rawSocket.nsp || '/'}
 
   const loadLatestMessages = async () => {
     try {
-      console.log('Loading chat room messages');
+      loggers.chat.info('Loading chat room messages');
       setLoading(true);
       setError(null);
       
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/rooms`;
-      console.log(`🔗 Message load URL: ${apiUrl}?id=${chatId}`);
+      loggers.chat.info(`🔗 Message load URL: ${apiUrl}?id=${chatId}`);
       
       const response = await fetch(`${apiUrl}?id=${chatId}`);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ Message load error: ${response.status} ${errorText}`);
+        loggers.chat.error(`❌ Message load error: ${response.status} ${errorText}`);
         setError(`An error occurred while loading messages (${response.status})`);
         setLoading(false);
         return;
       }
       
       const data = await response.json();
-      console.log(`✅ Message load complete: ${data.messages?.length}items message`);
+      loggers.chat.info(`✅ Message load complete: ${data.messages?.length}items message`);
       
       const sortedMessages = data.messages?.sort((a: ChatMessage, b: ChatMessage) => {
         return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
@@ -1167,16 +1168,16 @@ Namespace: ${rawSocket.nsp || '/'}
         }
       });
       
-      console.log(`🔍 NPC IDs discovered in messages: ${Array.from(npcIds).join(', ')}`);
+      loggers.chat.info(`🔍 NPC IDs discovered in messages: ${Array.from(npcIds).join(', ')}`);
       
       // NPC ( )
       const loadNpcDetailsPromises = Array.from(npcIds).map(async (npcId) => {
         try {
           const details = await fetchNpcDetails(npcId);
-          console.log(`✅ NPC info preloaded: ${npcId} → ${details.name}`);
+          loggers.chat.info(`✅ NPC info preloaded: ${npcId} → ${details.name}`);
           return { id: npcId, details };
         } catch (e) {
-          console.error(`❌ NPC info load failed: ${npcId}`, e);
+          loggers.chat.error(`❌ NPC info load failed: ${npcId}`, e);
           return { id: npcId, details: null };
         }
       });
@@ -1207,7 +1208,7 @@ Namespace: ${rawSocket.nsp || '/'}
         return msg;
       });
       
-      console.log('Setting enriched message...');
+      loggers.chat.info('Setting enriched message...');
       setMessages(enhancedMessages);
       setNpcDetails(newNpcDetails);
       setIsLoaded(true);
@@ -1218,7 +1219,7 @@ Namespace: ${rawSocket.nsp || '/'}
         }
       }, 100);
     } catch (error) {
-      console.error('❌ Exception during message load:', error);
+      loggers.chat.error('❌ Exception during message load:', error);
       setError('Error loading messages.');
     } finally {
       setLoading(false);
@@ -1227,7 +1228,7 @@ Namespace: ${rawSocket.nsp || '/'}
 
   // fetchNpcDetails -
   const fetchNpcDetails = async (npcId: string): Promise<NpcDetail> => {
-    console.log(`🔍 Generating NPC info (static): ${npcId}`);
+    loggers.chat.info(`🔍 Generating NPC info (static): ${npcId}`);
     
     // API -
     return {
@@ -1240,7 +1241,7 @@ Namespace: ${rawSocket.nsp || '/'}
   // NPC useEffect
   useEffect(() => {
     if (isLoaded && messages.length > 0) {
-      console.log('Updating message due to NPC info change');
+      loggers.chat.info('Updating message due to NPC info change');
       
       setMessages(prev => prev.map(msg => {
         if (!msg.isUser && (msg.npc_id || msg.sender)) {
@@ -1302,15 +1303,15 @@ Namespace: ${rawSocket.nsp || '/'}
             is_custom: false
           };
           details[npcId] = npcDetail;
-          console.log(`✅ Loaded NPC details  ${npcId}:`, npcDetail.name);
+          loggers.chat.info(`✅ Loaded NPC details  ${npcId}:`, npcDetail.name);
         } catch (error) {
-          console.error(`❌ Error loading NPC details  ${npcId}:`, error);
+          loggers.chat.error(`❌ Error loading NPC details  ${npcId}:`, error);
         }
       }
       
       setNpcDetails(details);
     } catch (error) {
-      console.error('❌ Error loading NPC details:', error);
+      loggers.chat.error('❌ Error loading NPC details:', error);
     }
   };
 
@@ -1409,22 +1410,22 @@ Namespace: ${rawSocket.nsp || '/'}
   }, []);
 
   const openCitationModal = (citation: Citation) => {
-    console.log("📚 Open citation modal:", citation);
+    loggers.chat.info("📚 Open citation modal:", citation);
     setSelectedCitation(citation);
     setIsCitationModalOpen(true);
   };
   
   const closeCitationModal = () => {
-    console.log("📚 Close citation modal");
+    loggers.chat.info("📚 Close citation modal");
     setIsCitationModalOpen(false);
     setTimeout(() => setSelectedCitation(null), 300);
   };
   
   const renderMessageWithCitations = (text: string, citations?: Citation[]) => {
-    console.log("📚 Starting text render with citations:", citations);
+    loggers.chat.info("📚 Starting text render with citations:", citations);
     
     if (!citations || !Array.isArray(citations) || citations.length === 0) {
-      console.log("⚠️ citation info not found, returning original text:", text.substring(0, 50) + "...");
+      loggers.chat.info("⚠️ citation info not found, returning original text:", text.substring(0, 50) + "...");
       return text;
     }
     
@@ -1435,7 +1436,7 @@ Namespace: ${rawSocket.nsp || '/'}
     
     while ((match = citationPattern.exec(text)) !== null) {
       const id = match[1];
-      console.log(`📚 footnote found: [${id}] at index ${match.index}`);
+      loggers.chat.info(`📚 footnote found: [${id}] at index ${match.index}`);
       matches.push({
         index: match.index,
         citation: match[0],
@@ -1444,12 +1445,12 @@ Namespace: ${rawSocket.nsp || '/'}
     }
     
     if (matches.length === 0) {
-      console.log("⚠️ footnote pattern not found, returning original text");
+      loggers.chat.info("⚠️ footnote pattern not found, returning original text");
       return text;
     }
     
-    console.log(`📚 Found footnotes ${matches.length}items:`, matches);
-    console.log(`📚 Available citations ${citations.length}items:`, citations);
+    loggers.chat.info(`📚 Found footnotes ${matches.length}items:`, matches);
+    loggers.chat.info(`📚 Available citations ${citations.length}items:`, citations);
     
     const result: React.ReactNode[] = [];
     let lastIndex = 0;
@@ -1462,12 +1463,12 @@ Namespace: ${rawSocket.nsp || '/'}
       const citation = citations.find(cit => cit.id === match.id);
       
       if (citation) {
-        console.log(`📚 footnote ${match.id}citation found:`, citation);
+        loggers.chat.info(`📚 footnote ${match.id}citation found:`, citation);
         result.push(
               <button 
             key={`citation-${i}`}
                 onClick={() => {
-              console.log(`📚 footnote ${match.id} clicked`);
+              loggers.chat.info(`📚 footnote ${match.id} clicked`);
               openCitationModal(citation);
             }}
             className="inline bg-transparent border-none p-0 m-0 text-xs font-semibold cursor-pointer"
@@ -1485,7 +1486,7 @@ Namespace: ${rawSocket.nsp || '/'}
               </button>
         );
       } else {
-        console.log(`⚠️ footnote ${match.id}citation not found`);
+        loggers.chat.info(`⚠️ footnote ${match.id}citation not found`);
         result.push(match.citation);
       }
       
@@ -1496,7 +1497,7 @@ Namespace: ${rawSocket.nsp || '/'}
       result.push(text.substring(lastIndex));
     }
     
-    console.log("📚 Text rendering complete");
+    loggers.chat.info("📚 Text rendering complete");
     return result;
   };
 
@@ -1524,7 +1525,7 @@ Namespace: ${rawSocket.nsp || '/'}
       
       // renderMessageWithCitations
       if (message.citations && Array.isArray(message.citations) && message.citations.length > 0) {
-        console.log("📚 Rendering message with footnotes:", message.citations);
+        loggers.chat.info("📚 Rendering message with footnotes:", message.citations);
         return renderMessageWithCitations(text, message.citations);
       }
       
@@ -1857,7 +1858,7 @@ Namespace: ${rawSocket.nsp || '/'}
       <div className="bg-white border-t border-gray-200 p-3 w-full" style={{ paddingBottom: '16px' }}>  
         <form 
           onSubmit={(e) => { 
-            console.log('📝 Form submit event triggered');
+            loggers.chat.info('📝 Form submit event triggered');
             e.preventDefault(); // Ensure we prevent the default form submission 
             handleSendMessage(e); 
           }} 
@@ -1922,7 +1923,7 @@ Namespace: ${rawSocket.nsp || '/'}
               }}
               disabled={message.trim() === '' || isThinking || isSending}
               onClick={(e) => {
-                console.log('🚀 Send button clicked');
+                loggers.chat.info('🚀 Send button clicked');
                 // Don't call handleSendMessage here - the form's onSubmit will handle it
               }}
             >

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import ChatUI from '@/components/chat/ChatUI';
 import chatService, { ChatRoom as ChatRoomType } from '@/lib/ai/chatService';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { loggers } from '@/utils/logger';
 
 export default function ChatRoom() {
   const params = useParams();
@@ -20,22 +21,22 @@ export default function ChatRoom() {
       
       try {
         setLoading(true);
-        console.log('Loading chat room with ID:', chatId);
+        loggers.chat.info('Loading chat room with ID:', chatId);
 
         // Get chat room details
         const roomData = await chatService.getChatRoomById(chatId);
         
         if (!roomData) {
-          console.error('Chat room not found:', chatId);
+          loggers.chat.error('Chat room not found:', chatId);
           setError('Chat room not found');
           setLoading(false);
           return;
         }
         
-        console.log('Chat room loaded:', roomData);
+        loggers.chat.info('Chat room loaded:', roomData);
         setChatRoom(roomData);
       } catch (error) {
-        console.error('Error loading chat room:', error);
+        loggers.chat.error('Error loading chat room:', error);
         setError('Failed to load chat room');
       } finally {
         setLoading(false);

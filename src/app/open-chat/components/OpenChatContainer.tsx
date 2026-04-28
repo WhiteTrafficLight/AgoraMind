@@ -6,6 +6,7 @@ import CreateChatModal from './CreateChatModal';
 import PhilosopherDetailsModal from './PhilosopherDetailsModal';
 import { Philosopher, ChatRoom } from '../types/openChat.types';
 import { DebateTopic } from '../utils/debateTopics';
+import { loggers } from '@/utils/logger';
 
 const OpenChatContainer: React.FC = () => {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -34,7 +35,7 @@ const OpenChatContainer: React.FC = () => {
   const handleTopicSelect = (categoryKey: string, topicIndex: number, topic: DebateTopic) => {
     // TODO: Navigate to debate room creation or directly start a debate
     // For now, we'll just log the selection
-    console.log('Selected topic:', { categoryKey, topicIndex, topic });
+    loggers.chat.info('Selected topic:', { categoryKey, topicIndex, topic });
     
     // You could implement navigation here, for example:
     // router.push(`/debate/${categoryKey}/${topicIndex}`);
