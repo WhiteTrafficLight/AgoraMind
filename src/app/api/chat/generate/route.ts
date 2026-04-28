@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 interface ChatGenerateBody {
   npcs?: string[];
@@ -39,14 +40,14 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`API error (${response.status}): ${errorText}`);
+      loggers.chat.error(`API error (${response.status}): ${errorText}`);
       throw new Error(`API returned status ${response.status}: ${errorText}`);
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error in chat/generate API:', error);
+    loggers.chat.error('Error in chat/generate API:', error);
     return NextResponse.json(
       {
         error: 'Failed to generate chat response',

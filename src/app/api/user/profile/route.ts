@@ -6,6 +6,7 @@ import connectDB from '@/lib/mongodb';
 import { revalidatePath } from 'next/cache';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { loggers } from '@/utils/logger';
 
 // GET: Get user profile information
 export async function GET(req: NextRequest) {
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
       profileImage: user.profileImage || null
     });
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    loggers.api.error('Error fetching user profile:', error);
     return NextResponse.json({ error: 'Failed to fetch user profile' }, { status: 500 });
   }
 }
@@ -86,7 +87,7 @@ export async function PUT(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error updating user profile:', error);
+    loggers.api.error('Error updating user profile:', error);
     return NextResponse.json({ error: 'Failed to update user profile' }, { status: 500 });
   }
 }
@@ -123,32 +124,32 @@ export async function POST(req: NextRequest) {
       : currentDir;
     
     const portraitsDir = path.join(rootProjectDir, 'portraits');
-    console.log('Current directory:', currentDir);
-    console.log('Root project directory:', rootProjectDir);
-    console.log('Portraits directory:', portraitsDir);
+    loggers.api.info('Current directory:', currentDir);
+    loggers.api.info('Root project directory:', rootProjectDir);
+    loggers.api.info('Portraits directory:', portraitsDir);
     
     try {
       await fs.access(portraitsDir);
-      console.log(`Portraits directory found at: ${portraitsDir}`);
+      loggers.api.info(`Portraits directory found at: ${portraitsDir}`);
     } catch (error) {
-      console.error(`Error accessing portraits directory: ${portraitsDir}`, error);
+      loggers.api.error(`Error accessing portraits directory: ${portraitsDir}`, error);
       throw new Error(`Portraits directory not found at ${portraitsDir}`);
     }
     
     // Create a unique filename based on user ID
     const fileName = `user_${user._id}.jpg`;
     const filePath = path.join(portraitsDir, fileName);
-    console.log(`Saving image to: ${filePath}`);
+    loggers.api.info(`Saving image to: ${filePath}`);
     
     // Convert image data to buffer and save it
     const bytes = await profileImage.arrayBuffer();
     const buffer = Buffer.from(bytes);
     await fs.writeFile(filePath, buffer);
-    console.log(`File saved: ${filePath}`);
+    loggers.api.info(`File saved: ${filePath}`);
     
     // This is the URL that will be used to access the image
     const imageUrl = `/portraits/${fileName}`;
-    console.log(`Image URL saved to database: ${imageUrl}`);
+    loggers.api.info(`Image URL saved to database: ${imageUrl}`);
     
     // Update the user profile in the database
     const updatedUser = await User.findOneAndUpdate(
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
       profileImage: imageUrl
     });
   } catch (error) {
-    console.error('Error uploading profile image:', error);
+    loggers.api.error('Error uploading profile image:', error);
     return NextResponse.json({ error: 'Failed to upload profile image' }, { status: 500 });
   }
 }
@@ -198,7 +199,7 @@ export async function DELETE(req: NextRequest) {
       profileImage: null
     });
   } catch (error) {
-    console.error('Error removing profile image:', error);
+    loggers.api.error('Error removing profile image:', error);
     return NextResponse.json({ error: 'Failed to remove profile image' }, { status: 500 });
   }
 } 

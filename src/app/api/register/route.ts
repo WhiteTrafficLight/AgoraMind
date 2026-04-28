@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import { loggers } from '@/utils/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
     );
     
   } catch (error: unknown) {
-    console.error('Register error:', error);
+    loggers.auth.error('Register error:', error);
     return NextResponse.json(
       { success: false, message: 'An error occurred during registration.', error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

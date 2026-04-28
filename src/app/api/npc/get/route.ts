@@ -3,6 +3,7 @@ import { philosopherProfiles } from '@/lib/data/philosophers';
 import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
+import { loggers } from '@/utils/logger';
 
 const BACKEND_API_URL = 'http://0.0.0.0:8000';
 
@@ -28,7 +29,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No ID provided' }, { status: 400 });
     }
     
-    console.log(`🔍 Fetching NPC details for ID: ${id}`);
+    loggers.npc.info(`🔍 Fetching NPC details for ID: ${id}`);
     
     // NPC (MongoDB )
     const isMongoId = id.length >= 24 && /^[0-9a-fA-F]{24}$/.test(id);
@@ -44,25 +45,25 @@ export async function GET(req: NextRequest) {
         // MongoDB NPC - ObjectID backend_id
         let npc;
         if (isMongoId) {
-          console.log(`🔍 Searching by MongoDB ObjectID: ${id}`);
+          loggers.npc.info(`🔍 Searching by MongoDB ObjectID: ${id}`);
           npc = await NpcModel.findById(new ObjectId(id));
         }
         
         // ObjectID UUID backend_id
         if (!npc && isUuid) {
-          console.log(`🔍 Searching by backend_id (UUID): ${id}`);
+          loggers.npc.info(`🔍 Searching by backend_id (UUID): ${id}`);
           npc = await NpcModel.findOne({ backend_id: id });
         }
         
         if (!npc) {
-          console.log(`🔍 Searching by id field as fallback: ${id}`);
+          loggers.npc.info(`🔍 Searching by id field as fallback: ${id}`);
           npc = await NpcModel.findOne({ id: id });
         }
         
         if (npc) {
-          console.log(`✅ Found custom NPC: ${npc.name}`);
-          console.log(`   _id: ${npc._id}, backend_id: ${npc.backend_id || 'not set'}`);
-          console.log(`   portrait_url: ${npc.portrait_url || 'NONE'}`);
+          loggers.npc.info(`✅ Found custom NPC: ${npc.name}`);
+          loggers.npc.info(`   _id: ${npc._id}, backend_id: ${npc.backend_id || 'not set'}`);
+          loggers.npc.info(`   portrait_url: ${npc.portrait_url || 'NONE'}`);
           return NextResponse.json({
             id: npc._id.toString(),
             name: npc.name,
@@ -76,18 +77,18 @@ export async function GET(req: NextRequest) {
             created_by: npc.created_by
           });
         } else {
-          console.log(`❌ Custom NPC not found in MongoDB with any ID method: ${id}`);
-          console.log('   Tried: ObjectID lookup, backend_id lookup, and id field lookup');
+          loggers.npc.info(`❌ Custom NPC not found in MongoDB with any ID method: ${id}`);
+          loggers.npc.info('   Tried: ObjectID lookup, backend_id lookup, and id field lookup');
         }
       } catch (dbError) {
-        console.error('MongoDB query error:', dbError);
+        loggers.npc.error('MongoDB query error:', dbError);
       }
     }
     
     try {
       // Python API
       // API - NPC
-      console.log(`🔄 Returning basic NPC data for: ${id}`);
+      loggers.npc.info(`🔄 Returning basic NPC data for: ${id}`);
       
       const basicNpcData = {
         id: id,
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest) {
       
       return NextResponse.json(basicNpcData);
     } catch (apiError) {
-      console.error('❌ Error generating basic NPC data:', apiError);
+      loggers.npc.error('❌ Error generating basic NPC data:', apiError);
     }
     
     const philosophers = Object.keys(philosopherProfiles);
@@ -109,7 +110,7 @@ export async function GET(req: NextRequest) {
     
     if (matchedPhilosopher) {
       const profile = philosopherProfiles[matchedPhilosopher];
-      console.log(`✅ Found local philosopher profile: ${matchedPhilosopher}`);
+      loggers.npc.info(`✅ Found local philosopher profile: ${matchedPhilosopher}`);
       
       return NextResponse.json({
         id: matchedPhilosopher.toLowerCase(),
@@ -121,7 +122,7 @@ export async function GET(req: NextRequest) {
       });
     }
     
-    console.log(`⚠️ Returning default info for NPC: ${id}`);
+    loggers.npc.info(`⚠️ Returning default info for NPC: ${id}`);
     return NextResponse.json({
       id: id,
       name: id.charAt(0).toUpperCase() + id.slice(1),
@@ -130,7 +131,7 @@ export async function GET(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('❌ Error in NPC get handler:', error);
+    loggers.npc.error('❌ Error in NPC get handler:', error);
     return NextResponse.json(
       { error: "Failed to get NPC details" },
       { status: 500 }

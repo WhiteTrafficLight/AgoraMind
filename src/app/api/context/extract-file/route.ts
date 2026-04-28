@@ -4,6 +4,7 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { loggers } from '@/utils/logger';
 
 const execAsync = promisify(exec);
 
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     try {
       await fs.mkdir(tempDir, { recursive: true });
     } catch (error) {
-      console.error('Error creating temp directory:', error);
+      loggers.api.error('Error creating temp directory:', error);
     }
     
     const uniqueFilename = `${uuidv4()}${path.extname(file.name)}`;
@@ -76,13 +77,13 @@ export async function POST(req: NextRequest) {
       try {
         await fs.unlink(tempFilePath);
       } catch (error) {
-        console.error('Error deleting temp file:', error);
+        loggers.api.error('Error deleting temp file:', error);
       }
     }
     
     return NextResponse.json({ content, fileName: file.name });
   } catch (error) {
-    console.error('Error processing file:', error);
+    loggers.api.error('Error processing file:', error);
     return NextResponse.json(
       { error: 'Failed to process file' },
       { status: 500 }

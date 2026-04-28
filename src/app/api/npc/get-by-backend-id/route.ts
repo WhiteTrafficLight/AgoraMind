@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
+import { loggers } from '@/utils/logger';
 
 const NpcSchema = new mongoose.Schema({
   name: String,
@@ -22,11 +23,11 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get('id');
     
     if (!id) {
-      console.log('❌ No backend_id provided');
+      loggers.npc.info('❌ No backend_id provided');
       return NextResponse.json({ error: 'backend_id is required' }, { status: 400 });
     }
     
-    console.log(`🔍 Fetching NPC by backend_id: ${id}`);
+    loggers.npc.info(`🔍 Fetching NPC by backend_id: ${id}`);
     
     try {
       await connectDB();
@@ -35,13 +36,13 @@ export async function GET(req: NextRequest) {
       const NpcModel = mongoose.models.CustomNpc || mongoose.model('CustomNpc', NpcSchema);
       
       // MongoDB backend_id NPC
-      console.log(`🔍 Searching by backend_id: ${id}`);
+      loggers.npc.info(`🔍 Searching by backend_id: ${id}`);
       const npc = await NpcModel.findOne({ backend_id: id });
       
       if (npc) {
-        console.log(`✅ Found custom NPC with backend_id ${id}: ${npc.name}`);
-        console.log(`   _id: ${npc._id}, backend_id: ${npc.backend_id || 'not set'}`);
-        console.log(`   portrait_url: ${npc.portrait_url || 'NONE'}`);
+        loggers.npc.info(`✅ Found custom NPC with backend_id ${id}: ${npc.name}`);
+        loggers.npc.info(`   _id: ${npc._id}, backend_id: ${npc.backend_id || 'not set'}`);
+        loggers.npc.info(`   portrait_url: ${npc.portrait_url || 'NONE'}`);
         
         return NextResponse.json({
           id: npc._id.toString(),
@@ -57,21 +58,21 @@ export async function GET(req: NextRequest) {
           created_by: npc.created_by
         });
       } else {
-        console.log(`❌ No NPC found with backend_id: ${id}`);
+        loggers.npc.info(`❌ No NPC found with backend_id: ${id}`);
         return NextResponse.json(
           { error: `NPC with backend_id ${id} not found` },
           { status: 404 }
         );
       }
     } catch (dbError) {
-      console.error('MongoDB query error:', dbError);
+      loggers.npc.error('MongoDB query error:', dbError);
       return NextResponse.json(
         { error: "Database error when searching NPC" },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('❌ Error in NPC get-by-backend-id handler:', error);
+    loggers.npc.error('❌ Error in NPC get-by-backend-id handler:', error);
     return NextResponse.json(
       { error: "Failed to get NPC details" },
       { status: 500 }

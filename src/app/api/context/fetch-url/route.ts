@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as cheerio from 'cheerio';
+import { loggers } from '@/utils/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({ content: finalContent, url });
   } catch (error) {
-    console.error('Error fetching URL content:', error);
+    loggers.api.error('Error fetching URL content:', error);
     return NextResponse.json(
       { error: 'Failed to fetch content from URL' },
       { status: 500 }

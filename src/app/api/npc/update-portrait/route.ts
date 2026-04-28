@@ -3,6 +3,7 @@ import { getToken } from 'next-auth/jwt';
 import connectDB from '@/lib/mongodb';
 import CustomNpc from '@/models/Npc';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error updating NPC portrait:', error);
+    loggers.npc.error('Error updating NPC portrait:', error);
     return NextResponse.json(
       { message: 'Failed to update NPC portrait' }, 
       { status: 500 }

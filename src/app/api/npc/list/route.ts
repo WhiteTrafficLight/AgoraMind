@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/authOptions';
 import connectDB from '@/lib/mongodb';
 import CustomNpc from '@/models/Npc';
+import { loggers } from '@/utils/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ npcs });
   } catch (error) {
-    console.error('Error in npc list:', error);
+    loggers.npc.error('Error in npc list:', error);
     return NextResponse.json({ message: 'Failed to fetch NPC list' }, { status: 500 });
   }
 } 
