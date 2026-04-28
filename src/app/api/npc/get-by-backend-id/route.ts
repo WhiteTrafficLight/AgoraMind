@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 
-// NPC 모델 스키마
 const NpcSchema = new mongoose.Schema({
   name: String,
   role: String,
@@ -18,7 +17,7 @@ const NpcSchema = new mongoose.Schema({
 
 export async function GET(req: NextRequest) {
   try {
-    // URL에서 id 파라미터 추출
+    // URL id
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     
@@ -30,13 +29,12 @@ export async function GET(req: NextRequest) {
     console.log(`🔍 Fetching NPC by backend_id: ${id}`);
     
     try {
-      // MongoDB에 연결
       await connectDB();
       
-      // NPC 모델 가져오기 (mongoose 모델이 없으면 생성)
+      // NPC (mongoose )
       const NpcModel = mongoose.models.CustomNpc || mongoose.model('CustomNpc', NpcSchema);
       
-      // MongoDB에서 backend_id로 NPC 조회
+      // MongoDB backend_id NPC
       console.log(`🔍 Searching by backend_id: ${id}`);
       const npc = await NpcModel.findOne({ backend_id: id });
       
@@ -66,7 +64,7 @@ export async function GET(req: NextRequest) {
         );
       }
     } catch (dbError) {
-      console.error('❌ MongoDB 조회 오류:', dbError);
+      console.error('MongoDB query error:', dbError);
       return NextResponse.json(
         { error: "Database error when searching NPC" },
         { status: 500 }

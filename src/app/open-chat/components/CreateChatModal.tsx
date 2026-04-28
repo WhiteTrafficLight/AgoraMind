@@ -34,11 +34,9 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   const [userDebateRole, setUserDebateRole] = useState<'pro' | 'con' | 'neutral'>('neutral');
   const [moderatorStyleId, setModeratorStyleId] = useState<string>('0');
   
-  // 철학자 정보 모달 관련 상태
   const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
   
-  // 추천 주제 표시 상태
   const [showRecommendedTopics, setShowRecommendedTopics] = useState(false);
   
   // Free discussion settings
@@ -179,10 +177,8 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     }
   };
 
-  // 철학자 정보 로드 함수
   const loadPhilosopherDetails = async (philosopherId: string) => {
     try {
-      // 먼저 커스텀 NPC에서 찾기
       const customNpc = customNpcs.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
       if (customNpc) {
         setSelectedPhilosopherDetails(customNpc);
@@ -190,7 +186,6 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
         return;
       }
       
-      // 이미 로드한 기본 철학자 정보가 있다면 사용
       const existingPhil = philosophers.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
       if (existingPhil) {
         setSelectedPhilosopherDetails(existingPhil);
@@ -198,11 +193,11 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
         return;
       }
       
-      // 정적 JSON 파일에서 직접 찾기 (백업)
+      // JSON ()
       const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        const philosopher = data.philosophers.find((p: any) => 
+        const philosopher = data.philosophers.find((p: { id: string; name?: string }) => 
           p.id.toLowerCase() === philosopherId.toLowerCase()
         );
         if (philosopher) {
@@ -305,10 +300,8 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     setUserDebateRole('neutral');
     setModeratorStyleId('0');
     setStep(1);
-    // 철학자 정보 모달 상태 초기화
     setSelectedPhilosopherDetails(null);
     setShowPhilosopherDetails(false);
-    // 추천 주제 상태 초기화
     setShowRecommendedTopics(false);
     // Free discussion defaults (manual mode)
     setFreeDiscussionSettings({
@@ -1130,13 +1123,11 @@ Context: A revolutionary technology can delete specific memories forever. You ca
         isOpen={showPhilosopherDetails}
         onClose={() => setShowPhilosopherDetails(false)}
         onToggleSelect={(philosopherId) => {
-          // 선택된 철학자 목록에서 찾기
           if (selectedPhilosophers.includes(philosopherId)) {
             togglePhilosopher(philosopherId);
           } else if (selectedCustomNpcs.includes(philosopherId)) {
             toggleCustomNpc(philosopherId);
           } else {
-            // 아직 선택되지 않은 경우 적절한 목록에 추가
             const isCustomNpc = customNpcs.some(npc => npc.id === philosopherId);
             if (isCustomNpc) {
               toggleCustomNpc(philosopherId);

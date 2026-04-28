@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2 } from 'lucide-react';
 import { validateImageFile } from '@/lib/imageUtils';
 
 interface ImageUploaderProps {
@@ -30,7 +30,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 프리뷰 크기 설정
   const getSizeClasses = () => {
     switch (previewSize) {
       case 'small':
@@ -48,33 +47,28 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // 파일 검증
     const validation = validateImageFile(file);
     if (!validation.isValid) {
-      onUploadError?.(validation.error || '파일이 유효하지 않습니다.');
+      onUploadError?.(validation.error || 'Invalid file.');
       return;
     }
 
-    // 추가 크기 검증
     if (file.size > maxSize * 1024 * 1024) {
-      onUploadError?.(` 파일 크기는 ${maxSize}MB 이하여야 합니다.`);
+      onUploadError?.(` File size must be ${maxSize}MB or smaller.`);
       return;
     }
 
-    // 포맷 검증
     if (!acceptedFormats.includes(file.type)) {
-      onUploadError?.('지원하지 않는 파일 형식입니다.');
+      onUploadError?.('Unsupported file format.');
       return;
     }
 
-    // 프리뷰 생성
     const reader = new FileReader();
     reader.onload = (e) => {
       setPreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);
 
-    // 업로드 시작
     uploadFile(file);
   };
 
@@ -83,14 +77,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     setUploadProgress(0);
 
     try {
-      // FormData 생성
+      // FormData
       const formData = new FormData();
       formData.append('file', file);
       if (userId) {
         formData.append('user_id', userId);
       }
 
-      // 백엔드 업로드 API 호출
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
       const response = await fetch(`${backendUrl}/api/upload/upload/${category}`, {
         method: 'POST',
@@ -99,7 +92,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || '업로드 실패');
+        throw new Error(errorData.detail || 'Upload failed');
       }
 
       const result = await response.json();
@@ -108,12 +101,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         onUploadSuccess?.(result.urls, result.file_id);
         setUploadProgress(100);
       } else {
-        throw new Error(result.message || '업로드 실패');
+        throw new Error(result.message || 'Upload failed');
       }
 
     } catch (error) {
       console.error('Upload error:', error);
-      onUploadError?.(error instanceof Error ? error.message : '업로드 중 오류가 발생했습니다.');
+      onUploadError?.(error instanceof Error ? error.message : 'An error occurred during upload.');
       setPreview(null);
     } finally {
       setIsUploading(false);
@@ -134,7 +127,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   return (
     <div className={`relative ${className}`}>
-      {/* 숨겨진 파일 입력 */}
+      {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -143,7 +136,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         className="hidden"
       />
 
-      {/* 업로드 영역 */}
+      {/* Upload area */}
       <div
         onClick={openFileDialog}
         className={`
@@ -155,7 +148,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         `}
       >
         {preview ? (
-          // 프리뷰 이미지
           <div className="relative w-full h-full">
             <img
               src={preview}
@@ -163,7 +155,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               className="w-full h-full object-cover rounded-md"
             />
             
-            {/* 삭제 버튼 */}
+            {/* Delete button */}
             {!isUploading && (
               <button
                 onClick={(e) => {
@@ -176,12 +168,12 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
               </button>
             )}
 
-            {/* 업로드 진행 중 오버레이 */}
+            {/* Upload progress overlay */}
             {isUploading && (
-              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-md flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50 rounded-md flex items-center justify-center">
                 <div className="text-center text-white">
                   <Loader2 className="animate-spin mx-auto mb-2" size={24} />
-                  <div className="text-sm">업로드 중...</div>
+                  <div className="text-sm">Uploading...</div>
                   {uploadProgress > 0 && (
                     <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
                       <div 
@@ -195,21 +187,20 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
             )}
           </div>
         ) : (
-          // 기본 업로드 UI
           <div className="text-center">
             {isUploading ? (
               <>
                 <Loader2 className="animate-spin mx-auto mb-2 text-gray-400" size={32} />
-                <p className="text-sm text-gray-500">업로드 중...</p>
+                <p className="text-sm text-gray-500">Uploading...</p>
               </>
             ) : (
               <>
                 <Upload className="mx-auto mb-2 text-gray-400" size={32} />
                 <p className="text-sm text-gray-500 mb-1">
-                  이미지 업로드
+                  Image upload
                 </p>
                 <p className="text-xs text-gray-400">
-                  JPG, PNG, WebP (최대 {maxSize}MB)
+                  JPG, PNG, WebP (max {maxSize}MB)
                 </p>
               </>
             )}
@@ -217,11 +208,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         )}
       </div>
 
-      {/* 도움말 텍스트 */}
+      {/* Help text */}
       <div className="mt-2 text-xs text-gray-500 text-center">
-        {category === 'userProfile' && '프로필 사진을 업로드하세요'}
-        {category === 'customNpc' && 'NPC 캐릭터 이미지를 업로드하세요'}
-        {category === 'roomThumbnail' && '채팅방 썸네일을 업로드하세요'}
+        {category === 'userProfile' && 'Upload your profile picture'}
+        {category === 'customNpc' && 'Upload an NPC character image'}
+        {category === 'roomThumbnail' && 'Upload a chat room thumbnail'}
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-// 토론 채팅 시스템의 핵심 타입 정의
 
 export enum DebateStage {
   OPENING = 'opening',
@@ -57,6 +56,15 @@ export interface DebateRoom {
   };
 }
 
+export interface RagSource {
+  type?: string;
+  url?: string;
+  title?: string;
+  content?: string;
+  metadata?: { url?: string; file_path?: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
 export interface ChatMessage {
   id: string;
   text: string;
@@ -68,18 +76,25 @@ export interface ChatMessage {
   citations?: Citation[];
   skipAnimation?: boolean;
   isGenerating?: boolean;
+  rag_used?: boolean;
+  rag_source_count?: number;
+  rag_sources?: RagSource[];
 }
 
 export interface Citation {
   id: string;
   source: string;
   location?: string;
+  url?: string;
+  title?: string;
 }
 
 export interface NpcDetail {
   id: string;
   name: string;
+  description?: string;
   portrait_url?: string;
+  is_custom?: boolean;
 }
 
 export interface DebateState {
@@ -116,16 +131,15 @@ export interface ParticipantInfo {
   isSelected: boolean;
 }
 
-// 소켓 이벤트 관련 타입들
 export interface SocketEvents {
   'new-message': (data: { message: ChatMessage; roomId: string }) => void;
   'user_turn': (data: { is_user: boolean; speaker_id?: string }) => void;
   'npc-selected': (data: { npc_id: string; roomId: string }) => void;
   'user_message': (data: { message: string; user_id: string }) => void;
-  'next-speaker-update': (data: { roomId: string; nextSpeaker: any }) => void;
+  'next-speaker-update': (data: { roomId: string; nextSpeaker: { speaker_id?: string; role?: string; [key: string]: unknown } }) => void;
 }
 
-// 컴포넌트 Props 타입들
+// Props
 export interface DebateChatContainerProps {
   room: DebateRoom;
   messages: ChatMessage[];

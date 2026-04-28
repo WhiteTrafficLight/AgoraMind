@@ -11,10 +11,10 @@ import OpenChatContainer from './components/OpenChatContainer';
 export default function OpenChatPage() {
   return (
     <>
-      {/* 메인 컨테이너 */}
+      {/* Main container */}
       <OpenChatContainer />
       
-      {/* Toast 알림 */}
+      {/* Toast notification */}
       <Toaster position="top-right" />
     </>
   );

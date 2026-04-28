@@ -25,15 +25,12 @@ export const authOptions: NextAuthOptions = {
         try {
           await connectDB();
           
-          // 이메일로 사용자 찾기
           const user = await User.findOne({ email: credentials.email }).select('+password');
           
-          // 사용자 존재 확인
           if (!user) {
             return null;
           }
           
-          // 비밀번호 확인
           const isPasswordCorrect = await bcrypt.compare(credentials.password, user.password || '');
           
           if (!isPasswordCorrect) {

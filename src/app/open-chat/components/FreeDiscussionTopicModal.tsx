@@ -43,7 +43,6 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       setSelectedCustomNpcs([]);
     }
   }, [isOpen, topic]);
-
   const renderContextIcon = (contextType: string) => {
     switch (contextType) {
       case 'url':
@@ -131,7 +130,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        const philosopher = data.philosophers.find((p: any) => 
+        const philosopher = data.philosophers.find((p: { id: string; name?: string }) => 
           p.id.toLowerCase() === philosopherId.toLowerCase()
         );
         if (philosopher) {
@@ -215,7 +214,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
           allow_user_interruption: true,
           playback_speed: 1.0
         }
-      } as any);
+      });
 
       // 3) Map session id to room (fire-and-forget)
       overlay.update('Linking room and session…');

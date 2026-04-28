@@ -1,8 +1,6 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 
-// 철학자 정보 인터페이스
 interface Philosopher {
   id: string;
   name: string;
@@ -14,7 +12,6 @@ interface Philosopher {
   portrait_url?: string;
 }
 
-// NPC 생성에 필요한 속성 타입 정의
 export interface CustomNpcProps {
   name: string;
   role: string;
@@ -24,14 +21,12 @@ export interface CustomNpcProps {
   debate_approach: string;
 }
 
-// 사용 가능한 철학자 목록
 const AVAILABLE_PHILOSOPHERS = [
   'Socrates', 'Plato', 'Aristotle', 'Kant', 'Nietzsche', 
   'Hegel', 'Marx', 'Sartre', 'Camus', 'Simone de Beauvoir',
   'Rousseau', 'Confucius', 'Lao Tzu', 'Buddha', 'Wittgenstein'
 ];
 
-// 통신 스타일 옵션
 const COMMUNICATION_STYLES = [
   { value: 'balanced', label: 'Balanced' },
   { value: 'assertive', label: 'Assertive' },
@@ -39,7 +34,6 @@ const COMMUNICATION_STYLES = [
   { value: 'analytical', label: 'Analytical' }
 ];
 
-// 토론 접근 방식 옵션
 const DEBATE_APPROACHES = [
   { value: 'dialectical', label: 'Dialectical' },
   { value: 'analytical', label: 'Analytical' },
@@ -47,13 +41,12 @@ const DEBATE_APPROACHES = [
   { value: 'critical', label: 'Critical' }
 ];
 
-// Props for CustomNpcCreator
+// Props  CustomNpcCreator
 interface CustomNpcCreatorProps {
   onNpcCreated?: (npc: { id: string; name: string; description: string; concepts: string[]; voice_style: string }) => void;
 }
 
 export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps) {
-  // 상태 관리
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +54,6 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
   const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
   
-  // NPC 속성 상태
   const [npc, setNpc] = useState<CustomNpcProps>({
     name: '',
     role: '',
@@ -71,11 +63,9 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
     debate_approach: 'dialectical'
   });
 
-  // 철학자 목록 로드
   useEffect(() => {
     const fetchPhilosophers = async () => {
       try {
-        // API 서버에서 철학자 목록 가져오기
         const response = await fetch('http://localhost:8000/api/philosophers');
         if (response.ok) {
           const data = await response.json();
@@ -85,7 +75,6 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
         }
       } catch (error) {
         console.error('Error fetching philosophers:', error);
-        // 기본 철학자 목록 사용
         setPhilosophers([
           { id: 'socrates', name: 'Socrates' },
           { id: 'plato', name: 'Plato' },
@@ -109,25 +98,22 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
     fetchPhilosophers();
   }, []);
 
-  // 철학자 세부 정보 로드
   const loadPhilosopherDetails = async (philosopherId: string) => {
     try {
       setSelectedPhilosopherDetails(null);
-      // API 서버에서 철학자 세부 정보 가져오기
       const response = await fetch(`http://localhost:8000/api/philosophers/${philosopherId}`);
       if (response.ok) {
         const data = await response.json();
         setSelectedPhilosopherDetails(data);
         setShowPhilosopherDetails(true);
       } else {
-        console.error(`Failed to fetch details for philosopher: ${philosopherId}`);
+        console.error(`Failed to fetch details  philosopher: ${philosopherId}`);
       }
     } catch (error) {
       console.error('Error fetching philosopher details:', error);
     }
   };
 
-  // 입력 변경 핸들러
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setNpc({
       ...npc,
@@ -135,7 +121,6 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
     });
   };
 
-  // 드롭다운 변경 핸들러
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setNpc({
       ...npc,
@@ -143,17 +128,14 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
     });
   };
 
-  // 철학자 선택 핸들러 (최대 3명 선택 제한)
   const handlePhilosopherSelect = (philosopherId: string) => {
     setError(null);
     setNpc(prev => {
       const selected = prev.reference_philosophers;
       let newSelected: string[];
       if (selected.includes(philosopherId)) {
-        // 제거
         newSelected = selected.filter(id => id !== philosopherId);
       } else {
-        // 추가 (최대 3개)
         if (selected.length >= 3) {
           setError('You can select up to 3 philosophers.');
           return prev;
@@ -164,7 +146,6 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
     });
   };
 
-  // NPC 생성 제출 핸들러
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -172,12 +153,10 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
     setSuccess(false);
 
     try {
-      // 필수 필드 검증
       if (!npc.name || !npc.role || !npc.voice_style || npc.reference_philosophers.length === 0) {
         throw new Error('Please fill in all required fields and select at least one philosopher');
       }
 
-      // 백엔드 API 호출
       const response = await fetch('/api/npc/create', {
         method: 'POST',
         headers: {
@@ -206,7 +185,6 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
         });
       }
       
-      // 폼 초기화
       setNpc({
         name: '',
         role: '',
@@ -223,11 +201,9 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
     }
   };
   
-  // 철학자 세부 정보 모달
   const PhilosopherDetailsModal = () => {
     if (!selectedPhilosopherDetails) return null;
     
-    // 기본 아바타 생성 함수
     const getDefaultAvatar = () => {
       const name = selectedPhilosopherDetails.name || 'Philosopher';
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128&font-size=0.5`;
@@ -235,9 +211,8 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
 
     return (
       <div 
-        className="fixed inset-0 bg-black bg-opacity-30 z-50 transition-opacity opacity-100 pointer-events-auto flex items-center justify-center"
+        className="fixed inset-0 bg-black/30 z-50 transition-opacity opacity-100 pointer-events-auto flex items-center justify-center"
         onClick={() => setShowPhilosopherDetails(false)}
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
       >
         <div 
           className="fixed bg-white rounded-2xl w-full max-h-[80vh] overflow-y-auto z-[101]"
@@ -282,7 +257,6 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
                 height={144}
                 style={{ objectFit: 'cover', objectPosition: 'top center', borderRadius: '50%' }}
                 onError={(e) => {
-                  // 이미지 로드 실패 시 기본 아바타로 대체
                   (e.target as HTMLImageElement).src = getDefaultAvatar();
                 }}
               />
@@ -300,7 +274,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
               className="mt-3 italic border-l-4 border-gray-200 pl-3 py-1 text-gray-600 text-sm"
               style={{ borderLeftColor: '#e5e7eb', paddingLeft: '12px' }}
             >
-              "{selectedPhilosopherDetails.quote}"
+              &ldquo;{selectedPhilosopherDetails.quote}&rdquo;
             </div>
           )}
           
@@ -372,7 +346,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
       {showPhilosopherDetails && <PhilosopherDetailsModal />}
       
       <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 기본 정보 */}
+          {/* Basic info */}
         <div>
           <h3 className="text-lg font-medium mb-4">Basic Information</h3>
           
@@ -411,10 +385,10 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
           </div>
         </div>
         
-        {/* 섹션 구분선 */}
+        {/* Section divider */}
         <hr className="border-t border-gray-200 my-6" />
         
-        {/* 스타일 */}
+        {/* Style */}
         <div>
           <h3 className="text-lg font-medium mb-4">Voice & Style</h3>
           
@@ -475,10 +449,10 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
           </div>
         </div>
         
-        {/* 섹션 구분선 */}
+        {/* Section divider */}
         <hr className="border-t border-gray-200 my-6" />
         
-        {/* 철학적 영향 */}
+        {/* Philosophical influences */}
         <div>
           <h3 className="text-lg font-medium mb-4">Philosophical Influences</h3>
           <p className="text-sm text-gray-500 mb-3">
@@ -512,7 +486,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
               </div>
             ))}
           </div>
-          {/* 선택된 철학자 태그 표시 (최대 3명) */}
+          {/* Selected philosopher tags (up to 3) */}
           {npc.reference_philosophers.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-4">
               {npc.reference_philosophers.map(id => {
@@ -568,10 +542,10 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
           )}
         </div>
         
-        {/* 섹션 구분선 */}
+        {/* Section divider */}
         <hr className="border-t border-gray-200 my-6" />
         
-        {/* 버튼 */}
+        {/* Button */}
         <div className="flex justify-end space-x-3">
           <button
             type="button"

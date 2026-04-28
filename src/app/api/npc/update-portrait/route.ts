@@ -5,7 +5,6 @@ import CustomNpc from '@/models/Npc';
 
 export async function POST(req: NextRequest) {
   try {
-    // 인증 확인 (직접 토큰 확인)
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     if (!token) {
       return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest) {
     
     await connectDB();
     
-    // DB에서 해당 NPC 찾기 (사용자 소유 확인도 함께)
+    // DB NPC ( )
     const npc = await CustomNpc.findOne({ 
       backend_id: npcId,
       created_by: userId 
@@ -36,7 +35,7 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // URL 처리 개선: http://localhost:8000/portraits/xyz.jpg -> /portraits/xyz.jpg
+    // URL : http://localhost:8000/portraits/xyz.jpg -> /portraits/xyz.jpg
     let finalUrl = portraitUrl;
     if (portraitUrl.startsWith('http://localhost:8000/portraits/')) {
       finalUrl = `/portraits/${portraitUrl.split('/portraits/')[1]}`;
@@ -44,7 +43,6 @@ export async function POST(req: NextRequest) {
       finalUrl = `/portraits/${portraitUrl}`;
     }
     
-    // 이미지 URL 저장
     npc.portrait_url = finalUrl;
     await npc.save();
     

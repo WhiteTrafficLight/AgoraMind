@@ -30,7 +30,7 @@ const UserSchema = new mongoose.Schema<IUser>(
     },
     password: {
       type: String,
-      required: function() {
+      required: function(this: IUser): boolean {
         return !this.googleId; // password is required if no googleId
       },
       minlength: [6, 'Password must be at least 6 characters'],
@@ -55,16 +55,21 @@ const UserSchema = new mongoose.Schema<IUser>(
 );
 
 // Hash password before saving
-UserSchema.pre('save', async function(next) {
+type PreSaveNext = (err?: mongoose.CallbackError) => void;
+UserSchema.pre('save', async function (this: IUser, next) {
+  const cb = next as unknown as PreSaveNext;
   // Only hash password if it's modified or new
-  if (!this.isModified('password') || !this.password) return next();
-  
+  if (!this.isModified('password') || !this.password) {
+    cb();
+    return;
+  }
+
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error: any) {
-    next(error);
+    cb();
+  } catch (error) {
+    cb(error as mongoose.CallbackError);
   }
 });
 

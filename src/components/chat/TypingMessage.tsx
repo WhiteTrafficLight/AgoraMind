@@ -1,6 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { useTypingAnimation } from '@/hooks/useTypingAnimation';
 
+interface CitationLike {
+  url?: string;
+  text?: string;
+  title?: string;
+}
+
 interface TypingMessageProps {
   text: string;
   speed?: number;
@@ -11,11 +17,10 @@ interface TypingMessageProps {
   onTypingComplete?: () => void;
   className?: string;
   style?: React.CSSProperties;
-  citations?: any[];
+  citations?: CitationLike[];
 }
 
-// 마크다운 링크를 JSX로 변환하는 함수
-const parseMarkdownToJSX = (text: string, citations: any[] = []) => {
+const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -23,7 +28,6 @@ const parseMarkdownToJSX = (text: string, citations: any[] = []) => {
   let key = 0;
 
   while ((match = linkRegex.exec(text)) !== null) {
-    // 링크 앞의 텍스트
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
@@ -31,14 +35,12 @@ const parseMarkdownToJSX = (text: string, citations: any[] = []) => {
     const linkText = match[1];
     const linkUrl = match[2];
     
-    // citations 배열에서 매칭되는 완전한 URL 찾기
+    // citations URL
     let fullUrl = linkUrl;
     if (citations && citations.length > 0) {
-      // 도메인이나 제목으로 매칭 시도
       const matchingCitation = citations.find(citation => {
         if (!citation.url) return false;
         
-        // URL에서 도메인 추출하여 비교
         try {
           const citationDomain = new URL(citation.url).hostname;
           const simplifiedDomain = citationDomain.replace('www.', '');
@@ -49,19 +51,17 @@ const parseMarkdownToJSX = (text: string, citations: any[] = []) => {
                  citation.text === linkText ||
                  citation.title === linkText;
         } catch (e) {
-          // URL 파싱 실패 시 문자열 비교
           return citation.url.includes(linkUrl) || 
                  citation.text === linkText ||
                  citation.title === linkText;
         }
       });
       
-      if (matchingCitation) {
+      if (matchingCitation && matchingCitation.url) {
         fullUrl = matchingCitation.url;
       }
     }
     
-    // 링크 요소
     parts.push(
       <a
         key={key++}
@@ -87,7 +87,6 @@ const parseMarkdownToJSX = (text: string, citations: any[] = []) => {
     lastIndex = match.index + match[0].length;
   }
   
-  // 마지막 텍스트
   if (lastIndex < text.length) {
     parts.push(text.slice(lastIndex));
   }
@@ -116,14 +115,12 @@ const TypingMessage: React.FC<TypingMessageProps> = ({
   
   const prevTypingRef = useRef(isTyping);
 
-  // 자동 시작
   useEffect(() => {
     if (autoStart && enabled && text) {
       startTyping();
     }
   }, [autoStart, enabled, text, startTyping]);
 
-  // 타이핑 완료 콜백
   useEffect(() => {
     if (prevTypingRef.current && !isTyping && onTypingComplete) {
       onTypingComplete();
@@ -131,7 +128,6 @@ const TypingMessage: React.FC<TypingMessageProps> = ({
     prevTypingRef.current = isTyping;
   }, [isTyping, onTypingComplete]);
 
-  // 표시할 텍스트를 파싱
   const finalText = enabled ? displayedText : text;
   const parsedContent = parseMarkdownToJSX(finalText, citations);
 
@@ -151,7 +147,7 @@ const TypingMessage: React.FC<TypingMessageProps> = ({
         />
       )}
       
-      {/* CSS 애니메이션 정의 */}
+      {/* CSS animation */}
       <style jsx>{`
         @keyframes blink {
           0%, 50% { opacity: 1; }

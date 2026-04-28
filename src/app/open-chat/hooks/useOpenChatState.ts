@@ -154,13 +154,14 @@ export function useOpenChatState() {
       
       // Use the new createChat hook that handles both Free Discussion and regular chats
       const newChat = await createChat(paramsWithUser);
-      loggers.ui.info('Chat creation response received', { chatId: newChat?.id, freeSession: (newChat as any)?.freeDiscussionSessionId });
+      const chatWithSession = newChat as (typeof newChat & { freeDiscussionSessionId?: string }) | null | undefined;
+      loggers.ui.info('Chat creation response received', { chatId: newChat?.id, freeSession: chatWithSession?.freeDiscussionSessionId });
 
       // Free discussion: avoid intermediate ROOM_* redirect; navigate directly to session id if available.
       if (paramsWithUser.dialogueType === 'free') {
         updateState({ showCreateChatModal: false });
         toast.success('Chat room created successfully!');
-        const freeSessionId = (newChat as any)?.freeDiscussionSessionId;
+        const freeSessionId = chatWithSession?.freeDiscussionSessionId;
         if (freeSessionId) {
           router.push(`/chat?id=${freeSessionId}`);
         }
@@ -203,7 +204,7 @@ export function useOpenChatState() {
       if (!state.isLoading && !state.showCreateChatModal) {
         loadChatRooms();
       }
-    }, 60000); // 1분마다
+    }, 60000);
     
     return () => clearInterval(intervalId);
   }, [state.isLoading, state.showCreateChatModal]);

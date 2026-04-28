@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useRef, useEffect } from 'react';
 import { PaperAirplaneIcon, ArrowLeftIcon, StopIcon } from '@heroicons/react/24/outline';
 import { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
@@ -195,8 +194,8 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
 
   // Handle message sending (guarded to avoid double submissions)
   const handleSendMessage = async (e?: React.FormEvent | React.KeyboardEvent) => {
-    if (e && typeof (e as any).preventDefault === 'function') {
-      (e as any).preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
     }
     if (sendingRef.current) return;
     const content = message.trim();
@@ -230,8 +229,8 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Ignore Enter while IME composition is active to avoid leaving last character
-    const nativeAny = e.nativeEvent as any;
-    if (isComposing || nativeAny?.isComposing || e.keyCode === 229) return;
+    const native = e.nativeEvent as KeyboardEvent & { isComposing?: boolean };
+    if (isComposing || native?.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (!sendingRef.current) {
@@ -355,7 +354,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
       const base = waitBaseIndexRef.current;
       if (augMessages.length > base) {
         for (let i = base; i < augMessages.length; i++) {
-          const m: any = augMessages[i];
+          const m = augMessages[i] as { message_type?: string };
           if (m && m.message_type && m.message_type !== 'user') {
             setIsWaitingNext(false);
             waitForNonUserRef.current = false;
@@ -384,7 +383,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
 
   // Derive active speaker info (treat system/moderator/SP/MO as Moderator with default portrait)
   const hasNoMessages = augMessages.length === 0;
-  const activeSpeakerType = currentMessage ? (currentMessage as any).message_type : undefined;
+  const activeSpeakerType = currentMessage ? (currentMessage as { message_type?: string }).message_type : undefined;
   const activeSenderLower = String(currentMessage?.sender || '').toLowerCase();
   const activeSpeakerIsModerator = hasNoMessages || activeSpeakerType === 'moderator' || activeSpeakerType === 'system' || activeSenderLower === 'mo' || activeSenderLower === 'sp' || activeSenderLower === 'moderator' || activeSenderLower === 'system';
   const activeSpeakerIsUser = currentMessage?.isUser === true;
@@ -597,7 +596,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
             )}
             {augMessages.map((msg, idx) => {
               const senderLower = String((msg.sender || msg.npc_id || '')).toLowerCase();
-              const msgType: string | undefined = (msg as any).message_type;
+              const msgType: string | undefined = (msg as { message_type?: string }).message_type;
               const isModeratorMsg = msgType === 'moderator' || msgType === 'system' || senderLower === 'mo' || senderLower === 'sp' || senderLower === 'moderator' || senderLower === 'system';
               const displayName = msg.isUser ? (username || 'User') : (isModeratorMsg ? 'Moderator' : (msg.senderName || msg.npc_id || msg.sender));
               const avatarSrc = msg.isUser ? getUserProfileImage() : (isModeratorMsg ? MODERATOR_IMAGE : getNpcProfileImage(msg.npc_id || msg.sender));
@@ -647,7 +646,7 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
             />
             <button
               type="button"
-              onClick={(e) => handleSendMessage(e as any)}
+              onClick={(e) => handleSendMessage(e)}
               disabled={message.trim() === '' || !isConnected || isSending || !hasReceivedNonUser}
               className={`px-3 py-2 rounded-md ${
                 message.trim() === '' || !isConnected || isSending || !hasReceivedNonUser

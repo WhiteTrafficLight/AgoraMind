@@ -1,11 +1,4 @@
-/**
- * 이미지 관리 유틸리티
- * 저장 전략에 따른 이미지 URL 생성 및 관리
- */
-
-// 환경 변수에서 기본 URL들 가져오기
 const S3_BASE_URL = process.env.NEXT_PUBLIC_S3_BASE_URL || 'https://sapiens-engine-assets.s3.ap-northeast-2.amazonaws.com';
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface ImageConfig {
   type: 'static' | 's3';
@@ -13,9 +6,8 @@ export interface ImageConfig {
   sizes?: string[];
 }
 
-// 이미지 타입별 설정
 export const IMAGE_CONFIGS = {
-  // 정적 이미지 (Vercel CDN)
+  // (Vercel CDN)
   philosopher: {
     type: 'static' as const,
     folder: '/images/philosophers',
@@ -31,7 +23,6 @@ export const IMAGE_CONFIGS = {
     folder: '/images/system'
   },
   
-  // S3 동적 이미지
   userProfile: {
     type: 's3' as const,
     folder: 'users/profiles',
@@ -48,9 +39,6 @@ export const IMAGE_CONFIGS = {
   }
 } as const;
 
-/**
- * 이미지 URL 생성기
- */
 export function getImageUrl(
   category: keyof typeof IMAGE_CONFIGS,
   identifier: string,
@@ -61,58 +49,42 @@ export function getImageUrl(
   
   switch (config.type) {
     case 'static':
-      // 정적 파일 (Vercel CDN)
+      // (Vercel CDN)
       const sizePath = size ? `/${size}` : '';
       return `${config.folder}${sizePath}/${identifier}.${extension}`;
       
     case 's3':
-      // S3 파일
       const s3SizePath = size ? `/${size}` : '';
       return `${S3_BASE_URL}/${config.folder}/${identifier}${s3SizePath}/image.${extension}`;
       
     default:
-      throw new Error(`Unknown image type: ${(config as any).type}`);
+      throw new Error(`Unknown image type: ${(config as { type: string }).type}`);
   }
 }
 
-/**
- * 철학자 이미지 URL
- */
 export function getPhilosopherImage(id: string, size: 'portraits' | 'thumbnails' = 'portraits'): string {
   return getImageUrl('philosopher', id, size, 'jpg');
 }
 
-/**
- * 사용자 프로필 이미지 URL
- */
 export function getUserProfileImage(userId: string, size: 'original' | 'thumbnail' = 'original'): string {
   return getImageUrl('userProfile', userId, size, 'jpg');
 }
 
 /**
- * Custom NPC 이미지 URL
+ * Custom NPC URL
  */
 export function getCustomNpcImage(npcId: string, size: 'portrait' | 'thumbnail' = 'portrait'): string {
   return getImageUrl('customNpc', npcId, size, 'jpg');
 }
 
-/**
- * 모더레이터 이미지 URL
- */
 export function getModeratorImage(moderatorId: string, size: 'portraits' | 'thumbnails' = 'portraits'): string {
   return getImageUrl('moderator', moderatorId, size, 'png');
 }
 
-/**
- * 시스템 이미지 URL
- */
 export function getSystemImage(imageName: string, extension: string = 'png'): string {
   return getImageUrl('system', imageName, undefined, extension);
 }
 
-/**
- * 이미지 최적화 유틸리티
- */
 export function getOptimizedImageUrl(
   baseUrl: string,
   options: {
@@ -122,7 +94,7 @@ export function getOptimizedImageUrl(
     format?: 'webp' | 'jpeg' | 'png';
   } = {}
 ): string {
-  // Vercel 이미지 최적화 API 사용
+  // Vercel API
   if (baseUrl.startsWith('/images/')) {
     const params = new URLSearchParams();
     if (options.width) params.append('w', options.width.toString());
@@ -137,7 +109,7 @@ export function getOptimizedImageUrl(
 }
 
 /**
- * 기본 이미지 (fallback)
+ * (fallback)
  */
 export const DEFAULT_IMAGES = {
   user: '/images/system/default-user.png',
@@ -147,9 +119,6 @@ export const DEFAULT_IMAGES = {
   room: '/images/system/default-room.png'
 };
 
-/**
- * 이미지 로드 에러 처리
- */
 export function handleImageError(
   event: React.SyntheticEvent<HTMLImageElement>,
   fallbackType: keyof typeof DEFAULT_IMAGES
@@ -158,19 +127,16 @@ export function handleImageError(
   img.src = DEFAULT_IMAGES[fallbackType];
 }
 
-/**
- * 이미지 업로드 검증
- */
 export function validateImageFile(file: File): { isValid: boolean; error?: string } {
   const maxSize = 10 * 1024 * 1024; // 10MB
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
   
   if (!allowedTypes.includes(file.type)) {
-    return { isValid: false, error: 'JPG, PNG, WebP 파일만 업로드 가능합니다.' };
+    return { isValid: false, error: 'Only JPG, PNG, and WebP files can be uploaded.' };
   }
   
   if (file.size > maxSize) {
-    return { isValid: false, error: '파일 크기는 10MB 이하여야 합니다.' };
+    return { isValid: false, error: 'File size must be 10MB or less.' };
   }
   
   return { isValid: true };

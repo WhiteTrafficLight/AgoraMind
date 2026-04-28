@@ -250,10 +250,9 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
     }
   };
 
-  // 철학자 정보 로드 함수 (CreateChatModal에서 가져옴)
+  // (CreateChatModal )
   const loadPhilosopherDetails = async (philosopherId: string) => {
     try {
-      // 먼저 커스텀 NPC에서 찾기
       const customNpc = customNpcs.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
       if (customNpc) {
         setSelectedPhilosopherDetails(customNpc);
@@ -261,7 +260,6 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
         return;
       }
       
-      // 이미 로드한 기본 철학자 정보가 있다면 재활용
       const existingPhil = philosophers.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
       if (existingPhil && existingPhil.description) {
         setSelectedPhilosopherDetails(existingPhil);
@@ -269,11 +267,11 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
         return;
       }
       
-      // 정적 JSON 파일에서 직접 찾기 (백업)
+      // JSON ()
       const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        const philosopher = data.philosophers.find((p: any) => 
+        const philosopher = data.philosophers.find((p: { id: string; name?: string }) => 
           p.id.toLowerCase() === philosopherId.toLowerCase()
         );
         if (philosopher) {
@@ -290,9 +288,8 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
     }
   };
 
-  // 철학자 정보 찾기 함수
   const findPhilosopherInfo = (philosopherName: string): Philosopher | null => {
-    // 먼저 philosophers 배열에서 찾기
+    // philosophers
     const foundPhil = philosophers.find(p => 
       p.id.toLowerCase() === philosopherName.toLowerCase() || 
       p.name.toLowerCase() === philosopherName.toLowerCase()
@@ -300,7 +297,7 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
     
     if (foundPhil) return foundPhil;
     
-    // customNpcs에서 찾기
+    // customNpcs
     const foundCustom = customNpcs.find(p => 
       p.id.toLowerCase() === philosopherName.toLowerCase() || 
       p.name.toLowerCase() === philosopherName.toLowerCase()
@@ -582,7 +579,7 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
         philosopher={selectedPhilosopherDetails}
         isOpen={showPhilosopherDetails}
         onClose={() => setShowPhilosopherDetails(false)}
-        onToggleSelect={() => {}} // 토론 모달에서는 선택 기능이 필요없음
+        onToggleSelect={() => {}}
         isSelected={false}
       />
     </>

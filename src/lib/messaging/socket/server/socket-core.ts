@@ -4,7 +4,6 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Socket } from 'net';
 import { ConnectedUser } from '../../types/common.types';
 
-// Socket 서버 관련 타입 정의
 interface SocketServer extends HTTPServer {
   io?: Server;
 }
@@ -17,13 +16,11 @@ interface NextApiResponseWithSocket extends NextApiResponse {
   };
 }
 
-// 연결된 사용자들 추적
 const connectedUsers: { [socketId: string]: ConnectedUser } = {};
 
 export class SocketCore {
   private io: Server | null = null;
 
-  // Socket.IO 서버 초기화
   initializeServer(req: NextApiRequest, res: NextApiResponseWithSocket): Server {
     if (!res.socket.server.io) {
       console.log('🔌 Socket.IO server initializing...');
@@ -55,12 +52,10 @@ export class SocketCore {
     return this.io;
   }
 
-  // 서버 인스턴스 반환
   getServer(): Server | null {
     return this.io;
   }
 
-  // 사용자 관리 메서드들
   addUser(socketId: string, username: string): void {
     connectedUsers[socketId] = {
       socketId,
@@ -97,20 +92,18 @@ export class SocketCore {
     return connectedUsers[socketId];
   }
 
-  // 방송 메서드들
-  broadcastToRoom(roomId: string, event: string, data: any): void {
+  broadcastToRoom(roomId: string, event: string, data: unknown): void {
     if (this.io) {
       this.io.to(roomId).emit(event, data);
     }
   }
 
-  broadcastToAll(event: string, data: any): void {
+  broadcastToAll(event: string, data: unknown): void {
     if (this.io) {
       this.io.emit(event, data);
     }
   }
 
-  // 로깅 유틸리티
   logConnection(socketId: string): void {
     console.log(`🔗 New client connected: ${socketId}`);
   }
@@ -128,5 +121,4 @@ export class SocketCore {
   }
 }
 
-// 싱글톤 인스턴스
 export const socketCore = new SocketCore(); 

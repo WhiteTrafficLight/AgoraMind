@@ -1,11 +1,9 @@
-// 철학자 프로필 타입 정의
 export interface PhilosopherProfile {
   description: string;
   style: string;
   key_concepts: string[];
 }
 
-// 철학자 프로필 데이터
 export const philosopherProfiles: Record<string, PhilosopherProfile> = {
   'Socrates': {
     description: 'An Ancient Greek philosopher known for the Socratic method of questioning, seeking wisdom through dialogue, and the phrase "I know that I know nothing". Focused on ethical inquiry and self-knowledge.',

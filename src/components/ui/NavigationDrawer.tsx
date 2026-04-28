@@ -2,8 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { HomeIcon, ChatBubbleLeftIcon, SpeakerWaveIcon, UserIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, ChatBubbleLeftIcon, SpeakerWaveIcon } from '@heroicons/react/24/outline';
 
 interface NavigationDrawerProps {
   isOpen: boolean;
@@ -12,7 +11,6 @@ interface NavigationDrawerProps {
 }
 
 const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, onToggleBody }) => {
-  const router = useRouter();
   const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

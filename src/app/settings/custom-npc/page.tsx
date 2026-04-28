@@ -8,7 +8,6 @@ import Modal from '@/components/ui/Modal';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Header from '@/components/ui/Header';
 
-// NPC 타입 정의
 interface CustomNpc {
   id: string;
   name: string;
@@ -43,9 +42,8 @@ export default function CustomNpcPage() {
   };
   useEffect(() => { fetchNpcs(); }, []);
 
-  // 상대 URL로 변환하는 함수
   const getRelativePortraitUrl = (url: string) => {
-    // 백엔드 URL에서 상대 경로로 변환 (http://localhost:8000/portraits/file.jpg -> /portraits/file.jpg)
+    // URL (http://localhost:8000/portraits/file.jpg -> /portraits/file.jpg)
     if (!url) return '';
     if (url.startsWith('http://localhost:8000/portraits/')) {
       return `/portraits/${url.split('/portraits/')[1]}`;
@@ -53,7 +51,6 @@ export default function CustomNpcPage() {
     return url;
   };
 
-  // 이미지 생성 후 DB 업데이트 함수 추가
   const updateNpcPortrait = async (npcId: string, portraitUrl: string) => {
     try {
       const res = await fetch('/api/npc/update-portrait', {
@@ -93,17 +90,16 @@ export default function CustomNpcPage() {
       const data = await res.json();
       console.log('Portrait generation response:', data, 'status:', res.status);
       if (res.ok && data.url) {
-        // URL을 상대 경로로 변환하여 저장
         const relativeUrl = getRelativePortraitUrl(data.url);
         setPortraitMap(prev => ({ ...prev, [npc.id]: relativeUrl }));
-        // DB에 portrait_url 업데이트
+        // DB portrait_url
         await updateNpcPortrait(npc.id, data.url);
       } else {
         setPortraitError(prev => ({ ...prev, [npc.id]: data.detail || data.message || 'Portrait generation failed' }));
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Portrait generation error', e);
-      setPortraitError(prev => ({ ...prev, [npc.id]: e.message || 'Error generating portrait' }));
+      setPortraitError(prev => ({ ...prev, [npc.id]: e instanceof Error ? e.message : 'Error generating portrait' }));
     } finally {
       setLoadingPortrait(null);
     }
@@ -206,7 +202,7 @@ export default function CustomNpcPage() {
 
             {!isLoading && npcs.length === 0 && (
               <div className="text-center py-10">
-                <p className="text-gray-600 mb-4">You haven't created any custom philosophers yet.</p>
+                <p className="text-gray-600 mb-4">You haven&apos;t created any custom philosophers yet.</p>
                 <button onClick={() => setShowModal(true)} className="inline-flex items-center px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700">
                   Create Your First Philosopher
                 </button>

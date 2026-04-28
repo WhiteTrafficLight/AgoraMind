@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 
-// MongoDB 연결 상태
 let isConnected = false;
 
 export const connectDB = async () => {

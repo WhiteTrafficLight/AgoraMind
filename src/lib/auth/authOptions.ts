@@ -20,17 +20,17 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("이메일과 비밀번호를 모두 입력하세요");
+          throw new Error("Please enter both email and password");
         }
         
         await connectDB();
         const user = await User.findOne({ email: credentials.email }).select("+password");
         if (!user) {
-          throw new Error("해당 이메일로 등록된 계정이 없습니다");
+          throw new Error("No account is registered with this email");
         }
         const isMatch = await user.comparePassword(credentials.password);
         if (!isMatch) {
-          throw new Error("비밀번호가 일치하지 않습니다");
+          throw new Error("Passwords do not match");
         }
         return {
           id: user._id.toString(),
@@ -82,6 +82,6 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-// Default export for NextAuth handler
+// Default export  NextAuth handler
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST }; 

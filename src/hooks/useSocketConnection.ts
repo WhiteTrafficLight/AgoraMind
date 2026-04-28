@@ -1,14 +1,18 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { SocketEvents, TurnInfo } from '../types/debate.types';
+import { TurnInfo } from '@/types/debate';
+import type socketClientType from '@/lib/socket/socketClient';
+import type { ChatMessage } from '@/lib/ai/chatService';
+
+type SocketClient = typeof socketClientType;
 
 interface UseSocketConnectionProps {
   roomId: string;
   username: string;
   onTurnUpdate?: (turnInfo: TurnInfo) => void;
   onNpcSelected?: (npcId: string) => void;
-  onNewMessage?: (message: any) => void;
-  onUserJoined?: (data: any) => void;
-  onUserLeft?: (data: any) => void;
+  onNewMessage?: (message: ChatMessage) => void;
+  onUserJoined?: (data: { username?: string; userCount?: number }) => void;
+  onUserLeft?: (data: { username?: string; userCount?: number }) => void;
 }
 
 export function useSocketConnection({
@@ -17,18 +21,15 @@ export function useSocketConnection({
   onTurnUpdate,
   onNpcSelected,
   onNewMessage,
-  onUserJoined,
-  onUserLeft,
 }: UseSocketConnectionProps) {
-  const socketRef = useRef<any>(null);
+  const socketRef = useRef<SocketClient | null>(null);
   const isInitializedRef = useRef(false);
 
-  // 소켓 초기화
   const initializeSocket = useCallback(async () => {
     if (isInitializedRef.current) return;
 
     try {
-      // 동적 import로 SSR 문제 방지
+      // import SSR
       const { default: socketClient } = await import('@/lib/socket/socketClient');
       
       const storedUsername = sessionStorage.getItem('chat_username') || username;
@@ -37,7 +38,6 @@ export function useSocketConnection({
       socketRef.current = socketClient;
       isInitializedRef.current = true;
 
-      // 방 참가
       console.log(`Socket: Joining room ${roomId}`);
       socketClient.joinRoom(roomId, storedUsername);
 
@@ -48,17 +48,15 @@ export function useSocketConnection({
     }
   }, [roomId, username]);
 
-  // 이벤트 리스너 설정
-  const setupEventListeners = useCallback((socketInstance: any) => {
+  const setupEventListeners = useCallback((socketInstance: SocketClient) => {
     if (!socketInstance) return;
 
-    // NPC 선택 이벤트
     const handleNpcSelected = (data: { npc_id: string }) => {
       console.log('NPC selected for response:', data.npc_id);
       onNpcSelected?.(data.npc_id);
     };
 
-    // 차례 업데이트 이벤트 (커스텀 DOM 이벤트)
+    // ( DOM )
     const handleNextSpeakerUpdate = (event: CustomEvent) => {
       if (event.detail && typeof event.detail.is_user === 'boolean') {
         console.log('User turn detected from event!', event.detail);
@@ -69,20 +67,16 @@ export function useSocketConnection({
       }
     };
 
-    // 새 메시지 이벤트
-    const handleNewMessage = (data: { message: any; roomId: string }) => {
+    const handleNewMessage = (data: { message: ChatMessage; roomId: string }) => {
       console.log('New message received from socket:', data);
       onNewMessage?.(data.message);
     };
 
-    // 소켓 이벤트 리스너 등록
     socketInstance.on('npc-selected', handleNpcSelected);
     socketInstance.on('new-message', handleNewMessage);
     
-    // DOM 이벤트 리스너 등록
     document.addEventListener('next-speaker-update', handleNextSpeakerUpdate as EventListener);
 
-    // 정리 함수 반환
     return () => {
       socketInstance.off('npc-selected', handleNpcSelected);
       socketInstance.off('new-message', handleNewMessage);
@@ -90,7 +84,6 @@ export function useSocketConnection({
     };
   }, [onNpcSelected, onTurnUpdate, onNewMessage]);
 
-  // 소켓 정리
   const cleanupSocket = useCallback(() => {
     if (socketRef.current && roomId) {
       const storedUsername = sessionStorage.getItem('chat_username') || username;
@@ -100,8 +93,7 @@ export function useSocketConnection({
     isInitializedRef.current = false;
   }, [roomId, username]);
 
-  // 메시지 전송
-  const emitMessage = useCallback((eventName: string, data: any) => {
+  const emitMessage = useCallback((eventName: string, data: unknown) => {
     if (socketRef.current) {
       socketRef.current.emit(eventName, data);
     } else {
@@ -109,12 +101,10 @@ export function useSocketConnection({
     }
   }, []);
 
-  // 연결 상태 확인
   const isConnected = useCallback((): boolean => {
     return socketRef.current?.isConnected?.() || false;
   }, []);
 
-  // 소켓 초기화 및 정리
   useEffect(() => {
     if (!roomId) return;
 

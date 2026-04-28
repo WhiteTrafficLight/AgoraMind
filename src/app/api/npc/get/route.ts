@@ -4,10 +4,8 @@ import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
 
-// 백엔드 API URL
 const BACKEND_API_URL = 'http://0.0.0.0:8000';
 
-// NPC 모델 스키마
 const NpcSchema = new mongoose.Schema({
   name: String,
   role: String,
@@ -22,7 +20,7 @@ const NpcSchema = new mongoose.Schema({
 
 export async function GET(req: NextRequest) {
   try {
-    // URL에서 id 파라미터 추출
+    // URL id
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     
@@ -32,32 +30,30 @@ export async function GET(req: NextRequest) {
     
     console.log(`🔍 Fetching NPC details for ID: ${id}`);
     
-    // 커스텀 NPC인지 확인 (MongoDB에서 조회)
+    // NPC (MongoDB )
     const isMongoId = id.length >= 24 && /^[0-9a-fA-F]{24}$/.test(id);
     const isUuid = id.length > 30 && id.split('-').length === 5;
     
     if (isMongoId || isUuid) {
       try {
-        // MongoDB에 연결
         await connectDB();
         
-        // NPC 모델 가져오기 (mongoose 모델이 없으면 생성)
+        // NPC (mongoose )
         const NpcModel = mongoose.models.CustomNpc || mongoose.model('CustomNpc', NpcSchema);
         
-        // MongoDB에서 NPC 조회 - ObjectID로 검색하거나 backend_id로 검색
+        // MongoDB NPC - ObjectID backend_id
         let npc;
         if (isMongoId) {
           console.log(`🔍 Searching by MongoDB ObjectID: ${id}`);
           npc = await NpcModel.findById(new ObjectId(id));
         }
         
-        // ObjectID로 찾지 못했거나 UUID 형식이면 backend_id로 검색
+        // ObjectID UUID backend_id
         if (!npc && isUuid) {
           console.log(`🔍 Searching by backend_id (UUID): ${id}`);
           npc = await NpcModel.findOne({ backend_id: id });
         }
         
-        // 그래도 못 찾았으면 id 필드로 한번 더 검색 (이전 버전 호환성)
         if (!npc) {
           console.log(`🔍 Searching by id field as fallback: ${id}`);
           npc = await NpcModel.findOne({ id: id });
@@ -84,14 +80,13 @@ export async function GET(req: NextRequest) {
           console.log('   Tried: ObjectID lookup, backend_id lookup, and id field lookup');
         }
       } catch (dbError) {
-        console.error('❌ MongoDB 조회 오류:', dbError);
+        console.error('MongoDB query error:', dbError);
       }
     }
     
-    // 기본 철학자 정보 확인
     try {
-      // Python 백엔드 API 호출 시도
-      // API 호출 제거 - 기본 NPC 정보 반환
+      // Python API
+      // API - NPC
       console.log(`🔄 Returning basic NPC data for: ${id}`);
       
       const basicNpcData = {
@@ -106,7 +101,6 @@ export async function GET(req: NextRequest) {
       console.error('❌ Error generating basic NPC data:', apiError);
     }
     
-    // 로컬 철학자 프로필에서 확인
     const philosophers = Object.keys(philosopherProfiles);
     const matchedPhilosopher = philosophers.find(name => 
       name.toLowerCase() === id.toLowerCase() || 
@@ -122,16 +116,15 @@ export async function GET(req: NextRequest) {
         name: matchedPhilosopher,
         description: profile.description,
         key_concepts: profile.key_concepts,
-        portrait_url: null, // 로컬 프로필에는 이미지 URL이 없음
+        portrait_url: null,  // URL
         is_custom: false
       });
     }
     
-    // 모든 시도가 실패하면 기본 정보 반환
     console.log(`⚠️ Returning default info for NPC: ${id}`);
     return NextResponse.json({
       id: id,
-      name: id.charAt(0).toUpperCase() + id.slice(1), // ID를 이름으로 변환
+      name: id.charAt(0).toUpperCase() + id.slice(1),
       description: "A philosopher with unique perspectives",
       is_custom: false
     });

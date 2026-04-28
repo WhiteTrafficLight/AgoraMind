@@ -1,8 +1,6 @@
 'use client';
-
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { XMarkIcon } from '@heroicons/react/24/outline';
 
 interface ModalProps {
   isOpen: boolean;
@@ -56,7 +54,7 @@ const Modal: React.FC<ModalProps> = ({
   // Create portal for modal
   return createPortal(
     <div
-      className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center pointer-events-auto"
+      className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center pointer-events-auto"
       onClick={onClose}
     >
       {/* Modal container styled like philosopher details modal */}

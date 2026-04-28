@@ -41,7 +41,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
 
   const [messages, setMessages] = useState<FreeDiscussionMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const socketRef = useRef<any>(null);
+  const socketRef = useRef<typeof socketClient | null>(null);
   const lastSentRef = useRef<{ content: string; ts: number } | null>(null);
   const seenMessageIdsRef = useRef<Set<string>>(new Set());
 
@@ -89,8 +89,8 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       senderType: db.senderType,
       role: db.role,
       // carry over optional extras
-      ...(db.citations ? { citations: db.citations } as any : {})
-    } as unknown as FreeDiscussionMessage;
+      ...(db.citations ? { citations: db.citations } : {})
+    } as FreeDiscussionMessage;
   };
 
   // Persist a normalized message to DB (fire-and-forget)
@@ -99,15 +99,15 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       const payload = {
         roomId: msg.session_id,
         message: {
-          id: (msg as any).id,
-          text: (msg as any).text || msg.content || '',
+          id: msg.id,
+          text: msg.text || msg.content || '',
           sender: msg.sender,
-          isUser: (msg as any).isUser ?? (msg as any).message_type === 'user',
+          isUser: msg.isUser ?? msg.message_type === 'user',
           timestamp: msg.timestamp,
-          role: (msg as any).role,
-          senderType: (msg as any).senderType,
-          stage: (msg as any).stage,
-          citations: (msg as any).citations
+          role: msg.role,
+          senderType: msg.senderType,
+          stage: msg.stage,
+          citations: msg.citations
         }
       };
       const res = await fetch('/api/messages', {
@@ -142,7 +142,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         // Seed dedupe set with DB ids
         const newSeen = new Set<string>(seenMessageIdsRef.current);
         normalized.forEach(m => {
-          const id = (m as any).id as string | undefined;
+          const id = m.id;
           if (id) newSeen.add(String(id));
         });
         seenMessageIdsRef.current = newSeen;
@@ -151,12 +151,10 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         setMessages(prev => {
           const existingIds = new Set<string>();
           prev.forEach(p => {
-            const id = (p as any).id as string | undefined;
-            if (id) existingIds.add(String(id));
+            if (p.id) existingIds.add(String(p.id));
           });
           const merged = [...normalized.filter(n => {
-            const id = (n as any).id as string | undefined;
-            return id ? !existingIds.has(String(id)) : true;
+            return n.id ? !existingIds.has(String(n.id)) : true;
           }), ...prev];
           return merged;
         });
@@ -276,8 +274,8 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         message_type: 'user' as const,
         senderType: 'user',
         isUser: true,
-      } as FreeDiscussionMessage as any;
-      seenMessageIdsRef.current.add(localMessage.id as string);
+      } satisfies FreeDiscussionMessage;
+      seenMessageIdsRef.current.add(localMessage.id);
       setMessages(prev => [...prev, localMessage]);
       // Persist immediately (do not block UX)
       void persistMessage(localMessage);
@@ -294,6 +292,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
   // Socket event handlers
   useEffect(() => {
     if (!isConnected || !socketRef.current || !state.sessionId) return;
+    const sock = socketRef.current;
 
     const handleControlEvent = (event: PlaybackControlEvent) => {
       if (event.session_id !== state.sessionId) return;
@@ -321,7 +320,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       }
     };
 
-    const handleNewMessage = (data: { roomId: string; message: any }) => {
+    const handleNewMessage = (data: { roomId: string; message: Partial<FreeDiscussionMessage> & Record<string, unknown> }) => {
       if (String(data.roomId) === String(state.sessionId || chatId)) {
         const raw = data.message || {};
         // Handle control messages sent via new_message with sender like "control:conversation:paused"
@@ -351,11 +350,11 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         }
         const computedId = ((): string => {
           if (raw.id) return String(raw.id);
-          const ts = raw.timestamp || new Date().toISOString();
-          const text = raw.text || raw.content || '';
+          const ts = (raw.timestamp as string | Date | undefined) || new Date().toISOString();
+          const text = (raw.text as string | undefined) || (raw.content as string | undefined) || '';
           return generateStableMessageId({
             sessionId: state.sessionId || String(chatId),
-            sender: raw.sender || raw.senderName || 'Unknown',
+            sender: (raw.sender as string | undefined) || (raw.senderName as string | undefined) || 'Unknown',
             timestamp: ts,
             text
           });
@@ -365,22 +364,22 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
           return;
         }
 
-        const normalized = {
+        const normalized: FreeDiscussionMessage & { npc_id?: unknown; senderName?: unknown } = {
           id: computedId,
           session_id: state.sessionId || String(chatId),
-          sender: raw.sender || raw.senderName || 'Unknown',
-          content: raw.content || raw.text || '',
-          text: raw.text || raw.content || '',
-          timestamp: raw.timestamp || new Date().toISOString(),
-          message_type: raw.message_type 
+          sender: (raw.sender as string) || (raw.senderName as string) || 'Unknown',
+          content: (raw.content as string) || (raw.text as string) || '',
+          text: (raw.text as string) || (raw.content as string) || '',
+          timestamp: (raw.timestamp as string) || new Date().toISOString(),
+          message_type: (raw.message_type as FreeDiscussionMessage['message_type'])
             || (raw.isUser ? 'user' : ((raw.role === 'philosopher' || raw.senderType === 'npc') ? 'philosopher' : 'system')),
-          senderType: raw.senderType || (raw.isUser ? 'user' : ((raw.role === 'philosopher') ? 'philosopher' : 'system')),
-          isUser: raw.isUser ?? (raw.message_type === 'user'),
+          senderType: (raw.senderType as string) || (raw.isUser ? 'user' : ((raw.role === 'philosopher') ? 'philosopher' : 'system')),
+          isUser: (raw.isUser as boolean) ?? (raw.message_type === 'user'),
           npc_id: raw.npc_id,
-          role: raw.role,
-          metadata: raw.metadata || {},
+          role: raw.role as string | undefined,
+          metadata: (raw.metadata as Record<string, unknown>) || {},
           senderName: raw.senderName,
-        } as any;
+        };
 
         seenMessageIdsRef.current.add(normalized.id);
         setMessages(prev => [...prev, normalized]);
@@ -394,17 +393,17 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       }
     };
 
-    socketRef.current.on('control:conversation:paused', handleControlEvent);
-    socketRef.current.on('control:conversation:resumed', handleControlEvent);
-    socketRef.current.on('control:playback:speed_changed', handleControlEvent);
+    sock.on('control:conversation:paused', handleControlEvent);
+    sock.on('control:conversation:resumed', handleControlEvent);
+    sock.on('control:playback:speed_changed', handleControlEvent);
     // Backend emits "new_message" (underscore), align listener name
-    socketRef.current.on('new_message', handleNewMessage);
+    sock.on('new_message', handleNewMessage);
 
     return () => {
-      socketRef.current.off('control:conversation:paused', handleControlEvent);
-      socketRef.current.off('control:conversation:resumed', handleControlEvent);
-      socketRef.current.off('control:playback:speed_changed', handleControlEvent);
-      socketRef.current.off('new_message', handleNewMessage);
+      sock.off('control:conversation:paused', handleControlEvent);
+      sock.off('control:conversation:resumed', handleControlEvent);
+      sock.off('control:playback:speed_changed', handleControlEvent);
+      sock.off('new_message', handleNewMessage);
     };
   }, [state.sessionId, chatId, isConnected]);
 
@@ -412,13 +411,15 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
   useEffect(() => {
     const initSocket = async () => {
       try {
-        const instance = await socketClient.init(username);
-        socketRef.current = instance;
+        await socketClient.init(username);
+        // socketClient.init returns the underlying Socket but the wrapper
+        // (with joinRoom/leaveRoom/emit/on/off) is what we want for the ref.
+        socketRef.current = socketClient;
         setIsConnected(true);
         
         if (state.sessionId) {
           // Join backend Socket.IO room using server's expected event/payload
-          (instance as any).emit?.('join_room', {
+          socketClient.emit('join_room', {
             room_id: String(state.sessionId),
             user_id: username || 'anonymous'
           });
@@ -433,7 +434,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
 
     return () => {
       if (socketRef.current && state.sessionId) {
-        (socketRef.current as any).emit?.('leave_room', {
+        socketRef.current.emit('leave_room', {
           room_id: String(state.sessionId || chatId),
           user_id: username || 'anonymous'
         });

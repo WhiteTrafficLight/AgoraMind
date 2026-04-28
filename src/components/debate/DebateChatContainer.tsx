@@ -2,12 +2,10 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
-import { useSocketConnection } from '../main_hooks/useSocketConnection';
-import { useDebateState } from '../main_hooks/useDebateState';
 import MessageInput from './MessageInput';
 import ParticipantGrid from './ParticipantGrid';
 import MessageList from './MessageList';
-import { DebateChatContainerProps, ChatMessage, ParticipantInfo } from '../main_types/debate.types';
+import { DebateChatContainerProps, NpcDetail } from '@/types/debate';
 import { loggers } from '@/utils/logger';
 
 const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
@@ -28,7 +26,6 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   currentUserTurn = null,
   onProcessUserMessage
 }) => {
-  // 모더레이터 스타일 정보 매핑
   const moderatorStyles = [
     { id: '0', name: 'Jamie the Host' },
     { id: '1', name: 'Dr. Lee' },
@@ -39,17 +36,15 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
 
   const [messageText, setMessageText] = useState('');
   const [userProfilePicture, setUserProfilePicture] = useState<string | null>(null);
-  const [npcDetails, setNpcDetails] = useState<Record<string, any>>({});
+  const [npcDetails, setNpcDetails] = useState<Record<string, NpcDetail>>({});
   const [selectedNpcId, setSelectedNpcId] = useState<string | null>(null);
   const [isUserTurn, setIsUserTurn] = useState<boolean>(false);
   const [turnIndicatorVisible, setTurnIndicatorVisible] = useState<boolean>(false);
   const [isGeneratingNext, setIsGeneratingNext] = useState<boolean>(false);
   
-  // 타이핑 애니메이션을 위한 상태
   const [lastMessageCount, setLastMessageCount] = useState<number>(0);
   const [typingMessageIds, setTypingMessageIds] = useState<Set<string>>(new Set());
   
-  // 타이핑 완료 핸들러
   const handleTypingComplete = (messageId: string) => {
     setTypingMessageIds(prev => {
       const newSet = new Set(prev);
@@ -58,7 +53,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     });
   };
   
-  // 외부 props 우선 사용
+  // props
   const activeTypingMessageIds = externalTypingMessageIds || typingMessageIds;
   const activeOnTypingComplete = externalOnTypingComplete || handleTypingComplete;
 
@@ -66,9 +61,8 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // 모더레이터 정보 가져오기
   const getModeratorInfo = useMemo(() => {
-    const moderatorConfig = (room as any).moderator;
+    const moderatorConfig = (room as { moderator?: { style_id?: string } }).moderator;
     
     if (moderatorConfig && moderatorConfig.style_id) {
       const style = moderatorStyles.find(s => s.id === moderatorConfig.style_id);
@@ -87,7 +81,6 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
 
   const moderatorInfo = getModeratorInfo;
 
-  // 사용자 프로필 가져오기
   const fetchUserProfile = async (username: string) => {
     try {
       const response = await fetch('/api/user/profile');
@@ -97,15 +90,14 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
           setUserProfilePicture(profileData.profileImage || profileData.profilePicture);
         }
       }
-    } catch (error: any) {
-      loggers.auth.error('사용자 프로필 가져오기 실패', error);
+    } catch (error) {
+      loggers.auth.error('Failed to fetch user profile', error);
     }
   };
 
-  // NPC 세부 정보 로드
   useEffect(() => {
     const loadNpcDetails = async () => {
-      const details: Record<string, any> = {};
+      const details: Record<string, NpcDetail> = {};
       
       if (initialNpcDetails && initialNpcDetails.length > 0) {
         initialNpcDetails.forEach(npc => {
@@ -120,7 +112,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
       );
       
       for (const npcId of npcIds) {
-        // API 호출 제거 - 기본 NPC 정보 생성
+        // API - NPC
         details[npcId] = {
           id: npcId,
           name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
@@ -134,63 +126,56 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     loadNpcDetails();
   }, [initialNpcDetails, room.pro, room.con, room.neutral, room.participants.users]);
 
-  // 사용자 프로필 가져오기
   useEffect(() => {
     if (username) {
       fetchUserProfile(username);
     }
   }, [username]);
 
-  // 메시지 자동 스크롤
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  // 새 메시지 타이핑 애니메이션 감지
   useEffect(() => {
     if (messages.length > lastMessageCount) {
       const newMessages = messages.slice(lastMessageCount);
       const newTypingIds = new Set(typingMessageIds);
-      
+
       newMessages.forEach(message => {
         const isUser = room.participants.users.includes(message.sender) || message.sender === username;
-        // skipAnimation이 true인 경우 (새로고침으로 로드된 메시지) 타이핑 애니메이션 스킵
+        // skipAnimation true ( )
         if (!isUser && !message.id.startsWith('temp-waiting-') && !message.skipAnimation) {
           newTypingIds.add(message.id);
         }
       });
-      
+
       setTypingMessageIds(newTypingIds);
       setLastMessageCount(messages.length);
     }
   }, [messages.length, lastMessageCount, typingMessageIds, room.participants.users, username]);
-
-  // 사용자 차례일 때 입력창에 포커스
   useEffect(() => {
     if (waitingForUserInput && inputRef.current) {
       setTimeout(() => {
         inputRef.current?.focus();
-        loggers.ui.info('사용자 턴에서 입력창 자동 포커스');
-      }, 300); // 약간의 지연을 주어 렌더링 완료 후 포커스
+        loggers.ui.info('Auto-focusing input on user turn');
+      }, 300);
     }
   }, [waitingForUserInput]);
 
-  // 메시지 전송 핸들러
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (messageText.trim() && !isInputDisabled) {
-      // 사용자 차례인 경우 onProcessUserMessage 사용
+      // onProcessUserMessage
       if (waitingForUserInput && currentUserTurn && onProcessUserMessage) {
-        loggers.chat.info('사용자 메시지를 onProcessUserMessage로 처리', { 
+        loggers.chat.info('Handling user message via onProcessUserMessage', { 
           messageLength: messageText.trim().length,
           userTurn: currentUserTurn 
         });
         onProcessUserMessage(messageText.trim());
       } else {
-        // 일반적인 경우 기존 로직 사용
-        loggers.chat.info('메시지를 onSendMessage로 전송', { 
+        loggers.chat.info('Sending message via onSendMessage', { 
           messageLength: messageText.trim().length 
         });
         onSendMessage(messageText.trim());
@@ -199,17 +184,17 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     }
   };
 
-  // Next 메시지 요청 핸들러
+  // Next
   const handleNextMessage = async () => {
     if (isGeneratingNext || !onRequestNextMessage) return;
     
     setIsGeneratingNext(true);
-    loggers.chat.info(`Next 버튼 클릭 - 방에 대한 다음 메시지 요청`, { roomId: room.id });
+    loggers.chat.info(`Next button clicked — requesting next message  room`, { roomId: room.id });
     
     try {
       await onRequestNextMessage();
     } catch (error) {
-      loggers.chat.error('Next 메시지 요청 중 오류', error);
+      loggers.chat.error('Error requesting next message', error);
     } finally {
       setIsGeneratingNext(false);
     }
@@ -221,19 +206,16 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     setTurnIndicatorVisible(visible);
   };
 
-  // 입력 상태 계산 - 사용자 차례이거나 일반 채팅일 때 활성화
   const isInputDisabled = isLoading || isGeneratingResponse || 
     !(waitingForUserInput || (isUserTurn && !waitingForUserInput));
 
-  // 사용자 차례 표시 로직 개선
   const displayUserTurn = waitingForUserInput || isUserTurn;
   const shouldShowNextButton = (
     isDebateRoom: boolean,
-    onRequestNextMessage: any,
-    messagesLength: number
+    onRequestNextMessage: (() => void) | undefined,
   ) => {
-    // Next 버튼을 항상 표시 (토론방이고 함수가 있으면)
-    return isDebateRoom && onRequestNextMessage;
+    // Next ( )
+    return isDebateRoom && !!onRequestNextMessage;
   };
 
   const getNameFromId = (id: string, isUser: boolean): string => {
@@ -260,7 +242,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`;
   };
 
-  // Generate philosopher portrait path from static files (DebateTopicModal.tsx와 동일한 함수)
+  // Generate philosopher portrait path from static files (DebateTopicModal.tsx )
   const getPhilosopherPortraitPath = (philosopherName: string): string => {
     // Map philosopher names to actual file names (using last names mostly)
     const nameMapping: Record<string, string> = {
@@ -313,7 +295,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (npc && npc.portrait_url) {
       return npc.portrait_url;
     }
-    // 철학자 포트레이트 경로 사용 (DebateTopicModal.tsx와 동일)
+    // (DebateTopicModal.tsx )
     return getPhilosopherPortraitPath(npcId);
   };
 
@@ -335,17 +317,15 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     return room.participants.users.includes(id) || id === username;
   };
 
-  // 참가자 분류
   const proParticipants = [...new Set(room.pro || [])];
   const conParticipants = [...new Set(room.con || [])];
   const neutralParticipants = [...new Set(room.neutral || [])];
 
-  // 디베이트 룸 여부 확인
   const isDebateRoom = room.dialogueType === 'debate';
 
   return (
     <div className="debate-chat-container">
-      {/* 헤더 */}
+      {/* Header */}
       <div className="debate-chat-header">
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <h2 className="debate-chat-title">{room.title}</h2>
@@ -365,7 +345,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
         )}
       </div>
 
-      {/* 토픽 배너 */}
+      {/* Topic banner */}
       <div className="debate-topic-banner">
         <div className="debate-topic-sides">
           <div className="debate-side-label pro">Pro</div>
@@ -374,9 +354,9 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
         </div>
       </div>
 
-      {/* 메인 채팅 영역 */}
+      {/* Main chat area */}
       <div className="debate-chat-area" ref={messageContainerRef}>
-        {/* 참가자 그리드 컴포넌트 */}
+        {/* Participants grid component */}
         <ParticipantGrid
           proParticipants={proParticipants}
           neutralParticipants={neutralParticipants}
@@ -389,7 +369,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
           isUserParticipant={isUserParticipant}
         />
 
-        {/* 메시지 리스트 컴포넌트 */}
+        {/* Message list component */}
         <MessageList
           messages={messages}
           messagesEndRef={messagesEndRef}
@@ -399,13 +379,13 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
           getProfileImage={getProfileImage}
           isUserParticipant={isUserParticipant}
           handleTypingComplete={activeOnTypingComplete}
-          showNextButton={shouldShowNextButton(isDebateRoom, onRequestNextMessage, messages.length)}
+          showNextButton={shouldShowNextButton(isDebateRoom, onRequestNextMessage)}
           onRequestNext={handleNextMessage}
           isGeneratingNext={isGeneratingNext}
         />
       </div>
 
-      {/* 입력 영역 컴포넌트 */}
+      {/* Input area component */}
       <MessageInput
         messageText={messageText}
         setMessageText={setMessageText}

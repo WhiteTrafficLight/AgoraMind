@@ -1,12 +1,18 @@
-// chatStorage.ts - 채팅 데이터를 저장하고 공유하는 모듈
+// chatStorage.ts -
 import { ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 
-// 글로벌 변수로 채팅룸 데이터 저장
-// Next.js 서버리스 함수들이 이 변수를 공유할 수 있음
-const chatStorage = {
-  chatRooms: [
+// Next.js
+const chatStorage: {
+  chatRooms: ChatRoom[];
+  getChatRooms: () => ChatRoom[];
+  getChatRoomById: (id: string | number) => ChatRoom | undefined;
+  createChatRoom: (room: ChatRoom) => ChatRoom;
+  addMessage: (roomId: string | number, message: ChatMessage) => boolean;
+  updateChatRoom: (roomId: string | number, updates: Partial<ChatRoom>) => boolean;
+} = {
+  chatRooms: ([
     {
-      id: 1,
+      id: '1',
       title: 'The Nature of Consciousness',
       context: 'Exploring the philosophical aspects of consciousness and its relationship to the brain.',
       participants: {
@@ -27,7 +33,7 @@ const chatStorage = {
       ]
     },
     {
-      id: 2,
+      id: '2',
       title: 'Ethics in the Digital Age',
       context: 'Discussing the moral implications of technology and its impacts on society.',
       participants: {
@@ -47,37 +53,33 @@ const chatStorage = {
         }
       ]
     },
-  ],
+  ] as unknown) as ChatRoom[],
 
-  // 채팅룸 조회
   getChatRooms: function() {
     return this.chatRooms;
   },
 
-  // ID로 채팅룸 조회
   getChatRoomById: function(id: string | number) {
     const idStr = String(id);
-    console.log(`Storage: 채팅룸 ${idStr} 조회 요청`);
+    console.log(`Storage: chat room ${idStr} lookup request`);
     const room = this.chatRooms.find(r => String(r.id) === idStr);
-    console.log(`Storage: 채팅룸 ${idStr} 조회 결과:`, room ? '찾음' : '없음');
+    console.log(`Storage: chat room ${idStr} lookup result:`, room ? 'found' : 'not found');
     return room;
   },
 
-  // 채팅룸 생성
   createChatRoom: function(room: ChatRoom) {
-    console.log(`Storage: 채팅룸 ${room.id} 생성`);
+    console.log(`Storage: chat room ${room.id} create`);
     this.chatRooms.push(room);
     return room;
   },
 
-  // 메시지 추가
   addMessage: function(roomId: string | number, message: ChatMessage) {
     const idStr = String(roomId);
-    console.log(`Storage: 채팅룸 ${idStr}에 메시지 추가 요청`);
+    console.log(`Storage: chat room ${idStr}add message request`);
     
     const roomIndex = this.chatRooms.findIndex(r => String(r.id) === idStr);
     if (roomIndex === -1) {
-      console.log(`Storage: 채팅룸 ${idStr} 없음`);
+      console.log(`Storage: chat room ${idStr} not found`);
       return false;
     }
     
@@ -85,25 +87,22 @@ const chatStorage = {
       this.chatRooms[roomIndex].messages = [];
     }
     
-    // 중복 메시지 확인
     const isDuplicate = this.chatRooms[roomIndex].messages?.some(
       existingMsg => existingMsg.id === message.id
     );
     
     if (isDuplicate) {
-      console.log(`Storage: 중복 메시지 ${message.id}, 건너뜀`);
+      console.log(`Storage: duplicate message ${message.id}, skipped`);
       return false;
     }
     
-    // 메시지 추가
     this.chatRooms[roomIndex].messages?.push(message);
     this.chatRooms[roomIndex].lastActivity = 'Just now';
     
-    console.log(`Storage: 메시지 추가 완료, 현재 메시지 수: ${this.chatRooms[roomIndex].messages?.length}`);
+    console.log(`Storage: Message added; current count: ${this.chatRooms[roomIndex].messages?.length}`);
     return true;
   },
 
-  // 채팅룸 정보 업데이트
   updateChatRoom: function(roomId: string | number, updates: Partial<ChatRoom>) {
     const idStr = String(roomId);
     const roomIndex = this.chatRooms.findIndex(r => String(r.id) === idStr);

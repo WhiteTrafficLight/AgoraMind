@@ -30,13 +30,12 @@ export default function SettingsPage() {
   const [editedUsername, setEditedUsername] = useState('');
   const [editedBio, setEditedBio] = useState('');
   const [showCropModal, setShowCropModal] = useState(false);
-  const [selectedImageSrc, setSelectedImageSrc] = useState<string>(''); // 선택된 이미지 저장
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   
-  // 사용자 프로필 정보 가져오기
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!session) {
@@ -106,13 +105,13 @@ export default function SettingsPage() {
   
   const handleCancelCrop = () => {
     setShowCropModal(false);
-    setSelectedImageSrc(''); // 선택된 이미지도 초기화
+    setSelectedImageSrc('');
   };
   
   const handleSaveCroppedImage = async (croppedImageBase64: string) => {
     setIsUploadingImage(true);
     setShowCropModal(false);
-    setSelectedImageSrc(''); // 선택된 이미지 초기화
+    setSelectedImageSrc('');
     
     try {
       const response = await fetch('/api/user/profile-image', {

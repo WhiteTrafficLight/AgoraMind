@@ -23,7 +23,13 @@ interface PodcastRequest {
 }
 
 // Voice styles for different philosophers
-const voiceStyles: Record<string, any> = {
+interface VoiceStyle {
+  stability: number;
+  similarity_boost: number;
+  style: number;
+  use_speaker_boost?: boolean;
+}
+const voiceStyles: Record<string, VoiceStyle> = {
   'socrates': {
     stability: 0.6,
     similarity_boost: 0.8,
@@ -221,10 +227,10 @@ export async function POST(request: NextRequest) {
       audioPath: `/podcasts/${podcastId}`,
       segments: audioSegments.map(s => s.filename)
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating podcast:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to generate podcast' },
+      { error: error instanceof Error ? error.message : 'Failed to generate podcast' },
       { status: 500 }
     );
   }
