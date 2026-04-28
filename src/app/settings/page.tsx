@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { loggers } from '@/utils/logger';
 // Tailwind-only; removed CSS module
 
 // Dynamically import ImageCropModal so its heavy CSS is only loaded when the component is actually rendered (Settings page)
@@ -56,7 +57,7 @@ export default function SettingsPage() {
         setEditedUsername(data.username);
         setEditedBio(data.bio || '');
       } catch (error) {
-        console.error('Error fetching user profile:', error);
+        loggers.ui.error('Error fetching user profile:', error);
         toast.error('Failed to load profile information');
       } finally {
         setIsLoading(false);
@@ -93,7 +94,7 @@ export default function SettingsPage() {
       setIsEditing(null);
       toast.success(`${field === 'username' ? 'Username' : 'Bio'} updated successfully!`);
     } catch (error) {
-      console.error('Error updating profile:', error);
+      loggers.ui.error('Error updating profile:', error);
       toast.error(`Failed to update ${field}`);
     } finally {
       setIsUpdating(false);
@@ -138,7 +139,7 @@ export default function SettingsPage() {
       
       toast.success('Profile image updated successfully!');
     } catch (error) {
-      console.error('Error uploading image:', error);
+      loggers.ui.error('Error uploading image:', error);
       toast.error('Failed to update profile image');
     } finally {
       setIsUploadingImage(false);

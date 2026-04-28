@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { validateImageFile } from '@/lib/imageUtils';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 interface ImageUploaderProps {
   category: 'userProfile' | 'customNpc' | 'roomThumbnail';
@@ -105,7 +106,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       }
 
     } catch (error) {
-      console.error('Upload error:', error);
+      loggers.ui.error('Upload error:', error);
       onUploadError?.(error instanceof Error ? error.message : 'An error occurred during upload.');
       setPreview(null);
     } finally {

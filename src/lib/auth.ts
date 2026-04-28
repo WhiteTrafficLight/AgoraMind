@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { connectDB } from './db/connect';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
+import { loggers } from '@/utils/logger';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -44,7 +45,7 @@ export const authOptions: NextAuthOptions = {
             image: user.profileImage || null
           };
         } catch (error) {
-          console.error("Authentication error:", error);
+          loggers.auth.error("Authentication error:", error);
           return null;
         }
       }

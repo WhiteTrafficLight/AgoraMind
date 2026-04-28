@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { TurnInfo } from '@/types/debate';
 import type socketClientType from '@/lib/socket/socketClient';
 import type { ChatMessage } from '@/lib/ai/chatService';
+import { loggers } from '@/utils/logger';
 
 type SocketClient = typeof socketClientType;
 
@@ -38,12 +39,12 @@ export function useSocketConnection({
       socketRef.current = socketClient;
       isInitializedRef.current = true;
 
-      console.log(`Socket: Joining room ${roomId}`);
+      loggers.socket.info(`Socket: Joining room ${roomId}`);
       socketClient.joinRoom(roomId, storedUsername);
 
       return socketClient;
     } catch (error) {
-      console.error('Error initializing socket:', error);
+      loggers.socket.error('Error initializing socket:', error);
       return null;
     }
   }, [roomId, username]);
@@ -52,14 +53,14 @@ export function useSocketConnection({
     if (!socketInstance) return;
 
     const handleNpcSelected = (data: { npc_id: string }) => {
-      console.log('NPC selected for response:', data.npc_id);
+      loggers.socket.info('NPC selected for response:', data.npc_id);
       onNpcSelected?.(data.npc_id);
     };
 
     // ( DOM )
     const handleNextSpeakerUpdate = (event: CustomEvent) => {
       if (event.detail && typeof event.detail.is_user === 'boolean') {
-        console.log('User turn detected from event!', event.detail);
+        loggers.socket.info('User turn detected from event!', event.detail);
         onTurnUpdate?.({
           isUserTurn: event.detail.is_user,
           nextSpeaker: event.detail,
@@ -68,7 +69,7 @@ export function useSocketConnection({
     };
 
     const handleNewMessage = (data: { message: ChatMessage; roomId: string }) => {
-      console.log('New message received from socket:', data);
+      loggers.socket.info('New message received from socket:', data);
       onNewMessage?.(data.message);
     };
 
@@ -87,7 +88,7 @@ export function useSocketConnection({
   const cleanupSocket = useCallback(() => {
     if (socketRef.current && roomId) {
       const storedUsername = sessionStorage.getItem('chat_username') || username;
-      console.log(`Socket: Leaving room ${roomId}`);
+      loggers.socket.info(`Socket: Leaving room ${roomId}`);
       socketRef.current.leaveRoom(roomId, storedUsername);
     }
     isInitializedRef.current = false;
@@ -97,7 +98,7 @@ export function useSocketConnection({
     if (socketRef.current) {
       socketRef.current.emit(eventName, data);
     } else {
-      console.warn('Socket not initialized, cannot emit message');
+      loggers.socket.warn('Socket not initialized, cannot emit message');
     }
   }, []);
 

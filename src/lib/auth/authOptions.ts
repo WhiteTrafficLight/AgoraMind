@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
+import { loggers } from '@/utils/logger';
 
 // NextAuth configuration
 export const authOptions: NextAuthOptions = {
@@ -53,7 +54,7 @@ export const authOptions: NextAuthOptions = {
             await existingUser.save();
           }
         } catch (error) {
-          console.error("Google sign in error:", error);
+          loggers.auth.error("Google sign in error:", error);
           return false;
         }
       }

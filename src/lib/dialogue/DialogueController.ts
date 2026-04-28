@@ -1,4 +1,5 @@
 import { ChatRoom, ChatMessage } from '../ai/chatService';
+import { loggers } from '@/utils/logger';
 
 export type DialogueType = 'standard' | 'debate' | 'socratic' | 'panel';
 
@@ -50,7 +51,7 @@ class DialogueController {
       dialogueType: this.dialogueType,
     };
 
-    console.log(`DialogueController initialized for room ${this.room.id} with type ${this.dialogueType}`);
+    loggers.chat.info(`DialogueController initialized for room ${this.room.id} with type ${this.dialogueType}`);
   }
 
   async initialize(): Promise<DialogueState> {
@@ -175,11 +176,11 @@ class DialogueController {
       this.onStateUpdate(this.state);
     }
     
-    console.log('Dialogue state updated:', this.state);
+    loggers.chat.info('Dialogue state updated:', this.state);
   }
 
   private handleError(error: Error): void {
-    console.error('DialogueController error:', error);
+    loggers.chat.error('DialogueController error:', error);
     
     if (this.onError) {
       this.onError(error);

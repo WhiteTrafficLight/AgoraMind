@@ -5,6 +5,7 @@ import { SendMessageData } from '../../types/common.types';
 import chatRoomDB from '@/lib/db/chatRoomDB';
 import type { ChatMessage } from '@/lib/ai/chatService';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 export class DebateSocketServer {
   
@@ -15,7 +16,7 @@ export class DebateSocketServer {
     socket.removeAllListeners('npc-selected');
     socket.removeAllListeners('user_message');
     
-    console.log(`🔧 [DEBATE] Registering fresh handlers for socket ${socket.id}`);
+    loggers.socket.info(`🔧 [DEBATE] Registering fresh handlers for socket ${socket.id}`);
     
     socket.on('send-message', (data: SendMessageData) => this.handleSendMessage(socket, data));
     
@@ -24,7 +25,7 @@ export class DebateSocketServer {
     socket.on('npc-selected', (data) => this.handleNpcSelected(socket, data));
     socket.on('user_message', (data) => this.handleUserMessage(socket, data));
     
-    console.log(`✅ [DEBATE] Handlers registered for socket ${socket.id}`);
+    loggers.socket.info(`✅ [DEBATE] Handlers registered for socket ${socket.id}`);
   }
 
   private async handleSendMessage(socket: Socket, data: SendMessageData): Promise<void> {
@@ -45,33 +46,33 @@ export class DebateSocketServer {
         }
       };
 
-      console.log(`🎭 [DEBATE] Message from ${data.sender} in room ${roomId}: ${messageText.substring(0, 50)}...`);
+      loggers.socket.info(`🎭 [DEBATE] Message from ${data.sender} in room ${roomId}: ${messageText.substring(0, 50)}...`);
 
       try {
         const dbMessage: ChatMessage = { ...message, timestamp: message.timestamp as Date };
         await chatRoomDB.addMessage(roomId, dbMessage);
-        console.log(`✅ [DEBATE] Message saved to MongoDB: ${message.id}`);
+        loggers.socket.info(`✅ [DEBATE] Message saved to MongoDB: ${message.id}`);
       } catch (dbError) {
-        console.error('[DEBATE] MongoDB save error:', dbError);
+        loggers.socket.error('[DEBATE] MongoDB save error:', dbError);
       }
 
       socket.broadcast.to(roomId).emit('new-message', {
         roomId: roomId,
         message: message
       });
-      console.log(`📢 [DEBATE] Message broadcasted to room ${roomId}`);
+      loggers.socket.info(`📢 [DEBATE] Message broadcasted to room ${roomId}`);
 
       await this.updateNextSpeaker(roomId);
 
     } catch (error) {
-      console.error('❌ [DEBATE] Send message error:', error);
+      loggers.socket.error('❌ [DEBATE] Send message error:', error);
       socket.emit('error', { message: 'Failed to send message' });
     }
   }
 
   private async handleRequestNextMessage(socket: Socket, data: { roomId: string }): Promise<void> {
     try {
-      console.log(`🔄 [DEBATE] Next message requested for room ${data.roomId}`);
+      loggers.socket.info(`🔄 [DEBATE] Next message requested for room ${data.roomId}`);
 
       // Python
       const response = await fetch(`${API_BASE_URL}/api/chat/debate/${data.roomId}/next-message`, {
@@ -81,7 +82,7 @@ export class DebateSocketServer {
 
       if (response.ok) {
         await response.json();
-        console.log(`✅ [DEBATE] Next message generation initiated for room ${data.roomId}`);
+        loggers.socket.info(`✅ [DEBATE] Next message generation initiated for room ${data.roomId}`);
         
         // Python Socket.IO
         socket.emit('next-message-requested', { 
@@ -93,14 +94,14 @@ export class DebateSocketServer {
       }
 
     } catch (error) {
-      console.error('❌ [DEBATE] Request next message error:', error);
+      loggers.socket.error('❌ [DEBATE] Request next message error:', error);
       socket.emit('error', { message: 'Failed to request next message' });
     }
   }
 
   private async handleNpcSelected(socket: Socket, data: { npc_id: string; roomId: string }): Promise<void> {
     try {
-      console.log(`👤 [DEBATE] NPC selected: ${data.npc_id} in room ${data.roomId}`);
+      loggers.socket.info(`👤 [DEBATE] NPC selected: ${data.npc_id} in room ${data.roomId}`);
 
       socketCore.broadcastToRoom(data.roomId, 'npc-selected', {
         npc_id: data.npc_id,
@@ -113,13 +114,13 @@ export class DebateSocketServer {
       });
 
     } catch (error) {
-      console.error('❌ [DEBATE] NPC selection error:', error);
+      loggers.socket.error('❌ [DEBATE] NPC selection error:', error);
     }
   }
 
   private async handleUserMessage(socket: Socket, data: { message: string; user_id: string }): Promise<void> {
     try {
-      console.log(`💬 [DEBATE] User message from ${data.user_id}: ${data.message.substring(0, 50)}...`);
+      loggers.socket.info(`💬 [DEBATE] User message from ${data.user_id}: ${data.message.substring(0, 50)}...`);
 
       socket.broadcast.emit('user_message', {
         message: data.message,
@@ -127,7 +128,7 @@ export class DebateSocketServer {
       });
 
     } catch (error) {
-      console.error('❌ [DEBATE] User message handling error:', error);
+      loggers.socket.error('❌ [DEBATE] User message handling error:', error);
     }
   }
 
@@ -141,7 +142,7 @@ export class DebateSocketServer {
         return 'neutral';
       }
     } catch (error) {
-      console.error('❌ [DEBATE] Error getting user position:', error);
+      loggers.socket.error('❌ [DEBATE] Error getting user position:', error);
     }
     return 'neutral';
   }
@@ -161,26 +162,26 @@ export class DebateSocketServer {
           nextSpeaker: nextSpeaker
         });
 
-        console.log(`📢 [DEBATE] Next speaker updated: ${nextSpeaker.speaker_id} (${nextSpeaker.role})`);
+        loggers.socket.info(`📢 [DEBATE] Next speaker updated: ${nextSpeaker.speaker_id} (${nextSpeaker.role})`);
       }
     } catch (error) {
-      console.error('❌ [DEBATE] Error updating next speaker:', error);
+      loggers.socket.error('❌ [DEBATE] Error updating next speaker:', error);
     }
   }
 
   // Python (Socket.IO )
   handleIncomingDebateMessage(roomId: string, message: DebateMessage): void {
     try {
-      console.log(`📨 [DEBATE] Incoming message from Python backend: ${message.sender}`);
+      loggers.socket.info(`📨 [DEBATE] Incoming message from Python backend: ${message.sender}`);
 
       socketCore.broadcastToRoom(roomId, 'new-message', {
         roomId: roomId,
         message: message
       });
 
-      console.log(`✅ [DEBATE] Backend message broadcasted to room ${roomId}`);
+      loggers.socket.info(`✅ [DEBATE] Backend message broadcasted to room ${roomId}`);
     } catch (error) {
-      console.error('❌ [DEBATE] Error handling incoming message:', error);
+      loggers.socket.error('❌ [DEBATE] Error handling incoming message:', error);
     }
   }
 }

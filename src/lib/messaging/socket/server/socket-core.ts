@@ -3,6 +3,7 @@ import type { Server as HTTPServer } from 'http';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { Socket } from 'net';
 import { ConnectedUser } from '../../types/common.types';
+import { loggers } from '@/utils/logger';
 
 interface SocketServer extends HTTPServer {
   io?: Server;
@@ -23,7 +24,7 @@ export class SocketCore {
 
   initializeServer(req: NextApiRequest, res: NextApiResponseWithSocket): Server {
     if (!res.socket.server.io) {
-      console.log('🔌 Socket.IO server initializing...');
+      loggers.socket.info('🔌 Socket.IO server initializing...');
       
       const io = new Server(res.socket.server as SocketServer, {
         path: '/api/socket/io',
@@ -44,7 +45,7 @@ export class SocketCore {
       res.socket.server.io = io;
       this.io = io;
       
-      console.log('✅ Socket.IO server initialized with path: /api/socket/io');
+      loggers.socket.info('✅ Socket.IO server initialized with path: /api/socket/io');
     } else {
       this.io = res.socket.server.io;
     }
@@ -105,19 +106,19 @@ export class SocketCore {
   }
 
   logConnection(socketId: string): void {
-    console.log(`🔗 New client connected: ${socketId}`);
+    loggers.socket.info(`🔗 New client connected: ${socketId}`);
   }
 
   logDisconnection(socketId: string): void {
-    console.log(`❌ Client disconnected: ${socketId}`);
+    loggers.socket.info(`❌ Client disconnected: ${socketId}`);
   }
 
   logRoomJoin(username: string, roomId: string): void {
-    console.log(`👤 User ${username} joined room ${roomId}`);
+    loggers.socket.info(`👤 User ${username} joined room ${roomId}`);
   }
 
   logRoomLeave(username: string, roomId: string): void {
-    console.log(`👋 User ${username} left room ${roomId}`);
+    loggers.socket.info(`👋 User ${username} left room ${roomId}`);
   }
 }
 

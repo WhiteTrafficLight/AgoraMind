@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { loggers } from '@/utils/logger';
 
 let isConnected = false;
 
@@ -22,9 +23,9 @@ export const connectDB = async () => {
     await mongoose.connect(MONGODB_URI, options);
     
     isConnected = true;
-    console.log('MongoDB connected successfully');
+    loggers.db.info('MongoDB connected successfully');
   } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
+    loggers.db.error('Error connecting to MongoDB:', error);
     throw error;
   }
 }; 

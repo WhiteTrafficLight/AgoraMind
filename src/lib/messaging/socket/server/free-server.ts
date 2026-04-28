@@ -5,6 +5,7 @@ import type { ChatMessage, ChatRoom } from '@/lib/ai/chatService';
 import { SendMessageData } from '../../types/common.types';
 import chatRoomDB from '@/lib/db/chatRoomDB';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 export class FreeSocketServer {
   
@@ -14,14 +15,14 @@ export class FreeSocketServer {
     socket.removeAllListeners('auto-conversation-start');
     socket.removeAllListeners('auto-conversation-stop');
     
-    console.log(`🔧 [FREE] Registering fresh handlers for socket ${socket.id}`);
+    loggers.socket.info(`🔧 [FREE] Registering fresh handlers for socket ${socket.id}`);
     
     socket.on('send-message', (data: SendMessageData) => this.handleSendMessage(socket, data));
     
     socket.on('auto-conversation-start', (data) => this.handleAutoConversationStart(socket, data));
     socket.on('auto-conversation-stop', (data) => this.handleAutoConversationStop(socket, data));
     
-    console.log(`✅ [FREE] Handlers registered for socket ${socket.id}`);
+    loggers.socket.info(`✅ [FREE] Handlers registered for socket ${socket.id}`);
   }
 
   private async handleSendMessage(socket: Socket, data: SendMessageData): Promise<void> {
@@ -41,45 +42,45 @@ export class FreeSocketServer {
         }
       };
 
-      console.log(`💬 [FREE] Message from ${data.sender} in room ${roomId}: ${messageText.substring(0, 50)}...`);
+      loggers.socket.info(`💬 [FREE] Message from ${data.sender} in room ${roomId}: ${messageText.substring(0, 50)}...`);
 
       try {
         const dbMessage: ChatMessage = { ...message, timestamp: message.timestamp as Date };
         await chatRoomDB.addMessage(roomId, dbMessage);
-        console.log(`✅ [FREE] Message saved to MongoDB: ${message.id}`);
+        loggers.socket.info(`✅ [FREE] Message saved to MongoDB: ${message.id}`);
       } catch (dbError) {
-        console.error('[FREE] MongoDB save error:', dbError);
+        loggers.socket.error('[FREE] MongoDB save error:', dbError);
       }
 
       socket.broadcast.to(roomId).emit('new-message', {
         roomId: roomId,
         message: message
       });
-      console.log(`📢 [FREE] Message broadcasted to room ${roomId}`);
+      loggers.socket.info(`📢 [FREE] Message broadcasted to room ${roomId}`);
 
       if (message.isUser) {
         await this.generateAIResponse(roomId, message);
       }
 
     } catch (error) {
-      console.error('❌ [FREE] Send message error:', error);
+      loggers.socket.error('❌ [FREE] Send message error:', error);
       socket.emit('error', { message: 'Failed to send message' });
     }
   }
 
   private async generateAIResponse(roomId: string, userMessage: FreeMessage): Promise<void> {
     try {
-      console.log(`🤖 [FREE] Generating AI response for room ${roomId}`);
+      loggers.socket.info(`🤖 [FREE] Generating AI response for room ${roomId}`);
 
       const room = await chatRoomDB.getChatRoomById(roomId);
       if (!room) {
-        console.error(`❌ [FREE] Room not found: ${roomId}`);
+        loggers.socket.error(`❌ [FREE] Room not found: ${roomId}`);
         return;
       }
 
       const isAutoActive = await this.checkAutoConversationStatus(roomId);
       if (isAutoActive) {
-        console.log(`🔍 [FREE] Auto conversation active - skipping manual AI response`);
+        loggers.socket.info(`🔍 [FREE] Auto conversation active - skipping manual AI response`);
         return;
       }
 
@@ -90,11 +91,11 @@ export class FreeSocketServer {
           roomId: roomId,
           message: response
         });
-        console.log(`✅ [FREE] AI response broadcasted to room ${roomId}`);
+        loggers.socket.info(`✅ [FREE] AI response broadcasted to room ${roomId}`);
       }
 
     } catch (error) {
-      console.error('❌ [FREE] AI response generation error:', error);
+      loggers.socket.error('❌ [FREE] AI response generation error:', error);
     }
   }
 
@@ -147,7 +148,7 @@ export class FreeSocketServer {
 
       return null;
     } catch (error) {
-      console.error('❌ [FREE] Python API request failed:', error);
+      loggers.socket.error('❌ [FREE] Python API request failed:', error);
       return null;
     }
   }
@@ -160,14 +161,14 @@ export class FreeSocketServer {
         return data.active === true;
       }
     } catch (error) {
-      console.error('❌ [FREE] Auto conversation status check failed:', error);
+      loggers.socket.error('❌ [FREE] Auto conversation status check failed:', error);
     }
     return false;
   }
 
   private async handleAutoConversationStart(socket: Socket, data: { roomId: string; npcs: string[] }): Promise<void> {
     try {
-      console.log(`🔄 [FREE] Starting auto conversation in room ${data.roomId}`);
+      loggers.socket.info(`🔄 [FREE] Starting auto conversation in room ${data.roomId}`);
       
       // Python
       const response = await fetch(`${API_BASE_URL}/api/auto-conversation`, {
@@ -184,16 +185,16 @@ export class FreeSocketServer {
           roomId: data.roomId,
           isActive: true
         });
-        console.log(`✅ [FREE] Auto conversation started in room ${data.roomId}`);
+        loggers.socket.info(`✅ [FREE] Auto conversation started in room ${data.roomId}`);
       }
     } catch (error) {
-      console.error('❌ [FREE] Auto conversation start failed:', error);
+      loggers.socket.error('❌ [FREE] Auto conversation start failed:', error);
     }
   }
 
   private async handleAutoConversationStop(socket: Socket, data: { roomId: string }): Promise<void> {
     try {
-      console.log(`⏹️ [FREE] Stopping auto conversation in room ${data.roomId}`);
+      loggers.socket.info(`⏹️ [FREE] Stopping auto conversation in room ${data.roomId}`);
       
       const response = await fetch(`${API_BASE_URL}/api/auto-conversation`, {
         method: 'DELETE',
@@ -206,10 +207,10 @@ export class FreeSocketServer {
           roomId: data.roomId,
           isActive: false
         });
-        console.log(`✅ [FREE] Auto conversation stopped in room ${data.roomId}`);
+        loggers.socket.info(`✅ [FREE] Auto conversation stopped in room ${data.roomId}`);
       }
     } catch (error) {
-      console.error('❌ [FREE] Auto conversation stop failed:', error);
+      loggers.socket.error('❌ [FREE] Auto conversation stop failed:', error);
     }
   }
 }

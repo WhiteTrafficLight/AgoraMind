@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Header from '@/components/ui/Header';
+import { loggers } from '@/utils/logger';
 
 // Define podcast interface
 interface PodcastParticipant {
@@ -49,7 +50,7 @@ export default function PodcastPage() {
         const data = await response.json();
         setPodcasts(data.podcasts || []);
       } catch (error) {
-        console.error('Error fetching podcasts:', error);
+        loggers.ui.error('Error fetching podcasts:', error);
         setError('Failed to load podcasts. Please try again later.');
       } finally {
         setIsLoading(false);
@@ -80,7 +81,7 @@ export default function PodcastPage() {
         currentSegmentIndex++;
         if (currentSegmentIndex < podcast.segments.length) {
           audio.src = podcast.segments[currentSegmentIndex].filename;
-          audio.play().catch(err => console.error('Error playing audio:', err));
+          audio.play().catch(err => loggers.ui.error('Error playing audio:', err));
         } else {
           // Playlist finished
           setIsPlaying(false);
@@ -88,7 +89,7 @@ export default function PodcastPage() {
       });
       
       // Start playing
-      audio.play().catch(err => console.error('Error playing audio:', err));
+      audio.play().catch(err => loggers.ui.error('Error playing audio:', err));
       setCurrentAudio(audio);
       setIsPlaying(true);
     }

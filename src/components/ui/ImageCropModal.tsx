@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactCrop, { type Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { loggers } from '@/utils/logger';
 
 interface ImageCropModalProps {
   isOpen: boolean;
@@ -96,7 +97,7 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
       onSave(croppedImageBase64);
       onClose();
     } catch (error) {
-      console.error('Error cropping image:', error);
+      loggers.ui.error('Error cropping image:', error);
     } finally {
       setLoading(false);
     }

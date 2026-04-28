@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import ProfileDrawer from './ProfileDrawer';
 import NavigationDrawer from './NavigationDrawer';
+import { loggers } from '@/utils/logger';
 
 interface UserProfile {
   profileImage?: string | null;
@@ -31,7 +32,7 @@ const Header = () => {
             setUserProfile(data);
           }
         } catch (error) {
-          console.error('Error fetching user profile:', error);
+          loggers.ui.error('Error fetching user profile:', error);
         }
       }
     };
