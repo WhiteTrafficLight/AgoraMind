@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -172,11 +173,28 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-6">
               {/* Profile Section */}
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-gray-200">
+                <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-gray-200 relative">
                   {userProfile.profileImage ? (
-                    <img src={userProfile.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    // S3 hostname is bucket-specific (env-driven), so skip
+                    // domain-list optimization rather than wildcarding
+                    // *.amazonaws.com in next.config.
+                    <Image
+                      src={userProfile.profileImage}
+                      alt="Profile"
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                      unoptimized
+                    />
                   ) : (
-                    <img src="/api/user/default-avatar" alt="Default Avatar" className="w-full h-full object-cover" />
+                    <Image
+                      src="/api/user/default-avatar"
+                      alt="Default Avatar"
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                      unoptimized
+                    />
                   )}
                 </div>
                 <button
