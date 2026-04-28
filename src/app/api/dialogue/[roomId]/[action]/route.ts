@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 interface RouteContext {
   params: Promise<{ roomId: string; action: string }>;
@@ -18,7 +19,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     }
     return NextResponse.json(await response.json());
   } catch (error) {
-    console.error(`Error in GET dialogue/${roomId}/${action}:`, error);
+    loggers.chat.error(`Error in GET dialogue/${roomId}/${action}:`, error);
     return NextResponse.json(
       {
         error: 'Internal Server Error',
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     }
     return NextResponse.json(await response.json());
   } catch (error) {
-    console.error(`Error in POST dialogue/${roomId}/${action}:`, error);
+    loggers.chat.error(`Error in POST dialogue/${roomId}/${action}:`, error);
     return NextResponse.json(
       {
         error: 'Internal Server Error',

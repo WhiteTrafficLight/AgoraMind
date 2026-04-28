@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
+import { loggers } from '@/utils/logger';
 
 // Define interfaces  our DB objects
 interface DBMessage {
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    console.log(`🔍 [GET] Loading messages  room "${normalizedRoomId}"`);
+    loggers.chat.info(`🔍 [GET] Loading messages  room "${normalizedRoomId}"`);
     
     await connectDB();
     
@@ -109,7 +110,7 @@ export async function GET(req: NextRequest) {
       .sort({ timestamp: 1 })
       .lean();
     
-    console.log(`✅ [GET] Found ${messages.length} messages  room "${normalizedRoomId}"`);
+    loggers.chat.info(`✅ [GET] Found ${messages.length} messages  room "${normalizedRoomId}"`);
     
     return NextResponse.json({
       success: true,
@@ -118,7 +119,7 @@ export async function GET(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('❌ [GET] Error loading messages:', error);
+    loggers.chat.error('❌ [GET] Error loading messages:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -128,16 +129,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🔄 Processing message POST request');
+    loggers.chat.info('🔄 Processing message POST request');
     
     const body = await req.json();
     const { roomId, message, isInitial = false } = body;
     
-    console.log(`Message details - RoomID: ${roomId}, IsInitial: ${isInitial}`);
-    console.log(`Sender: ${message?.sender}, Length: ${message?.text?.length || 0}`);
+    loggers.chat.info(`Message details - RoomID: ${roomId}, IsInitial: ${isInitial}`);
+    loggers.chat.info(`Sender: ${message?.sender}, Length: ${message?.text?.length || 0}`);
     
     if (!roomId) {
-      console.error('❌ Missing required field: roomId');
+      loggers.chat.error('❌ Missing required field: roomId');
       return NextResponse.json(
         { error: 'Missing required field: roomId' },
         { status: 400 }
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
     }
     
     if (!message || !message.text || !message.sender) {
-      console.error('❌ Missing required message fields:', message);
+      loggers.chat.error('❌ Missing required message fields:', message);
       return NextResponse.json(
         { error: 'Message must include text and sender' },
         { status: 400 }
@@ -154,7 +155,7 @@ export async function POST(req: NextRequest) {
     
     // Empty message validation
     if (!message.text.trim()) {
-      console.error('❌ Empty message rejected');
+      loggers.chat.error('❌ Empty message rejected');
       return NextResponse.json(
         { error: 'Empty messages are not allowed' },
         { status: 400 }
@@ -163,9 +164,9 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
     
-    console.log('[DEBUG] MongoDB connection status:');
-    console.log('🔍 [DEBUG] - DB Name:', mongoose.connection.db?.databaseName);
-    console.log('🔍 [DEBUG] - Connection State:', mongoose.connection.readyState);
+    loggers.chat.info('[DEBUG] MongoDB connection status:');
+    loggers.chat.info('🔍 [DEBUG] - DB Name:', mongoose.connection.db?.databaseName);
+    loggers.chat.info('🔍 [DEBUG] - Connection State:', mongoose.connection.readyState);
     
     // chatMessages
     const ChatMessageModel = mongoose.models.chatMessages || 
@@ -174,13 +175,13 @@ export async function POST(req: NextRequest) {
     if (mongoose.connection && mongoose.connection.db) {
       const collections = await mongoose.connection.db.listCollections().toArray();
       const collectionNames = collections.map(c => c.name);
-      console.log('[DEBUG] Available collections:', collectionNames.join(', '));
+      loggers.chat.info('[DEBUG] Available collections:', collectionNames.join(', '));
     }
 
     // roomId
     const normalizedRoomId = String(roomId).trim();
     if (!normalizedRoomId) {
-      console.error('❌ Invalid roomId format:', roomId);
+      loggers.chat.error('❌ Invalid roomId format:', roomId);
       return NextResponse.json(
         { error: 'Invalid roomId format' },
         { status: 400 }
@@ -189,7 +190,7 @@ export async function POST(req: NextRequest) {
 
     const existingMessage = await ChatMessageModel.findOne({ messageId: message.id });
     if (existingMessage) {
-      console.log(`⚠️ Duplicate message ID detected: ${message.id}, skipping save`);
+      loggers.chat.info(`⚠️ Duplicate message ID detected: ${message.id}, skipping save`);
       return NextResponse.json({ 
         success: true, 
         message: 'Message already exists, no changes made'
@@ -213,46 +214,46 @@ export async function POST(req: NextRequest) {
     };
     
     if (message.citations && Array.isArray(message.citations) && message.citations.length > 0) {
-      console.log('📚 Citations data found:', JSON.stringify(message.citations));
+      loggers.chat.info('📚 Citations data found:', JSON.stringify(message.citations));
       newMessage.citations = message.citations;
     }
     
-    console.log('[DEBUG] Message to save:');
-    console.log('🔍 [DEBUG] - MessageID:', newMessage.messageId);
-    console.log('🔍 [DEBUG] - RoomID:', newMessage.roomId);
-    console.log('🔍 [DEBUG] - Sender:', newMessage.sender);
-    console.log('🔍 [DEBUG] - Role:', newMessage.role);
-    console.log('🔍 [DEBUG] - SenderType:', newMessage.senderType);
-    console.log('🔍 [DEBUG] - Stage:', newMessage.stage);
+    loggers.chat.info('[DEBUG] Message to save:');
+    loggers.chat.info('🔍 [DEBUG] - MessageID:', newMessage.messageId);
+    loggers.chat.info('🔍 [DEBUG] - RoomID:', newMessage.roomId);
+    loggers.chat.info('🔍 [DEBUG] - Sender:', newMessage.sender);
+    loggers.chat.info('🔍 [DEBUG] - Role:', newMessage.role);
+    loggers.chat.info('🔍 [DEBUG] - SenderType:', newMessage.senderType);
+    loggers.chat.info('🔍 [DEBUG] - Stage:', newMessage.stage);
 
     // chatMessages
     try {
       const savedMessage = await ChatMessageModel.create(newMessage);
-      console.log(`✅ Message saved to chatMessages collection with _id: ${savedMessage._id}`);
+      loggers.chat.info(`✅ Message saved to chatMessages collection with _id: ${savedMessage._id}`);
       
-      console.log('[VERIFY] Verifying in DB immediately after save...');
+      loggers.chat.info('[VERIFY] Verifying in DB immediately after save...');
       const verifyMessage = await ChatMessageModel.findOne({ messageId: message.id });
       if (verifyMessage) {
-        console.log('[VERIFY] Message save verified');
-        console.log('🔍 [VERIFY] - _id:', verifyMessage._id);
-        console.log('🔍 [VERIFY] - messageId:', verifyMessage.messageId);
-        console.log('🔍 [VERIFY] - roomId:', verifyMessage.roomId);
-        console.log('🔍 [VERIFY] - role:', verifyMessage.role);
-        console.log('🔍 [VERIFY] - senderType:', verifyMessage.senderType);
-        console.log('🔍 [VERIFY] - stage:', verifyMessage.stage);
+        loggers.chat.info('[VERIFY] Message save verified');
+        loggers.chat.info('🔍 [VERIFY] - _id:', verifyMessage._id);
+        loggers.chat.info('🔍 [VERIFY] - messageId:', verifyMessage.messageId);
+        loggers.chat.info('🔍 [VERIFY] - roomId:', verifyMessage.roomId);
+        loggers.chat.info('🔍 [VERIFY] - role:', verifyMessage.role);
+        loggers.chat.info('🔍 [VERIFY] - senderType:', verifyMessage.senderType);
+        loggers.chat.info('🔍 [VERIFY] - stage:', verifyMessage.stage);
       } else {
-        console.error('[VERIFY] Message not found after save!');
+        loggers.chat.error('[VERIFY] Message not found after save!');
       }
       
       const totalMessages = await ChatMessageModel.countDocuments({ roomId: normalizedRoomId });
-      console.log(`📊 room "${normalizedRoomId}"'s total message count: ${totalMessages}items`);
+      loggers.chat.info(`📊 room "${normalizedRoomId}"'s total message count: ${totalMessages}items`);
       
     } catch (dbError) {
-      console.error('chatMessages save error:', dbError);
+      loggers.chat.error('chatMessages save error:', dbError);
       throw dbError;
     }
     
-    console.log(`✅ Message saved to chatMessages collection  room "${normalizedRoomId}"`);
+    loggers.chat.info(`✅ Message saved to chatMessages collection  room "${normalizedRoomId}"`);
 
     return NextResponse.json({ 
       success: true, 
@@ -260,7 +261,7 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('❌ Error processing message:', error);
+    loggers.chat.error('❌ Error processing message:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

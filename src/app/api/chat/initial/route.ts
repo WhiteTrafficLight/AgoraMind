@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { philosopherProfiles } from '@/lib/data/philosophers';
+import { loggers } from '@/utils/logger';
 
 const BACKEND_API_URL = 'http://0.0.0.0:8000';
 
@@ -50,7 +51,7 @@ ${npcData.reference_philosophers && npcData.reference_philosophers.length > 0 ?
   } else {
     const profile = philosopherProfiles[philosopher.toLowerCase()];
     if (!profile) {
-      console.error(`❌ Philosopher profile not found for: ${philosopher}`);
+      loggers.chat.error(`❌ Philosopher profile not found for: ${philosopher}`);
       description = `Name: ${philosopher}
 Role: Philosopher
 Voice Style: balanced
@@ -78,7 +79,7 @@ Just provide your philosophical response directly.`;
 function generateFallbackResponse(topic: string, dialogueType?: string): NextResponse {
   // Debate fallback
   if (dialogueType === 'debate') {
-    console.log('Skipping fallback response in debate type');
+    loggers.chat.info('Skipping fallback response in debate type');
     return NextResponse.json({ text: '' });
   }
   
@@ -110,7 +111,7 @@ function generateFallbackResponse(topic: string, dialogueType?: string): NextRes
   const languageResponses = fallbackResponses[topicLanguage] || fallbackResponses['English'];
   
   const randomResponse = languageResponses[Math.floor(Math.random() * languageResponses.length)];
-  console.log(`⚠️ Using fallback response due to backend error`);
+  loggers.chat.info(`⚠️ Using fallback response due to backend error`);
   return NextResponse.json({ text: randomResponse });
 }
 
@@ -118,17 +119,17 @@ export async function POST(req: NextRequest) {
   try {
     const { philosopher, topic, context, npcData } = await req.json();
 
-    console.log(`💬 Generating initial message  ${philosopher} on topic: ${topic}`);
+    loggers.chat.info(`💬 Generating initial message  ${philosopher} on topic: ${topic}`);
     
     // LLM
     const llmProvider = req.headers.get('x-llm-provider') || 'openai';
     const llmModel = req.headers.get('x-llm-model') || '';
 
     const topicLanguage = detectLanguage(topic);
-    console.log(`Detected language: ${topicLanguage}`);
+    loggers.chat.info(`Detected language: ${topicLanguage}`);
 
     const isCustomNpc = npcData && Object.keys(npcData).length > 0;
-    console.log(`Using ${isCustomNpc ? 'custom' : 'default'} NPC data`);
+    loggers.chat.info(`Using ${isCustomNpc ? 'custom' : 'default'} NPC data`);
 
     const npcDescription = prepareNpcDescription(philosopher, npcData, isCustomNpc, topicLanguage);
     
@@ -139,7 +140,7 @@ export async function POST(req: NextRequest) {
     
     while (retryCount < MAX_RETRIES) {
       try {
-        console.log(`🔄 Calling backend API (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        loggers.chat.info(`🔄 Calling backend API (attempt ${retryCount + 1}/${MAX_RETRIES})`);
         
         const backendResponse = await fetch(`${BACKEND_API_URL}/api/chat/generate`, {
           method: 'POST',
@@ -166,7 +167,7 @@ export async function POST(req: NextRequest) {
         break;
       } catch (error) {
         retryCount++;
-        console.error(`Backend API error (attempt ${retryCount}/${MAX_RETRIES}):`, error);
+        loggers.chat.error(`Backend API error (attempt ${retryCount}/${MAX_RETRIES}):`, error);
         
         if (retryCount >= MAX_RETRIES) {
           throw error;
@@ -181,7 +182,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({ text: generatedText });
   } catch (error: unknown) {
-    console.error('Error in POST /api/chat/initial:', error);
+    loggers.chat.error('Error in POST /api/chat/initial:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

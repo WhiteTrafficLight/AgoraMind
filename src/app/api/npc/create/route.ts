@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/authOptions';
 import connectDB from '@/lib/mongodb';
 import CustomNpc from '@/models/Npc';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { loggers } from '@/utils/logger';
 
 /**
  * POST /api/npc/create
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     
     const npcData = await req.json();
     
-    console.log('Creating custom NPC for user:', userId);
+    loggers.npc.info('Creating custom NPC for user:', userId);
     
     const enrichedNpcData = {
       ...npcData,
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     // 1. sapiens_engine API NPC
     // : sapiens_engine API .
     try {
-      console.log('Calling backend to create NPC');
+      loggers.npc.info('Calling backend to create NPC');
       const backendResponse = await fetch(`${API_BASE_URL}/api/npc/create`, {
         method: 'POST',
         headers: {
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
         ...enrichedNpcData
       });
       
-      console.log('NPC created successfully with ID:', npcId);
+      loggers.npc.info('NPC created successfully with ID:', npcId);
       
       return NextResponse.json({
         message: 'Custom philosopher created successfully',
@@ -68,9 +69,9 @@ export async function POST(req: NextRequest) {
         npc: savedNpc
       });
     } catch (backendError) {
-      console.error('Error creating NPC on backend:', backendError);
+      loggers.npc.error('Error creating NPC on backend:', backendError);
       
-      console.log('Using fallback local NPC creation');
+      loggers.npc.info('Using fallback local NPC creation');
       
       const temporaryNpcId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
         pending_sync: true
       });
       
-      console.log('NPC created locally with temporary ID:', temporaryNpcId);
+      loggers.npc.info('NPC created locally with temporary ID:', temporaryNpcId);
       
       return NextResponse.json({
         message: 'Custom philosopher created locally. Sync with backend pending.',
@@ -92,7 +93,7 @@ export async function POST(req: NextRequest) {
       });
     }
   } catch (error) {
-    console.error('Error in NPC creation API:', error);
+    loggers.npc.error('Error in NPC creation API:', error);
     return NextResponse.json(
       { message: error instanceof Error ? error.message : 'Failed to create custom philosopher' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { loggers } from '@/utils/logger';
 
 // Handler to serve the default avatar image
 export async function GET(req: NextRequest) {
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error serving default avatar:', error);
+    loggers.api.error('Error serving default avatar:', error);
     return NextResponse.json({ error: 'Failed to serve default avatar' }, { status: 500 });
   }
 } 

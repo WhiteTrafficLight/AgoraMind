@@ -5,6 +5,7 @@ import User from '@/models/User';
 import connectDB from '@/lib/mongodb';
 import { revalidatePath } from 'next/cache';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { loggers } from '@/utils/logger';
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'ap-northeast-2',
@@ -58,7 +59,7 @@ function removeMetadata(buffer: Buffer): Buffer {
 
 // POST: Upload profile image with client-side security
 export async function POST(req: NextRequest) {
-  console.log('[Profile Image API] Request started');
+  loggers.api.info('[Profile Image API] Request started');
   
   try {
     const requiredEnvVars = {
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
       MONGODB_URI: process.env.MONGODB_URI
     };
     
-    console.log('[Profile Image API] Env vars check:', {
+    loggers.api.info('[Profile Image API] Env vars check:', {
       AWS_S3_BUCKET: !!requiredEnvVars.AWS_S3_BUCKET,
       AWS_ACCESS_KEY_ID: !!requiredEnvVars.AWS_ACCESS_KEY_ID,
       AWS_SECRET_ACCESS_KEY: !!requiredEnvVars.AWS_SECRET_ACCESS_KEY,
@@ -82,65 +83,65 @@ export async function POST(req: NextRequest) {
       .map(([key]) => key);
     
     if (missingEnvVars.length > 0) {
-      console.error('[Profile Image API] Missing env vars:', missingEnvVars);
+      loggers.api.error('[Profile Image API] Missing env vars:', missingEnvVars);
       return NextResponse.json({ 
         error: 'Server configuration error', 
         details: `Missing environment variables: ${missingEnvVars.join(', ')}` 
       }, { status: 500 });
     }
     
-    console.log('[Profile Image API] Verifying session...');
+    loggers.api.info('[Profile Image API] Verifying session...');
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      console.error('[Profile Image API] Unauthenticated user');
+      loggers.api.error('[Profile Image API] Unauthenticated user');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
     
-    console.log('[Profile Image API] Session verified:', session.user.email);
+    loggers.api.info('[Profile Image API] Session verified:', session.user.email);
     
-    console.log('[Profile Image API] Parsing request data...');
+    loggers.api.info('[Profile Image API] Parsing request data...');
     const data = await req.json();
     const { image, format } = data;
     
     if (!image) {
-      console.error('[Profile Image API] No image data');
+      loggers.api.error('[Profile Image API] No image data');
       return NextResponse.json({ error: 'Image data is required' }, { status: 400 });
     }
     
-    console.log('[Profile Image API] Image data verified');
+    loggers.api.info('[Profile Image API] Image data verified');
     
-    console.log('[Profile Image API] Connecting to MongoDB...');
+    loggers.api.info('[Profile Image API] Connecting to MongoDB...');
     await connectDB();
-    console.log('[Profile Image API] Connected to MongoDB');
+    loggers.api.info('[Profile Image API] Connected to MongoDB');
     
     // Find the user to get their ID
-    console.log('🔧 [Profile Image API] User lookup in progress:', session.user.email);
+    loggers.api.info('🔧 [Profile Image API] User lookup in progress:', session.user.email);
     const user = await User.findOne({ email: session.user.email });
     
     if (!user) {
-      console.error('[Profile Image API] User not found:', session.user.email);
+      loggers.api.error('[Profile Image API] User not found:', session.user.email);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    console.log('[Profile Image API] User lookup complete:', user._id);
+    loggers.api.info('[Profile Image API] User lookup complete:', user._id);
     
     try {
-      console.log('[Profile Image API] Image processing started...');
+      loggers.api.info('[Profile Image API] Image processing started...');
       
       // Remove the data:image/...;base64, prefix
       const base64Data = image.replace(/^data:image\/[^;]+;base64,/, '');
       
       if (!validateImageSecurity(base64Data)) {
-        console.error('[Profile Image API] Image security validation failed');
+        loggers.api.error('[Profile Image API] Image security validation failed');
         return NextResponse.json({ error: 'Invalid or unsafe image file' }, { status: 400 });
       }
       
-      console.log('[Profile Image API] Image security check passed');
+      loggers.api.info('[Profile Image API] Image security check passed');
       
       // Convert base64 to buffer
       const buffer = Buffer.from(base64Data, 'base64');
-      console.log('[Profile Image API] Image buffer converted, size:', buffer.length);
+      loggers.api.info('[Profile Image API] Image buffer converted, size:', buffer.length);
       
       const cleanBuffer = removeMetadata(buffer);
       
@@ -166,9 +167,9 @@ export async function POST(req: NextRequest) {
       }
       
       const fileName = `users/profiles/user_${user._id}_${Date.now()}.${detectedFormat}`;
-      console.log('✅ [Profile Image API] Filename generated:', fileName);
+      loggers.api.info('✅ [Profile Image API] Filename generated:', fileName);
       
-      console.log('[Profile Image API] S3 upload starting...');
+      loggers.api.info('[Profile Image API] S3 upload starting...');
       
       // S3 ( : AWS_S3_BUCKET )
       const uploadParams = {
@@ -185,13 +186,13 @@ export async function POST(req: NextRequest) {
       
       const command = new PutObjectCommand(uploadParams);
       await s3Client.send(command);
-      console.log('[Profile Image API] S3 upload complete');
+      loggers.api.info('[Profile Image API] S3 upload complete');
       
       // S3 URL ( )
       const imageUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'ap-northeast-2'}.amazonaws.com/${fileName}`;
-      console.log('[Profile Image API] S3 URL generated:', imageUrl);
+      loggers.api.info('[Profile Image API] S3 URL generated:', imageUrl);
       
-      console.log('[Profile Image API] Database update started...');
+      loggers.api.info('[Profile Image API] Database update started...');
       
       // Update the user profile in the database (MONGODB_URI connectDB() )
       const updatedUser = await User.findOneAndUpdate(
@@ -201,15 +202,15 @@ export async function POST(req: NextRequest) {
       ).select('-password');
       
       if (!updatedUser) {
-        console.error('[Profile Image API] User profile update failed');
+        loggers.api.error('[Profile Image API] User profile update failed');
         return NextResponse.json({ error: 'Failed to update user profile' }, { status: 500 });
       }
       
-      console.log('[Profile Image API] Database update complete');
+      loggers.api.info('[Profile Image API] Database update complete');
       
       revalidatePath('/settings');
       
-      console.log('✅ [Profile Image API] Pipeline complete');
+      loggers.api.info('✅ [Profile Image API] Pipeline complete');
       
       return NextResponse.json({
         message: 'Profile image updated successfully',
@@ -223,14 +224,14 @@ export async function POST(req: NextRequest) {
         }
       });
     } catch (error) {
-      console.error('❌ [Profile Image API] Error processing image:', error);
+      loggers.api.error('❌ [Profile Image API] Error processing image:', error);
       return NextResponse.json({ 
         error: 'Failed to process image',
         details: error instanceof Error ? error.message : 'Unknown error'
       }, { status: 500 });
     }
   } catch (error) {
-    console.error('[Profile Image API] Pipeline error:', error);
+    loggers.api.error('[Profile Image API] Pipeline error:', error);
     return NextResponse.json({ 
       error: 'Failed to upload profile image',
       details: error instanceof Error ? error.message : 'Unknown error'

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { loggers } from '@/utils/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
             segments: metadata.segments
           };
         } catch (error) {
-          console.error(`Error reading metadata for podcast ${dir}:`, error);
+          loggers.api.error(`Error reading metadata for podcast ${dir}:`, error);
           return null;
         }
       }
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ podcasts });
   } catch (error: unknown) {
-    console.error('Error listing podcasts:', error);
+    loggers.api.error('Error listing podcasts:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to list podcasts' },
       { status: 500 }

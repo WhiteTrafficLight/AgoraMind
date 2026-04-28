@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { loggers } from '@/utils/logger';
 
 // Define types
 interface Speaker {
@@ -194,7 +195,7 @@ export async function POST(request: NextRequest) {
           await delay(500);
         }
       } catch (error) {
-        console.error(`Error processing segment ${index}:`, error);
+        loggers.api.error(`Error processing segment ${index}:`, error);
         // Continue with next segment even if this one fails
       }
     }
@@ -228,7 +229,7 @@ export async function POST(request: NextRequest) {
       segments: audioSegments.map(s => s.filename)
     });
   } catch (error: unknown) {
-    console.error('Error generating podcast:', error);
+    loggers.api.error('Error generating podcast:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate podcast' },
       { status: 500 }

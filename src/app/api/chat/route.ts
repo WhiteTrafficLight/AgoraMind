@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import { loggers } from '@/utils/logger';
 
 // .env.local API
 function loadEnvLocal() {
@@ -12,7 +13,7 @@ function loadEnvLocal() {
     
     // .env.local
     if (fs.existsSync(envPath)) {
-      console.log('.env.local file found.');
+      loggers.chat.info('.env.local file found.');
       const fileContent = fs.readFileSync(envPath, 'utf-8');
       const vars = fileContent.split('\n')
         .filter(line => line && !line.startsWith('#'))
@@ -24,14 +25,14 @@ function loadEnvLocal() {
           return acc;
         }, {} as Record<string, string>);
       
-      console.log('Configuration loaded from .env.local.');
+      loggers.chat.info('Configuration loaded from .env.local.');
       return vars;
     } else {
-      console.error('.env.local file not found.');
+      loggers.chat.error('.env.local file not found.');
       return {};
     }
   } catch (error) {
-    console.error('Error loading .env.local file:', error);
+    loggers.chat.error('Error loading .env.local file:', error);
     return {};
   }
 }
@@ -41,8 +42,8 @@ const envVars = loadEnvLocal();
 
 // API Key - .env.local
 const apiKey = envVars.OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
-console.log('API Key source:', apiKey === envVars.OPENAI_API_KEY ? '.env.local file' : 'system environment variable');
-console.log('API Key check:', apiKey ? `${apiKey.substring(0, 7)}...${apiKey.substring(apiKey.length - 4)}` : 'MISSING');
+loggers.chat.info('API Key source:', apiKey === envVars.OPENAI_API_KEY ? '.env.local file' : 'system environment variable');
+loggers.chat.info('API Key check:', apiKey ? `${apiKey.substring(0, 7)}...${apiKey.substring(apiKey.length - 4)}` : 'MISSING');
 
 // Define philosopher profile type
 interface PhilosopherProfile {
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
     
     // API -
     if (!effectiveApiKey) {
-      console.error("❌ OpenAI API key is not set (neither in headers nor in environment)");
+      loggers.chat.error("❌ OpenAI API key is not set (neither in headers nor in environment)");
       return NextResponse.json(
         { error: "OpenAI API key is not configured" },
         { status: 500 }
@@ -139,14 +140,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (effectiveApiKey.length < 20) {
-      console.error("❌ OpenAI API key appears to be invalid (too short)");
+      loggers.chat.error("❌ OpenAI API key appears to be invalid (too short)");
       return NextResponse.json(
         { error: "OpenAI API key appears to be invalid" },
         { status: 500 }
       );
     }
     
-    console.log(`Using API key from: ${headerApiKey ? 'request header' : 'environment variable'}`);
+    loggers.chat.info(`Using API key from: ${headerApiKey ? 'request header' : 'environment variable'}`);
 
     const data = await req.json();
     const { room_id, user_message, npcs, llm_provider: clientLlmProvider, llm_model: clientLlmModel } = data;
@@ -173,18 +174,18 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    console.log(`Processing chat for room: ${room_id}`);
-    console.log(`User message: ${user_message.substring(0, 30)}...`);
-    console.log(`Participating NPCs: ${npcs.join(', ')}`);
+    loggers.chat.info(`Processing chat for room: ${room_id}`);
+    loggers.chat.info(`User message: ${user_message.substring(0, 30)}...`);
+    loggers.chat.info(`Participating NPCs: ${npcs.join(', ')}`);
     
     // LLM
     const llmProvider = req.headers.get('x-llm-provider') || clientLlmProvider || 'openai';
     const llmModel = req.headers.get('x-llm-model') || clientLlmModel || 'gpt-4o';
     
-    console.log(`Using LLM Provider: ${llmProvider}, Model: ${llmModel}`);
+    loggers.chat.info(`Using LLM Provider: ${llmProvider}, Model: ${llmModel}`);
     
     try {
-      console.log('🔄 Calling Python backend (llm_manager) API with new format...');
+      loggers.chat.info('🔄 Calling Python backend (llm_manager) API with new format...');
       
       // Python API -
       const backendResponse = await fetch(`${BACKEND_API_URL}/api/chat/generate`, {
@@ -213,12 +214,12 @@ export async function POST(req: NextRequest) {
           errorText = await backendResponse.text();
         }
         
-        console.error(`❌ Python backend API error: Status ${errorStatus}`, errorText);
+        loggers.chat.error(`❌ Python backend API error: Status ${errorStatus}`, errorText);
         throw new Error(`Python backend API request failed with status ${errorStatus}: ${errorText}`);
       }
 
       const backendData = await backendResponse.json();
-      console.log('✅ Python backend API response received');
+      loggers.chat.info('✅ Python backend API response received');
       
       const response = backendData.response || '';
       const philosopher = backendData.philosopher || '';
@@ -242,11 +243,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(messageObject);
       
     } catch (error: Error | unknown) {
-      console.error('❌ Failed to send message:', error);
+      loggers.chat.error('❌ Failed to send message:', error);
       return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
     }
   } catch (error: Error | unknown) {
-    console.error('❌ Error in POST /api/chat:', error);
+    loggers.chat.error('❌ Error in POST /api/chat:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 
