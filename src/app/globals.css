@@ -26,6 +26,10 @@
     margin-right: auto;
     padding-left: 1rem;
     padding-right: 1rem;
+    /* The login/register pages wrap this in a `flex flex-col` parent;
+       align-items defaults to `stretch`, which makes margin auto a no-op.
+       align-self ensures horizontal centering regardless of parent kind. */
+    align-self: center;
   }
 
   .form-input {
