@@ -1,6 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 import { SocketEvents } from '../../types/common.types';
 import { loggers } from '@/utils/logger';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 export class SocketClientCore {
   private socket: Socket | null = null;
@@ -10,7 +11,7 @@ export class SocketClientCore {
   private roomId: string | null = null;
   private username: string | null = null;
 
-  async connect(url: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'): Promise<Socket> {
+  async connect(url: string = API_BASE_URL): Promise<Socket> {
     try {
       loggers.socket.info('Initializing Socket.IO connection');
       loggers.socket.debug('Connection details', { 

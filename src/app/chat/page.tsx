@@ -7,6 +7,7 @@ import EnhancedCircularChatUI from '@/components/chat/EnhancedCircularChatUI';
 import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 import { useSocket } from '@/hooks/useSocket';
 import { loggers } from '@/utils/logger';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 function ChatContent() {
   const router = useRouter();
@@ -341,11 +342,10 @@ function ChatContent() {
     try {
       setIsGeneratingResponse(true);
       loggers.chat.info('Requesting next debate message  room:', chatData.id);
-      
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
       const roomId = String(chatData.id);
-      
-      const response = await fetch(`${apiBaseUrl}/api/chat/debate/${roomId}/next-message`, {
+
+      const response = await fetch(`${API_BASE_URL}/api/chat/debate/${roomId}/next-message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -450,18 +450,17 @@ function ChatContent() {
       loggers.chat.info('Processing user message:', message);
       loggers.chat.info('Current user turn:', currentUserTurn);
       loggers.chat.info('Username:', username);
-      
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
       const roomId = String(chatData.id);
-      
+
       const requestBody = {
         message: message,
         user_id: currentUserTurn.speaker_id  // speaker_id
       };
-      
+
       loggers.chat.info('Sending user message request:', requestBody);
-      
-      const response = await fetch(`${apiBaseUrl}/api/chat/debate/${roomId}/process-user-message`, {
+
+      const response = await fetch(`${API_BASE_URL}/api/chat/debate/${roomId}/process-user-message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

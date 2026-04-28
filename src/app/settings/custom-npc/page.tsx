@@ -7,6 +7,7 @@ import CustomNpcCreator from '@/components/CustomNpcCreator';
 import Modal from '@/components/ui/Modal';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Header from '@/components/ui/Header';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 interface CustomNpc {
   id: string;
@@ -43,9 +44,10 @@ export default function CustomNpcPage() {
   useEffect(() => { fetchNpcs(); }, []);
 
   const getRelativePortraitUrl = (url: string) => {
-    // URL (http://localhost:8000/portraits/file.jpg -> /portraits/file.jpg)
+    // Backend returns absolute URLs; strip the API origin so the Next.js
+    // /portraits rewrite serves them through the same origin.
     if (!url) return '';
-    if (url.startsWith('http://localhost:8000/portraits/')) {
+    if (url.startsWith(`${API_BASE_URL}/portraits/`)) {
       return `/portraits/${url.split('/portraits/')[1]}`;
     }
     return url;
@@ -77,7 +79,7 @@ export default function CustomNpcPage() {
     setLoadingPortrait(npc.id);
     setPortraitError(prev => ({ ...prev, [npc.id]: '' }));
     try {
-      const res = await fetch('http://localhost:8000/api/portraits/generate', {
+      const res = await fetch(`${API_BASE_URL}/api/portraits/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

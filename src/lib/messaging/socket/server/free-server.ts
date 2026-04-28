@@ -4,6 +4,7 @@ import { FreeMessage } from '../../types/free.types';
 import type { ChatMessage, ChatRoom } from '@/lib/ai/chatService';
 import { SendMessageData } from '../../types/common.types';
 import chatRoomDB from '@/lib/db/chatRoomDB';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 export class FreeSocketServer {
   
@@ -100,7 +101,7 @@ export class FreeSocketServer {
   // Python AI
   private async requestAIResponse(roomId: string, userMessage: FreeMessage, room: ChatRoom): Promise<FreeMessage | null> {
     try {
-      const response = await fetch('http://localhost:8000/api/chat/generate', {
+      const response = await fetch(`${API_BASE_URL}/api/chat/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -153,7 +154,7 @@ export class FreeSocketServer {
 
   private async checkAutoConversationStatus(roomId: string): Promise<boolean> {
     try {
-      const response = await fetch(`http://localhost:8000/api/auto-conversation/status?room_id=${roomId}`);
+      const response = await fetch(`${API_BASE_URL}/api/auto-conversation/status?room_id=${roomId}`);
       if (response.ok) {
         const data = await response.json();
         return data.active === true;
@@ -169,7 +170,7 @@ export class FreeSocketServer {
       console.log(`🔄 [FREE] Starting auto conversation in room ${data.roomId}`);
       
       // Python
-      const response = await fetch('http://localhost:8000/api/auto-conversation', {
+      const response = await fetch(`${API_BASE_URL}/api/auto-conversation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -194,7 +195,7 @@ export class FreeSocketServer {
     try {
       console.log(`⏹️ [FREE] Stopping auto conversation in room ${data.roomId}`);
       
-      const response = await fetch('http://localhost:8000/api/auto-conversation', {
+      const response = await fetch(`${API_BASE_URL}/api/auto-conversation`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ room_id: data.roomId })

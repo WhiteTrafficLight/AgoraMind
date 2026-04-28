@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatService';
 import socketClient from '@/lib/socket/socketClient';
 import Image from 'next/image';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 // socketClient.init() declares its return type as the underlying Socket,
 // but the codebase treats it as a duck-typed bag with optional helper
@@ -1057,7 +1058,7 @@ Namespace: ${rawSocket.nsp || '/'}
       // setLoading(true);
       
       // Python API
-      const response = await fetch('http://localhost:8000/api/auto-conversation', {
+      const response = await fetch(`${API_BASE_URL}/api/auto-conversation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1099,7 +1100,7 @@ Namespace: ${rawSocket.nsp || '/'}
       // setLoading(true);
       
       // Python API - room_id
-      const requestUrl = `http://localhost:8000/api/auto-conversation?room_id=${chatId.toString()}`;
+      const requestUrl = `${API_BASE_URL}/api/auto-conversation?room_id=${chatId.toString()}`;
       console.log('Request URL:', requestUrl);
       
       const response = await fetch(requestUrl, {

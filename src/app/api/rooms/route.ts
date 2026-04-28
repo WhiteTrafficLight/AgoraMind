@@ -4,6 +4,7 @@ import { ChatRoom, ChatRoomCreationParams, ChatMessage } from '@/lib/ai/chatServ
 import chatRoomDB from '@/lib/db/chatRoomDB';
 import { socketCore } from '@/lib/messaging/socket/server/socket-core';
 import { loggers } from '@/utils/logger';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 let isConnected = false;
 const connectDB = async (): Promise<void> => {
@@ -193,7 +194,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (params.dialogueType === 'debate' && params.generateInitialMessage) {
         try {
           loggers.api.info('Starting moderator message generation request to Python API');
-          const pythonApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
           const proNpcIds = newRoom.pro || [];
           const conNpcIds = newRoom.con || [];
 
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             moderator_style_id: params.moderator?.style_id || '0',
           };
 
-          const apiResponse = await fetch(`${pythonApiUrl}/api/chat/create-debate-room`, {
+          const apiResponse = await fetch(`${API_BASE_URL}/api/chat/create-debate-room`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData),

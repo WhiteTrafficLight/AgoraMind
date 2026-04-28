@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { validateImageFile } from '@/lib/imageUtils';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 interface ImageUploaderProps {
   category: 'userProfile' | 'customNpc' | 'roomThumbnail';
@@ -84,8 +85,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         formData.append('user_id', userId);
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${backendUrl}/api/upload/upload/${category}`, {
+      const response = await fetch(`${API_BASE_URL}/api/upload/upload/${category}`, {
         method: 'POST',
         body: formData,
       });

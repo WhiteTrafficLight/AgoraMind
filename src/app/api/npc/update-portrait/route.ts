@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import connectDB from '@/lib/mongodb';
 import CustomNpc from '@/models/Npc';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,9 +36,10 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    // URL : http://localhost:8000/portraits/xyz.jpg -> /portraits/xyz.jpg
+    // Backend returns absolute URLs; rewrite to relative so the Next.js
+    // /portraits rewrite serves them through the same origin.
     let finalUrl = portraitUrl;
-    if (portraitUrl.startsWith('http://localhost:8000/portraits/')) {
+    if (portraitUrl.startsWith(`${API_BASE_URL}/portraits/`)) {
       finalUrl = `/portraits/${portraitUrl.split('/portraits/')[1]}`;
     } else if (!portraitUrl.startsWith('/portraits/') && !portraitUrl.startsWith('http')) {
       finalUrl = `/portraits/${portraitUrl}`;
