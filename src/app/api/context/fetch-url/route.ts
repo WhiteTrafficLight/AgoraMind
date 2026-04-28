@@ -1,29 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
 import * as cheerio from 'cheerio';
 
 export async function POST(req: NextRequest) {
   try {
     const { url } = await req.json();
-    
+
     if (!url) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
-    
+
     try {
       new URL(url);
     } catch (error) {
       return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
-    
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; AgoraMind/1.0; +http://agoramind.io)',
-      },
-      timeout: 10000,
-    });
-    
-    const html = response.data;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    let html: string;
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; AgoraMind/1.0; +http://agoramind.io)',
+        },
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        return NextResponse.json(
+          { error: `Upstream responded with ${response.status}` },
+          { status: 502 }
+        );
+      }
+      html = await response.text();
+    } finally {
+      clearTimeout(timeout);
+    }
     const $ = cheerio.load(html);
     
     const title = $('title').text() || '';
