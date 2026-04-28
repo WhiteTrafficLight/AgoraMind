@@ -14,9 +14,14 @@ const nextConfig: NextConfig = {
     'http://192.168.0.36:3000',
     'http://*', // 모든 HTTP 요청 허용
   ],
-  // Configure image domains
+  // Configure image domains.
+  // dangerouslyAllowSVG is required because ui-avatars.com serves SVG; the
+  // CSP and contentDispositionType=attachment below mitigate the typical
+  // SVG XSS vector (no inline scripts, served as download not inline).
   images: {
-    domains: ['ui-avatars.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'ui-avatars.com' },
+    ],
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
