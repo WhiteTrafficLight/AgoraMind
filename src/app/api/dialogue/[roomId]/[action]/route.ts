@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 interface RouteContext {
   params: Promise<{ roomId: string; action: string }>;
 }
-
-const apiBaseUrl = (): string => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
   const { roomId, action } = await params;
@@ -13,7 +12,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    const response = await fetch(`${apiBaseUrl()}/api/dialogue/${roomId}/${action}`);
+    const response = await fetch(`${API_BASE_URL}/api/dialogue/${roomId}/${action}`);
     if (!response.ok) {
       throw new Error(`API returned ${response.status}: ${response.statusText}`);
     }
@@ -38,7 +37,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
 
   try {
     const body = await request.json();
-    const response = await fetch(`${apiBaseUrl()}/api/dialogue/${roomId}/${action}`, {
+    const response = await fetch(`${API_BASE_URL}/api/dialogue/${roomId}/${action}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 interface Philosopher {
   id: string;
@@ -66,7 +67,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
   useEffect(() => {
     const fetchPhilosophers = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/philosophers');
+        const response = await fetch(`${API_BASE_URL}/api/philosophers`);
         if (response.ok) {
           const data = await response.json();
           setPhilosophers(data.philosophers);
@@ -101,7 +102,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
   const loadPhilosopherDetails = async (philosopherId: string) => {
     try {
       setSelectedPhilosopherDetails(null);
-      const response = await fetch(`http://localhost:8000/api/philosophers/${philosopherId}`);
+      const response = await fetch(`${API_BASE_URL}/api/philosophers/${philosopherId}`);
       if (response.ok) {
         const data = await response.json();
         setSelectedPhilosopherDetails(data);

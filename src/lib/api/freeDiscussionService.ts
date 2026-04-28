@@ -6,8 +6,7 @@ import {
   FreeDiscussionConfig
 } from '@/app/open-chat/types/freeDiscussion.types';
 import { loggers } from '@/utils/logger';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_BASE_URL } from './baseUrl';
 
 class FreeDiscussionService {
   private baseUrl = `${API_BASE_URL}/api/free-discussion`;

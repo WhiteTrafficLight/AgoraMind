@@ -4,6 +4,7 @@ import { DebateMessage, NextSpeaker } from '../../types/debate.types';
 import { SendMessageData } from '../../types/common.types';
 import chatRoomDB from '@/lib/db/chatRoomDB';
 import type { ChatMessage } from '@/lib/ai/chatService';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 export class DebateSocketServer {
   
@@ -73,7 +74,7 @@ export class DebateSocketServer {
       console.log(`🔄 [DEBATE] Next message requested for room ${data.roomId}`);
 
       // Python
-      const response = await fetch(`http://localhost:8000/api/chat/debate/${data.roomId}/next-message`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/debate/${data.roomId}/next-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -148,7 +149,7 @@ export class DebateSocketServer {
   private async updateNextSpeaker(roomId: string): Promise<void> {
     try {
       // Python
-      const response = await fetch(`http://localhost:8000/api/dialogue/${roomId}/next-speaker`, {
+      const response = await fetch(`${API_BASE_URL}/api/dialogue/${roomId}/next-speaker`, {
         method: 'POST'
       });
 

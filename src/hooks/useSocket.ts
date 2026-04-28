@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { loggers } from '@/utils/logger';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 // Socket payloads are server-shaped; each consumer narrows the handler
 // arg to its expected event payload. Using `any` here is intentional —
@@ -82,11 +83,9 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       return;
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    
-    loggers.socket.info('Creating new Socket.IO connection', { url: backendUrl });
-    
-    const socket = io(backendUrl, {
+    loggers.socket.info('Creating new Socket.IO connection', { url: API_BASE_URL });
+
+    const socket = io(API_BASE_URL, {
       autoConnect: true,
       transports: ['polling', 'websocket'],
       upgrade: true,

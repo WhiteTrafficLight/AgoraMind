@@ -1,6 +1,7 @@
 // Debug utility for Free Discussion
 // Use this in browser console to test the API endpoints
 import { createLogger, LogLevel } from './logger';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 declare global {
   interface Window {
@@ -12,8 +13,6 @@ declare global {
     };
   }
 }
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const debugLogger = createLogger({ name: 'FREE_DISCUSSION_DEBUG', useEmojis: false, level: LogLevel.DEBUG });
 
