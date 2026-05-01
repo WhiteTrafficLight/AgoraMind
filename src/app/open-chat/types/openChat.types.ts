@@ -69,18 +69,6 @@ export interface CreateChatModalProps {
   customNpcs: Philosopher[];
 }
 
-export interface ChatRoomListProps {
-  chatRooms: ChatRoom[];
-  isLoading: boolean;
-  onRefresh: () => void;
-  onJoinChat: (chatId: string) => void;
-}
-
-export interface SocketStatus {
-  connected: boolean;
-  onReconnect: () => void;
-}
-
 export interface OpenChatState {
   // Chat rooms
   activeChats: ChatRoom[];
