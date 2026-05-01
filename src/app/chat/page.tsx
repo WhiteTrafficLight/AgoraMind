@@ -3,13 +3,13 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DebateChatContainer from '@/components/debate/DebateChatContainer';
 import EnhancedCircularChatUI from '@/components/chat/EnhancedCircularChatUI';
-import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';
+import { chatService, ChatRoom } from '@/lib/ai/chatService';
 import { useSocket } from '@/hooks/useSocket';
 import { useChatRoom } from '@/hooks/useChatRoom';
 import { useChatUsername } from '@/hooks/useChatUsername';
 import { useChatMessageReceiver } from '@/hooks/useChatMessageReceiver';
+import { useDebateChat } from '@/hooks/useDebateChat';
 import { loggers } from '@/utils/logger';
-import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 function ChatContent() {
   const router = useRouter();
@@ -19,10 +19,15 @@ function ChatContent() {
   const username = useChatUsername();
   const { chatData, setChatData, loading, error, refresh: refreshChat } = useChatRoom(chatIdParam);
 
-  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
   const [typingMessageIds, setTypingMessageIds] = useState<Set<string>>(new Set());
-  const [waitingForUserInput, setWaitingForUserInput] = useState(false);
-  const [currentUserTurn, setCurrentUserTurn] = useState<{speaker_id: string, role: string} | null>(null);
+
+  const {
+    isGeneratingResponse,
+    waitingForUserInput,
+    currentUserTurn,
+    requestNextMessage,
+    processUserMessage,
+  } = useDebateChat({ chatData, setChatData, username });
 
   const onMessage = useChatMessageReceiver({
     chatData,
@@ -86,174 +91,6 @@ function ChatContent() {
 
   const handleRefreshChat = refreshChat;
 
-  const handleRequestNextMessage = async () => {
-    if (!chatData) return;
-    
-    try {
-      setIsGeneratingResponse(true);
-      loggers.chat.info('Requesting next debate message  room:', chatData.id);
-
-      const roomId = String(chatData.id);
-
-      const response = await fetch(`${API_BASE_URL}/api/chat/debate/${roomId}/next-message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Next message request failed');
-      }
-      
-      const data = await response.json();
-      loggers.chat.info('Next speaker info received:', data);
-      
-      if (data.status === 'success') {
-        // next_speaker
-        if (data.next_speaker) {
-          const { speaker_id, role, is_user } = data.next_speaker;
-          
-          loggers.chat.info('Next speaker details:', { speaker_id, role, is_user });
-          loggers.chat.info('Current username:', username);
-          
-          if (is_user === true) {
-            loggers.chat.info('USER TURN CONFIRMED - activating input');
-            loggers.chat.info('Speaker ID:', speaker_id, 'Role:', role);
-            
-            setCurrentUserTurn({ speaker_id, role });
-            setWaitingForUserInput(true);
-            setIsGeneratingResponse(false);
-            
-            const roleText = role === 'pro' ? 'Pro' : role === 'con' ? 'Con' : role;
-            const message = `It's your turn to speak as the ${roleText} side. Please enter your opinion.`;
-            
-            loggers.chat.info('Showing user turn alert:', message);
-            alert(message);
-            
-            setTimeout(() => {
-              loggers.chat.info('Attempting to focus input');
-              if (document.querySelector('.debate-input-field')) {
-                (document.querySelector('.debate-input-field') as HTMLTextAreaElement)?.focus();
-              }
-            }, 500);
-            
-            return;
-          } else {
-            loggers.chat.info('Not user turn - is_user is false');
-          }
-        } else {
-          loggers.chat.warn('No next_speaker data in success response');
-        }
-        
-        // AI ( generating )
-        loggers.chat.info('Success response but not user turn - treating as AI turn');
-        setIsGeneratingResponse(false);
-      } else if (data.status === 'generating') {
-        // "generating"
-        loggers.chat.info('AI generating message - showing thinking animation');
-        
-        const tempMessage: ChatMessage = {
-          id: `temp-waiting-${Date.now()}`,
-          text: 'Generating message...',
-          sender: data.speaker_id,
-          isUser: false,
-          timestamp: new Date(),
-          isGenerating: true,
-          skipAnimation: true
-        };
-        
-        setChatData(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            messages: [...(prev.messages || []), tempMessage]
-          };
-        });
-        
-        loggers.chat.info('Temporary message added, waiting  AI response via Socket.IO');
-        
-      } else if (data.status === 'completed') {
-        loggers.chat.info('Debate completed');
-        alert('The debate has been completed!');
-        setIsGeneratingResponse(false);
-      } else {
-        throw new Error(data.message || 'Unknown response status');
-      }
-      
-    } catch (error) {
-      loggers.chat.error('Error requesting next message:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      alert(`Error occurred while requesting next message: ${errorMessage}`);
-      setIsGeneratingResponse(false);
-    }
-  };
-
-  const handleProcessUserMessage = async (message: string) => {
-    if (!currentUserTurn || !chatData) {
-      loggers.chat.error('Cannot process user message - missing currentUserTurn or chatData');
-      return;
-    }
-    
-    try {
-      loggers.chat.info('Processing user message:', message);
-      loggers.chat.info('Current user turn:', currentUserTurn);
-      loggers.chat.info('Username:', username);
-
-      const roomId = String(chatData.id);
-
-      const requestBody = {
-        message: message,
-        user_id: currentUserTurn.speaker_id  // speaker_id
-      };
-
-      loggers.chat.info('Sending user message request:', requestBody);
-
-      const response = await fetch(`${API_BASE_URL}/api/chat/debate/${roomId}/process-user-message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to process user message');
-      }
-      
-      const result = await response.json();
-      loggers.chat.info('User message processed:', result);
-      
-      if (result.status === 'success') {
-        loggers.chat.info('User message successfully processed - clearing user turn state');
-        
-        setWaitingForUserInput(false);
-        setCurrentUserTurn(null);
-        
-        loggers.chat.info('Requesting next AI message...');
-        setTimeout(() => {
-          handleRequestNextMessage();
-        }, 1000);
-        
-      } else if (result.status === 'error' && result.reason === 'not_your_turn') {
-        loggers.chat.error('Not user turn:', result.message);
-        alert(`It's currently ${result.next_speaker}'s turn.`);
-        setWaitingForUserInput(false);
-        setCurrentUserTurn(null);
-      } else {
-        throw new Error(result.message || 'Failed to process user message');
-      }
-      
-    } catch (error) {
-      loggers.chat.error('Error processing user message:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      alert(`Error occurred while processing message: ${errorMessage}`);
-      setWaitingForUserInput(false);
-      setCurrentUserTurn(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -352,12 +189,12 @@ function ChatContent() {
               chatData.con?.includes(username) || chatData.con?.includes('You') ? 'con' :
               'neutral'
             }
-            onRequestNextMessage={handleRequestNextMessage}
+            onRequestNextMessage={requestNextMessage}
             typingMessageIds={typingMessageIds}
             onTypingComplete={handleTypingComplete}
             waitingForUserInput={waitingForUserInput}
             currentUserTurn={currentUserTurn}
-            onProcessUserMessage={handleProcessUserMessage}
+            onProcessUserMessage={processUserMessage}
           />
         )}
       </div>
