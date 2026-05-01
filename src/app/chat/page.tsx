@@ -7,6 +7,7 @@ import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 import { useSocket } from '@/hooks/useSocket';
 import { loggers } from '@/utils/logger';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { enrichFromMetadata } from '@/lib/chat/messageEnrichment';
 
 function ChatContent() {
   const router = useRouter();
@@ -95,22 +96,6 @@ function ChatContent() {
                 msg.isGenerating && msg.sender === data.message.sender
               );
               
-              const enrichFromMetadata = (msg: ChatMessage): ChatMessage => {
-                const meta = (msg.metadata ?? {}) as {
-                  rag_used?: boolean;
-                  rag_source_count?: number;
-                  rag_sources?: ChatMessage['rag_sources'];
-                  citations?: ChatMessage['citations'];
-                };
-                return {
-                  ...msg,
-                  skipAnimation: false,
-                  rag_used: meta.rag_used || false,
-                  rag_source_count: meta.rag_source_count || 0,
-                  rag_sources: meta.rag_sources || [],
-                  citations: meta.citations || [],
-                };
-              };
               if (tempMessageIndex >= 0) {
                 const completeMessage = enrichFromMetadata(data.message);
                 messagesCopy[tempMessageIndex] = completeMessage;
@@ -144,23 +129,7 @@ function ChatContent() {
               };
             } else {
               loggers.chat.debug('Adding regular message');
-              const enrichFromMetadataOuter = (msg: ChatMessage): ChatMessage => {
-                const meta = (msg.metadata ?? {}) as {
-                  rag_used?: boolean;
-                  rag_source_count?: number;
-                  rag_sources?: ChatMessage['rag_sources'];
-                  citations?: ChatMessage['citations'];
-                };
-                return {
-                  ...msg,
-                  skipAnimation: false,
-                  rag_used: meta.rag_used || false,
-                  rag_source_count: meta.rag_source_count || 0,
-                  rag_sources: meta.rag_sources || [],
-                  citations: meta.citations || [],
-                };
-              };
-              const newMessage = enrichFromMetadataOuter(data.message);
+              const newMessage = enrichFromMetadata(data.message);
               
               loggers.rag.debug('RAG info  regular message', {
                 rag_used: newMessage.rag_used,
@@ -264,7 +233,7 @@ function ChatContent() {
           room.dialogueType = 'free';
         }
         
-        setChatData(JSON.parse(JSON.stringify(room)));
+        setChatData(room);
       } catch (error) {
         loggers.chat.error('Failed to load chat:', error);
         setError('Failed to load chat data. Please try again.');
@@ -503,33 +472,6 @@ function ChatContent() {
       setCurrentUserTurn(null);
     }
   };
-
-  const debugHelpers = {
-    getCurrentState: () => ({
-      waitingForUserInput,
-      currentUserTurn,
-      username,
-      chatData: chatData ? { id: chatData.id, title: chatData.title } : null,
-      isGeneratingResponse
-    }),
-    forceUserTurn: (speaker_id: string, role: string) => {
-      loggers.chat.debug('Forcing user turn:', { speaker_id, role });
-      setCurrentUserTurn({ speaker_id, role });
-      setWaitingForUserInput(true);
-      setIsGeneratingResponse(false);
-    },
-    clearUserTurn: () => {
-      loggers.chat.debug('Clearing user turn');
-      setWaitingForUserInput(false);
-      setCurrentUserTurn(null);
-    }
-  };
-
-  // window
-  useEffect(() => {
-    (window as unknown as { debugChat: typeof debugHelpers }).debugChat = debugHelpers;
-    loggers.chat.info('Debug helpers available: window.debugChat');
-  }, [waitingForUserInput, currentUserTurn, username, chatData, isGeneratingResponse]);
 
   if (loading) {
     return (
