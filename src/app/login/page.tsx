@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { loggers } from '@/utils/logger';
+import { ROUTES } from '@/lib/routes';
 
 function LoginContent() {
   const [email, setEmail] = useState('');
@@ -14,7 +15,7 @@ function LoginContent() {
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams?.get('callbackUrl') || '/open-chat';
+  const callbackUrl = searchParams?.get('callbackUrl') || ROUTES.openChat;
   
   // Display success message if redirected from register page
   const registered = searchParams?.get('registered');
@@ -142,7 +143,7 @@ function LoginContent() {
 
           {/* Forgot Password Section */}
           <div className="mt-6 text-center">
-            <Link href="/forgot-password" className="text-blue-600 hover:text-blue-500 text-sm">
+            <Link href={ROUTES.forgotPassword} className="text-blue-600 hover:text-blue-500 text-sm">
               Forgot password?
             </Link>
           </div>
@@ -180,7 +181,7 @@ function LoginContent() {
           <div className="border-t border-gray-200 pt-6">
             <p className="text-sm text-gray-600 text-center">
               Don&apos;t have an account?{' '}
-              <Link href="/register" className="text-blue-600 hover:text-blue-500 font-medium">
+              <Link href={ROUTES.register} className="text-blue-600 hover:text-blue-500 font-medium">
                 Sign up
               </Link>
             </p>

@@ -4,11 +4,12 @@ import { toast } from 'react-hot-toast';
 import { loggers } from '@/utils/logger';
 import chatService, { ChatRoom as ServiceChatRoom } from '@/lib/ai/chatService';
 import { useCreateChat } from './useCreateChat';
-import { 
-  ChatRoom, 
-  Philosopher, 
-  ChatRoomCreationParams, 
-  OpenChatState 
+import { ROUTES } from '@/lib/routes';
+import {
+  ChatRoom,
+  Philosopher,
+  ChatRoomCreationParams,
+  OpenChatState
 } from '../types/openChat.types';
 
 // Convert service ChatRoom to our ChatRoom type
@@ -163,13 +164,13 @@ export function useOpenChatState() {
         toast.success('Chat room created successfully!');
         const freeSessionId = chatWithSession?.freeDiscussionSessionId;
         if (freeSessionId) {
-          router.push(`/chat?id=${freeSessionId}`);
+          router.push(ROUTES.chat(freeSessionId));
         }
         return;
       }
 
       // Regular chats: navigate using room id
-      router.push(`/chat?id=${newChat.id}`);
+      router.push(ROUTES.chat(String(newChat.id)));
       updateState({ showCreateChatModal: false });
       toast.success('Chat room created successfully!');
     } catch (error) {
@@ -181,7 +182,7 @@ export function useOpenChatState() {
   // Join chat
   const handleJoinChat = (chatId: string) => {
     loggers.ui.info('Joining chat', { chatId });
-    router.push(`/chat?id=${chatId}`);
+    router.push(ROUTES.chat(chatId));
   };
 
   // Initialize everything

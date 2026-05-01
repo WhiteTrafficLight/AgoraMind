@@ -5,6 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import { loggers } from '@/utils/logger';
+import { ROUTES } from '@/lib/routes';
 
 // NextAuth configuration
 export const authOptions: NextAuthOptions = {
@@ -74,8 +75,8 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: ROUTES.login,
+    error: ROUTES.login,
   },
   session: {
     strategy: "jwt",

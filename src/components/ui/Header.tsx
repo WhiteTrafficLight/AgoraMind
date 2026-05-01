@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 import ProfileDrawer from './ProfileDrawer';
 import NavigationDrawer from './NavigationDrawer';
 import { loggers } from '@/utils/logger';
+import { ROUTES } from '@/lib/routes';
 
 interface UserProfile {
   profileImage?: string | null;
@@ -44,7 +45,7 @@ const Header = () => {
     return pathname === path;
   };
 
-  if (pathname === '/login' || pathname === '/register') {
+  if (pathname === ROUTES.login || pathname === ROUTES.register) {
     return null;
   }
 
@@ -72,7 +73,7 @@ const Header = () => {
           </div>
 
           {/* Center: Title */}
-          <Link href="/" className="text-center">
+          <Link href={ROUTES.home} className="text-center">
             <span className="text-black font-black tracking-tight text-5xl md:text-6xl">
               AgoraMind
             </span>
@@ -107,7 +108,7 @@ const Header = () => {
               </button>
             ) : (
               <Link
-                href="/login"
+                href={ROUTES.login}
                 className="flex items-center px-6 py-3 bg-black text-white hover:text-white focus:text-white visited:text-white active:text-white rounded-full hover:bg-gray-900 transition-colors text-lg cursor-pointer"
               >
                 Login

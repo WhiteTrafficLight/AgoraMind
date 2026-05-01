@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import { loggers } from "@/utils/logger";
+import { ROUTES } from "@/lib/routes";
 
 // Check if Google OAuth should be enabled (only in production or when explicitly configured)
 const isGoogleOAuthEnabled = process.env.NODE_ENV === 'production' &&
@@ -110,8 +111,8 @@ const handler = NextAuth({
     }
   },
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: ROUTES.login,
+    error: ROUTES.login,
   },
   session: {
     strategy: "jwt",

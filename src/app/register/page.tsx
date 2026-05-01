@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { loggers } from '@/utils/logger';
+import { ROUTES } from '@/lib/routes';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -56,7 +57,7 @@ export default function RegisterPage() {
       
       loggers.auth.info('Registration successful, redirecting to login');
       // Success - redirect to login page
-      router.push('/login?registered=true');
+      router.push(ROUTES.loginWithRegisteredFlag);
     } catch (error: Error | unknown) {
       setIsLoading(false);
       const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
@@ -75,7 +76,7 @@ export default function RegisterPage() {
     
     setIsLoading(true);
     loggers.auth.info('Attempting Google registration/login');
-    signIn('google', { callbackUrl: '/open-chat' });
+    signIn('google', { callbackUrl: ROUTES.openChat });
   };
 
   return (
@@ -222,7 +223,7 @@ export default function RegisterPage() {
           <div className="border-t border-gray-200 pt-6">
             <p className="text-sm text-gray-600 text-center">
               Already have an account?{' '}
-              <Link href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+              <Link href={ROUTES.login} className="text-blue-600 hover:text-blue-500 font-medium">
                 Login
               </Link>
             </p>

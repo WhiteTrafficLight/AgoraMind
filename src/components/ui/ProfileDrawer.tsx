@@ -3,6 +3,7 @@
 import React, { useRef, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { ROUTES } from '@/lib/routes';
 
 interface ProfileDrawerProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export default function ProfileDrawer({ isOpen, onClose, anchor }: ProfileDrawer
       >
         <div className="p-4 flex flex-col gap-2 overflow-y-auto max-h-[85vh]">
           <Link 
-            href="/settings/custom-npc" 
+            href={ROUTES.settingsCustomNpc}
             prefetch={false}
             onClick={(e) => { e.preventDefault(); }}
             aria-disabled="true"
@@ -59,7 +60,7 @@ export default function ProfileDrawer({ isOpen, onClose, anchor }: ProfileDrawer
           </Link>
           
           <Link 
-            href="/settings#account" 
+            href={ROUTES.settingsAccount}
             prefetch={false}
             onClick={onClose}
             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-gray-800"
@@ -73,7 +74,7 @@ export default function ProfileDrawer({ isOpen, onClose, anchor }: ProfileDrawer
             href="#" 
             onClick={(e) => {
               e.preventDefault();
-              signOut({ callbackUrl: '/' });
+              signOut({ callbackUrl: ROUTES.home });
               onClose();
             }}
             className="flex items-center gap-3 px-3 py-2 rounded-md bg-red-50 text-red-700 hover:bg-red-100"

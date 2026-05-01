@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { loggers } from '@/utils/logger';
 import { useLoadingOverlay } from '@/app/loadingOverlay';
 import { getPhilosopherPortraitPath, resolvePhilosopher } from '@/lib/data/philosophers';
+import { ROUTES } from '@/lib/routes';
 
 interface FreeDiscussionTopicModalProps {
   isOpen: boolean;
@@ -184,7 +185,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       // 4) Route using session id
       overlay.update('Redirecting to the room…');
       onClose();
-      router.push(`/chat?id=${encodeURIComponent(session.session_id)}`);
+      router.push(ROUTES.chat(encodeURIComponent(session.session_id)));
     } catch (error) {
       loggers.chat.error('Failed to create free discussion session', error);
       alert('Failed to create discussion. Please try again.');

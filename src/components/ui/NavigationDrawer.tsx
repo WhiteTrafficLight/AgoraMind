@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { HomeIcon, ChatBubbleLeftIcon, SpeakerWaveIcon } from '@heroicons/react/24/outline';
+import { ROUTES } from '@/lib/routes';
 
 interface NavigationDrawerProps {
   isOpen: boolean;
@@ -56,7 +57,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
       >
         <div className="p-4 flex flex-col gap-2">
           <Link 
-            href="/"
+            href={ROUTES.home}
             onClick={onClose}
             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-gray-800"
           >
@@ -65,7 +66,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
           </Link>
           
           <Link 
-            href="/open-chat"
+            href={ROUTES.openChat}
             onClick={onClose}
             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-gray-800"
           >
@@ -74,7 +75,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
           </Link>
           
           <Link 
-            href="/podcast"
+            href={ROUTES.podcast}
             prefetch={false}
             onClick={onClose}
             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-gray-800"

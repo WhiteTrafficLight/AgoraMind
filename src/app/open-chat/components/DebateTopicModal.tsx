@@ -7,6 +7,7 @@ import { chatService } from '@/lib/ai/chatService';
 import { useRouter } from 'next/navigation';
 import { loggers } from '@/utils/logger';
 import { getPhilosopherPortraitPath } from '@/lib/data/philosophers';
+import { ROUTES } from '@/lib/routes';
 
 interface DebateTopicModalProps {
   isOpen: boolean;
@@ -175,7 +176,7 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
 
       // Close modal and navigate to chat
       onClose();
-      router.push(`/chat?id=${newChat.id}`);
+      router.push(ROUTES.chat(newChat.id));
 
     } catch (error) {
       loggers.chat.error('Failed to create debate room', error);
