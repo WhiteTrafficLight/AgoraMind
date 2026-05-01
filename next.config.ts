@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/portraits/:path*',
-        destination: `${process.env.PORTRAITS_API_URL || 'http://localhost:8000'}/portraits/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/portraits/:path*`,
       },
     ];
   },
