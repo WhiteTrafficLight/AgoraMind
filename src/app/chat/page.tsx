@@ -5,6 +5,8 @@ import DebateChatContainer from '@/components/debate/DebateChatContainer';
 import EnhancedCircularChatUI from '@/components/chat/EnhancedCircularChatUI';
 import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 import { useSocket } from '@/hooks/useSocket';
+import { useChatRoom } from '@/hooks/useChatRoom';
+import { useChatUsername } from '@/hooks/useChatUsername';
 import { loggers } from '@/utils/logger';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
 import { enrichFromMetadata } from '@/lib/chat/messageEnrichment';
@@ -13,12 +15,11 @@ function ChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const chatIdParam = searchParams ? searchParams.get('id') : null;
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [chatData, setChatData] = useState<ChatRoom | null>(null);
+
+  const username = useChatUsername();
+  const { chatData, setChatData, loading, error, refresh: refreshChat } = useChatRoom(chatIdParam);
+
   const [isGeneratingResponse, setIsGeneratingResponse] = useState(false);
-  const [username, setUsername] = useState<string>('');
   const [typingMessageIds, setTypingMessageIds] = useState<Set<string>>(new Set());
   const [waitingForUserInput, setWaitingForUserInput] = useState(false);
   const [currentUserTurn, setCurrentUserTurn] = useState<{speaker_id: string, role: string} | null>(null);
@@ -167,85 +168,6 @@ function ChatContent() {
   };
 
   useEffect(() => {
-    const loadUserInfo = async () => {
-      try {
-        const response = await fetch('/api/user/profile');
-        if (response.ok) {
-          const userData = await response.json();
-          const userDisplayName = userData.username || userData.name || `User_${Math.floor(Math.random() * 10000)}`;
-          setUsername(userDisplayName);
-          sessionStorage.setItem('chat_username', userDisplayName);
-          loggers.auth.info('V2 user info loaded', { username: userDisplayName });
-        } else {
-          const storedUsername = sessionStorage.getItem('chat_username') || `User_${Math.floor(Math.random() * 10000)}`;
-          setUsername(storedUsername);
-          sessionStorage.setItem('chat_username', storedUsername);
-        }
-      } catch (error) {
-        loggers.auth.error('Failed to load V2 user info', error);
-        const fallbackUsername = `User_${Math.floor(Math.random() * 10000)}`;
-        setUsername(fallbackUsername);
-        sessionStorage.setItem('chat_username', fallbackUsername);
-      }
-    };
-    
-    loadUserInfo();
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    setChatData(null);
-    
-    if (!chatIdParam) {
-      setError('No chat ID provided');
-      setLoading(false);
-      return;
-    }
-
-    const chatId = chatIdParam;
-    
-    if (!chatId || chatId.trim() === '') {
-      loggers.chat.error(`Invalid chat ID format: ${chatIdParam}`);
-      setError('Invalid chat room ID format');
-      setLoading(false);
-      return;
-    }
-
-    const loadChatData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        loggers.chat.info(`CHAT PAGE V2: Fetching chat room with ID: ${chatId}`);
-        const room = await chatService.getChatRoomById(chatId);
-        
-        if (!room) {
-          loggers.chat.error('Room not found  ID:', chatId);
-          setError('Chat room not found');
-          return;
-        }
-        
-        loggers.chat.info(`CHAT PAGE V2: Successfully loaded room #${room.id} (${room.title})`);
-        
-        // Ensure dialogueType is set
-        if (!room.dialogueType) {
-          room.dialogueType = 'free';
-        }
-        
-        setChatData(room);
-      } catch (error) {
-        loggers.chat.error('Failed to load chat:', error);
-        setError('Failed to load chat data. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadChatData();
-  }, [chatIdParam, router]);
-
-  useEffect(() => {
     if (isConnected && chatData?.id && username && joinRoom) {
       const roomId = String(chatData.id);
       loggers.chat.info(`V2 room ${roomId}joined, user: ${username}`);
@@ -283,26 +205,7 @@ function ChatContent() {
     }
   };
 
-  const handleRefreshChat = async () => {
-    if (!chatData) return;
-    
-    loggers.chat.debug('handleRefreshChat called');
-    loggers.chat.debug('Message count before refresh:', chatData.messages?.length || 0);
-    
-    setLoading(true);
-    try {
-      const refreshedRoom = await chatService.getChatRoomById(chatData.id);
-      if (refreshedRoom) {
-        loggers.chat.debug('Messages fetched from server:', refreshedRoom.messages?.length || 0);
-        setChatData(JSON.parse(JSON.stringify(refreshedRoom)));
-        loggers.chat.info('Refresh complete - data replaced');
-      }
-    } catch (error) {
-      loggers.chat.error('Failed to refresh chat:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleRefreshChat = refreshChat;
 
   const handleRequestNextMessage = async () => {
     if (!chatData) return;
