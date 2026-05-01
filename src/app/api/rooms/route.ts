@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { ChatRoom, ChatRoomCreationParams, ChatMessage } from '@/lib/ai/chatService';
 import chatRoomDB from '@/lib/db/chatRoomDB';
-import { socketCore } from '@/lib/messaging/socket/server/socket-core';
 import { loggers } from '@/utils/logger';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
 import connectDB from '@/lib/mongodb';
@@ -280,8 +279,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       dialogueType: createdRoom.dialogueType || 'not set',
     });
 
-    socketCore.broadcastToAll('room-created', createdRoom);
-
     return json(createdRoom, { status: 201 });
   } catch (error) {
     loggers.api.error('Error creating chat room', error);
@@ -333,11 +330,6 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
           roomId: roomIdStr,
           sender: message.sender,
           messageCount: (room.messages?.length ?? 0) + 1,
-        });
-
-        socketCore.broadcastToRoom(roomIdStr, 'new-message', {
-          roomId: roomIdStr,
-          message,
         });
       } else {
         loggers.api.debug('Duplicate message skipped', { messageId: message.id });
