@@ -3,8 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { loggers } from '@/utils/logger';
+import {
+  DEFAULT_VOICE,
+  USER_VOICE_ID,
+  resolvePhilosopher,
+} from '@/lib/data/philosophers';
 
-// Define types
 interface Speaker {
   id: string;
   name: string;
@@ -23,77 +27,6 @@ interface PodcastRequest {
   participants: Speaker[];
 }
 
-// Voice styles for different philosophers
-interface VoiceStyle {
-  stability: number;
-  similarity_boost: number;
-  style: number;
-  use_speaker_boost?: boolean;
-}
-const voiceStyles: Record<string, VoiceStyle> = {
-  'socrates': {
-    stability: 0.6,
-    similarity_boost: 0.8,
-    style: 0.6,
-    use_speaker_boost: true
-  },
-  'plato': {
-    stability: 0.7,
-    similarity_boost: 0.7, 
-    style: 0.5,
-    use_speaker_boost: true
-  },
-  'aristotle': {
-    stability: 0.8,
-    similarity_boost: 0.6,
-    style: 0.4,
-    use_speaker_boost: true
-  },
-  'kant': {
-    stability: 0.9,
-    similarity_boost: 0.5,
-    style: 0.4,
-    use_speaker_boost: true
-  },
-  'nietzsche': {
-    stability: 0.4,
-    similarity_boost: 0.9,
-    style: 0.8,
-    use_speaker_boost: true
-  },
-  'sartre': {
-    stability: 0.6,
-    similarity_boost: 0.7,
-    style: 0.6,
-    use_speaker_boost: true
-  },
-  'camus': {
-    stability: 0.6,
-    similarity_boost: 0.7,
-    style: 0.5,
-    use_speaker_boost: true
-  },
-  'default': {
-    stability: 0.6,
-    similarity_boost: 0.7,
-    style: 0.3,
-    use_speaker_boost: true
-  }
-};
-
-// Default map of voice IDs
-const defaultVoiceMap: Record<string, string> = {
-  'default': 'TxGEqnHWrfWFTfGW9XjX', // Josh - good default voice
-  'user': 'pNInz6obpgDQGcFmaJgB',     // Adam
-  'socrates': 'N2lVS1w4EtoT3dr4eOWO',  // Ethan
-  'plato': 'VR6AewLTigWG4xSOukaG',     // Arnold
-  'aristotle': 'ErXwobaYiN019PkySvjV', // Antoni
-  'kant': 'SOYHLrjzK2X1ezoPC6cr',      // Daniel
-  'nietzsche': 'pNInz6obpgDQGcFmaJgB', // Adam
-  'sartre': 'flq6f7yk4E4fJM5XTYuZ',    // Gigi
-  'camus': 'XB0fDUnXU5powFXDhCwa'      // Thomas
-};
-
 // Function to add delay between API calls
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -105,9 +38,9 @@ async function textToSpeech(text: string, voiceId: string, speakerId: string): P
     throw new Error('ELEVENLABS_KEY is not defined in environment variables');
   }
   
-  // Get voice settings based on speaker
-  const voiceSettings = voiceStyles[speakerId] || voiceStyles['default'];
-  
+  const voiceSettings =
+    resolvePhilosopher(speakerId)?.voice?.settings ?? DEFAULT_VOICE.settings;
+
   const payload = {
     text: text,
     model_id: 'eleven_multilingual_v2',
@@ -132,9 +65,9 @@ async function textToSpeech(text: string, voiceId: string, speakerId: string): P
   return Buffer.from(audioBuffer);
 }
 
-// Get voice ID for a speaker
 function getVoiceId(speakerId: string): string {
-  return defaultVoiceMap[speakerId] || defaultVoiceMap['default'];
+  if (speakerId === 'user') return USER_VOICE_ID;
+  return resolvePhilosopher(speakerId)?.voice?.id ?? DEFAULT_VOICE.id;
 }
 
 // Handler for POST requests

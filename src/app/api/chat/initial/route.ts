@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { philosopherProfiles } from '@/lib/data/philosophers';
+import { resolvePhilosopher } from '@/lib/data/philosophers';
 import { loggers } from '@/utils/logger';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
 
@@ -48,7 +48,7 @@ ${npcData.description ? `Description: ${npcData.description}` : ''}
 ${npcData.reference_philosophers && npcData.reference_philosophers.length > 0 ? 
   `Influenced by: ${npcData.reference_philosophers.join(', ')}` : ''}`;
   } else {
-    const profile = philosopherProfiles[philosopher.toLowerCase()];
+    const profile = resolvePhilosopher(philosopher);
     if (!profile) {
       loggers.chat.error(`❌ Philosopher profile not found for: ${philosopher}`);
       description = `Name: ${philosopher}
@@ -63,7 +63,7 @@ Voice Style: ${profile.style || 'balanced'}
 Communication Style: balanced
 Debate Approach: dialectical
 Personality Traits: critical_thinking: 0.8, creativity: 0.7
-Philosophical Background: ${profile.key_concepts ? profile.key_concepts.join(', ') : 'philosophy'}`;
+Philosophical Background: ${profile.keyConcepts ? profile.keyConcepts.join(', ') : 'philosophy'}`;
     }
   }
   
