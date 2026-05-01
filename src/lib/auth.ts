@@ -5,6 +5,7 @@ import { connectDB } from './db/connect';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { loggers } from '@/utils/logger';
+import { ROUTES } from '@/lib/routes';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -52,9 +53,9 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   pages: {
-    signIn: '/login',
-    signOut: '/',
-    error: '/login',
+    signIn: ROUTES.login,
+    signOut: ROUTES.home,
+    error: ROUTES.login,
   },
   session: {
     strategy: 'jwt',

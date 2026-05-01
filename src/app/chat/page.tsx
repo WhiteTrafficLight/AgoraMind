@@ -10,6 +10,7 @@ import { useChatUsername } from '@/hooks/useChatUsername';
 import { useChatMessageReceiver } from '@/hooks/useChatMessageReceiver';
 import { useDebateChat } from '@/hooks/useDebateChat';
 import { loggers } from '@/utils/logger';
+import { ROUTES } from '@/lib/routes';
 
 const FullScreenState = ({ children }: { children: ReactNode }) => (
   <div className="fixed inset-0 z-50 w-screen h-screen bg-white flex justify-center items-center flex-col">
@@ -66,7 +67,7 @@ function ChatContent() {
   }, [isConnected, chatData?.id, username, joinRoom]);
 
   const handleBackToOpenChat = () => {
-    router.push('/open-chat');
+    router.push(ROUTES.openChat);
   };
 
   const handleSendMessage = async (message: string) => {
@@ -140,7 +141,7 @@ function ChatContent() {
           Current chat type: {chatData.dialogueType}
         </div>
         <button
-          onClick={() => router.push(`/chat?id=${chatData.id}`)}
+          onClick={() => router.push(ROUTES.chat(String(chatData.id)))}
           className="px-4 py-2 bg-blue-600 text-white rounded-md mr-2"
         >
           View in legacy mode
@@ -192,7 +193,7 @@ function ChatContent() {
             isLoading={loading}
             isGeneratingResponse={isGeneratingResponse}
             username={username || 'You'}
-            onEndChat={() => router.push('/open-chat')}
+            onEndChat={() => router.push(ROUTES.openChat)}
             userRole={userRole}
             onRequestNextMessage={requestNextMessage}
             typingMessageIds={typingMessageIds}

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { ROUTES } from '@/lib/routes';
 
 export default function Home() {
   const [titleVisible, setTitleVisible] = useState(false);
@@ -29,9 +30,9 @@ export default function Home() {
   // Handle button click - redirect based on login status
   const handleDebateClick = () => {
     if (session) {
-      router.push('/open-chat');
+      router.push(ROUTES.openChat);
     } else {
-      router.push('/login');
+      router.push(ROUTES.login);
     }
   };
 
