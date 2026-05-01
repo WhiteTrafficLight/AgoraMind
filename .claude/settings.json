@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run lint 2>&1 | tail -5",
+            "timeout": 60,
+            "statusMessage": "Running lint...",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
