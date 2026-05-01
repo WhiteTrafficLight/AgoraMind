@@ -7,7 +7,7 @@ import {
   PlaybackControlEvent
 } from '@/app/open-chat/types/freeDiscussion.types';
 import { freeDiscussionService } from '@/lib/api/freeDiscussionService';
-import socketClient from '@/lib/socket/socketClient';
+import { socketClientCore } from '@/lib/messaging/socket/client/socket-client-core';
 import { loggers } from '@/utils/logger';
 
 const DEFAULT_CONFIG: Partial<FreeDiscussionConfig> = {
@@ -41,7 +41,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
 
   const [messages, setMessages] = useState<FreeDiscussionMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const socketRef = useRef<typeof socketClient | null>(null);
+  const socketRef = useRef<typeof socketClientCore | null>(null);
   const lastSentRef = useRef<{ content: string; ts: number } | null>(null);
   const seenMessageIdsRef = useRef<Set<string>>(new Set());
 
@@ -292,7 +292,12 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
   // Socket event handlers
   useEffect(() => {
     if (!isConnected || !socketRef.current || !state.sessionId) return;
-    const sock = socketRef.current;
+    // The socketClientCore.on signature is typed against SocketEvents, but
+    // these custom event names ('control:*', 'new_message') are not in
+    // that union. Use the underlying Socket directly — its on() accepts
+    // any string event.
+    const sock = socketRef.current.getSocket();
+    if (!sock) return;
 
     const handleControlEvent = (event: PlaybackControlEvent) => {
       if (event.session_id !== state.sessionId) return;
@@ -411,15 +416,16 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
   useEffect(() => {
     const initSocket = async () => {
       try {
-        await socketClient.init(username);
-        // socketClient.init returns the underlying Socket but the wrapper
-        // (with joinRoom/leaveRoom/emit/on/off) is what we want for the ref.
-        socketRef.current = socketClient;
+        // username is currently unused at the transport level; the
+        // backend tracks the user via join_room payloads.
+        void username;
+        await socketClientCore.connect();
+        socketRef.current = socketClientCore;
         setIsConnected(true);
-        
+
         if (state.sessionId) {
           // Join backend Socket.IO room using server's expected event/payload
-          socketClient.emit('join_room', {
+          socketClientCore.emit('join_room', {
             room_id: String(state.sessionId),
             user_id: username || 'anonymous'
           });
