@@ -38,10 +38,25 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
+      # The build phase evaluates module-level code in every API route,
+      # including src/lib/mongodb.ts which throws on missing MONGODB_URI /
+      # MONGODB_DB. The smoke test only hits public pages, but the build
+      # still needs these to be _set_ (the value isn't dialed since no
+      # connection is actually attempted in this job).
       - name: Build
+        env:
+          MONGODB_URI: mongodb://placeholder-not-used-in-ci
+          MONGODB_DB: placeholder
+          NEXTAUTH_SECRET: ci-smoke-test-secret-not-real
+          NEXTAUTH_URL: http://localhost:3000
         run: npm run build
 
       - name: Run e2e smoke test
+        env:
+          MONGODB_URI: mongodb://placeholder-not-used-in-ci
+          MONGODB_DB: placeholder
+          NEXTAUTH_SECRET: ci-smoke-test-secret-not-real
+          NEXTAUTH_URL: http://localhost:3000
         run: npm run test:e2e
 
       - name: Upload Playwright report on failure
