@@ -1,6 +1,7 @@
 import { loggers } from '@/utils/logger';
 import { DEFAULT_LLM_MODEL } from './llmDefaults';
 import { safeParseJson } from './chatHttp';
+import { RoomCache } from './roomCache';
 import type {
   Citation,
   ChatMessage,
@@ -30,55 +31,12 @@ function log(...args: unknown[]) {
 // Updated service that can use real API calls
 class ChatService {
   // API - mock
-  private chatRooms: ChatRoom[] = [];
+  private cache = new RoomCache();
   private useAPI: boolean = true;
-  
-  private readonly CACHE_TTL = 5 * 60 * 1000;
-  private cacheTimestamps: Record<string, number> = {};
 
   // - API
   constructor(useAPI: boolean = true) {
     this.useAPI = useAPI;
-  }
-  
-  private isCacheValid(id: string): boolean {
-    const timestamp = this.cacheTimestamps[id];
-    if (!timestamp) return false;
-    
-    const now = Date.now();
-    return (now - timestamp) < this.CACHE_TTL;
-  }
-  
-  private updateCache(room: ChatRoom): void {
-    // room.id
-    if (!room.id) {
-      loggers.api.error('Attempted to cache room with no ID', { room });
-      return;
-    }
-    
-    const roomId = String(room.id).trim();
-    
-    loggers.api.debug('Updating cache for room', { 
-      roomId, 
-      originalId: room.id, 
-      idType: typeof room.id 
-    });
-    
-    room.id = roomId;
-    
-    const isolatedRoom: ChatRoom = JSON.parse(JSON.stringify(room));
-    
-    const existingIndex = this.chatRooms.findIndex(r => r.id === roomId);
-    
-    if (existingIndex >= 0) {
-      this.chatRooms[existingIndex] = isolatedRoom;
-      loggers.api.info('Updated existing cache entry for room', { roomId });
-    } else {
-      this.chatRooms.push(isolatedRoom);
-      loggers.api.info('Added new cache entry for room', { roomId });
-    }
-    
-    this.cacheTimestamps[roomId] = Date.now();
   }
 
   // Get all chat rooms - API
@@ -136,17 +94,11 @@ class ChatService {
         roomIds: uniqueIds.join(', ')
       });
       
-      this.chatRooms = uniqueRooms;
-      
-      uniqueRooms.forEach((room: ChatRoom) => {
-        const roomId = String(room.id).trim();
-        this.cacheTimestamps[roomId] = Date.now();
-      });
-      
+      this.cache.replaceAll(uniqueRooms);
       return uniqueRooms;
     } catch (error) {
       loggers.api.error('Error fetching chat rooms', { error });
-      return this.chatRooms;
+      return this.cache.getAll();
     }
   }
 
@@ -206,9 +158,8 @@ class ChatService {
     }
     
     // 1. (regular chat rooms)
-    const cachedRoom = this.chatRooms.find(room => String(room.id).trim() === roomId);
-    
-    if (cachedRoom && this.isCacheValid(roomId)) {
+    const cachedRoom = this.cache.getIfValid(roomId);
+    if (cachedRoom) {
       loggers.api.info('Using valid cache for room', { roomId });
       const roomCopy = JSON.parse(JSON.stringify(cachedRoom));
       roomCopy.id = roomId;
@@ -477,7 +428,7 @@ class ChatService {
       
       room.id = roomId;
       
-      this.updateCache(room);
+      this.cache.set(room);
       
       loggers.api.info('Room fetched successfully', { roomId });
       return JSON.parse(JSON.stringify(room));
@@ -715,7 +666,7 @@ class ChatService {
         newRoom.npcDetails = await this.loadNpcDetails(newRoom.participants.npcs);
       }
       
-      this.updateCache(newRoom);
+      this.cache.set(newRoom);
       
       loggers.api.info('New chat room created', { 
         roomId: newRoom.id, 
@@ -970,13 +921,7 @@ class ChatService {
       
       loggers.api.info('Created message object (citations included)', { messageObj: JSON.stringify(messageObj) });
       
-      const roomIndex = this.chatRooms.findIndex(r => String(r.id).trim() === roomIdStr);
-      if (roomIndex >= 0) {
-        if (!this.chatRooms[roomIndex].messages) {
-          this.chatRooms[roomIndex].messages = [];
-        }
-        this.chatRooms[roomIndex].messages!.push(messageObj);
-      }
+      this.cache.appendMessage(roomIdStr, messageObj);
 
       loggers.api.info('AI response received successfully');
       return messageObj;
@@ -1013,7 +958,7 @@ class ChatService {
       const roomIdStr = String(roomId).trim();
       
       // First, verify if the room exists in our local cache
-      const cachedRoom = this.chatRooms.find(room => String(room.id).trim() === roomIdStr);
+      const cachedRoom = this.cache.get(roomIdStr);
       if (cachedRoom) {
         loggers.api.info('Room exists in local cache', { 
           roomId: roomIdStr, 
