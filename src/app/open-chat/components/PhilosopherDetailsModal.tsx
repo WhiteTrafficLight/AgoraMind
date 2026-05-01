@@ -1,6 +1,7 @@
 import React from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Philosopher } from '../types/openChat.types';
+import { getPhilosopherPortraitPath } from '@/lib/data/philosophers';
 
 interface PhilosopherDetailsModalProps {
   philosopher: Philosopher | null;
@@ -24,50 +25,6 @@ const PhilosopherDetailsModal: React.FC<PhilosopherDetailsModalProps> = ({
   const getDefaultAvatar = () => {
     const name = philosopher.name || 'Philosopher';
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128&font-size=0.5`;
-  };
-
-  // Generate philosopher portrait path from static files
-  const getPhilosopherPortraitPath = (philosopherName: string): string => {
-    // Map philosopher names to actual file names (using last names mostly)
-    const nameMapping: Record<string, string> = {
-      'socrates': 'Socrates',
-      'plato': 'Plato', 
-      'aristotle': 'Aristotle',
-      'immanuel kant': 'Kant',
-      'kant': 'Kant',
-      'friedrich nietzsche': 'Nietzsche',
-      'nietzsche': 'Nietzsche',
-      'jean-paul sartre': 'Sartre',
-      'sartre': 'Sartre',
-      'albert camus': 'Camus',
-      'camus': 'Camus',
-      'simone de beauvoir': 'Beauvoir',
-      'beauvoir': 'Beauvoir',
-      'karl marx': 'Marx',
-      'marx': 'Marx',
-      'jean-jacques rousseau': 'Rousseau',
-      'rousseau': 'Rousseau',
-      'confucius': 'Confucius',
-      'laozi': 'Laozi',
-      'buddha': 'Buddha',
-      'georg wilhelm friedrich hegel': 'Hegel',
-      'hegel': 'Hegel',
-      'ludwig wittgenstein': 'Wittgenstein',
-      'wittgenstein': 'Wittgenstein'
-    };
-    
-    const normalizedName = philosopherName.toLowerCase().trim();
-    const fileName = nameMapping[normalizedName];
-    
-    if (fileName) {
-      return `/philosophers_portraits/${fileName}.png`;
-    }
-    
-    // Fallback: use capitalized last word as filename
-    const words = philosopherName.split(' ');
-    const lastName = words[words.length - 1];
-    const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
-    return `/philosophers_portraits/${capitalizedLastName}.png`;
   };
 
   const handleToggleSelect = () => {

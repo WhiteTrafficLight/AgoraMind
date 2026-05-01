@@ -7,6 +7,7 @@ import ParticipantGrid from './ParticipantGrid';
 import MessageList from './MessageList';
 import { DebateChatContainerProps, NpcDetail } from '@/types/debate';
 import { loggers } from '@/utils/logger';
+import { getPhilosopherPortraitPath } from '@/lib/data/philosophers';
 
 const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   room,
@@ -240,50 +241,6 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
       return moderatorInfo.profileImage;
     }
     return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`;
-  };
-
-  // Generate philosopher portrait path from static files (DebateTopicModal.tsx )
-  const getPhilosopherPortraitPath = (philosopherName: string): string => {
-    // Map philosopher names to actual file names (using last names mostly)
-    const nameMapping: Record<string, string> = {
-      'socrates': 'Socrates',
-      'plato': 'Plato', 
-      'aristotle': 'Aristotle',
-      'immanuel kant': 'Kant',
-      'kant': 'Kant',
-      'friedrich nietzsche': 'Nietzsche',
-      'nietzsche': 'Nietzsche',
-      'jean-paul sartre': 'Sartre',
-      'sartre': 'Sartre',
-      'albert camus': 'Camus',
-      'camus': 'Camus',
-      'simone de beauvoir': 'Beauvoir',
-      'beauvoir': 'Beauvoir',
-      'karl marx': 'Marx',
-      'marx': 'Marx',
-      'jean-jacques rousseau': 'Rousseau',
-      'rousseau': 'Rousseau',
-      'confucius': 'Confucius',
-      'laozi': 'Laozi',
-      'buddha': 'Buddha',
-      'georg wilhelm friedrich hegel': 'Hegel',
-      'hegel': 'Hegel',
-      'ludwig wittgenstein': 'Wittgenstein',
-      'wittgenstein': 'Wittgenstein'
-    };
-    
-    const normalizedName = philosopherName.toLowerCase().trim();
-    const fileName = nameMapping[normalizedName];
-    
-    if (fileName) {
-      return `/philosophers_portraits/${fileName}.png`;
-    }
-    
-    // Fallback: use capitalized last word as filename
-    const words = philosopherName.split(' ');
-    const lastName = words[words.length - 1];
-    const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
-    return `/philosophers_portraits/${capitalizedLastName}.png`;
   };
 
   const getNpcProfileImage = (npcId: string): string => {

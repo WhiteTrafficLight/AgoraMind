@@ -7,6 +7,7 @@ import { freeDiscussionService } from '@/lib/api/freeDiscussionService';
 import { useRouter } from 'next/navigation';
 import { loggers } from '@/utils/logger';
 import { useLoadingOverlay } from '@/app/loadingOverlay';
+import { getPhilosopherPortraitPath, resolvePhilosopher } from '@/lib/data/philosophers';
 
 interface FreeDiscussionTopicModalProps {
   isOpen: boolean;
@@ -33,9 +34,6 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
   const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
   
-  // Fine-tuned philosophers allowed for selection
-  const FINE_TUNED = new Set(['sartre', 'camus', 'nietzsche', 'plato', 'buddha']);
-
   // Reset selections when modal opens or topic changes
   useEffect(() => {
     if (isOpen) {
@@ -54,47 +52,6 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       default:
         return null;
     }
-  };
-
-  const getPhilosopherPortraitPath = (philosopherName: string): string => {
-    const nameMapping: Record<string, string> = {
-      'socrates': 'Socrates',
-      'plato': 'Plato',
-      'aristotle': 'Aristotle',
-      'immanuel kant': 'Kant',
-      'kant': 'Kant',
-      'friedrich nietzsche': 'Nietzsche',
-      'nietzsche': 'Nietzsche',
-      'jean-paul sartre': 'Sartre',
-      'sartre': 'Sartre',
-      'albert camus': 'Camus',
-      'camus': 'Camus',
-      'simone de beauvoir': 'Beauvoir',
-      'beauvoir': 'Beauvoir',
-      'karl marx': 'Marx',
-      'marx': 'Marx',
-      'jean-jacques rousseau': 'Rousseau',
-      'rousseau': 'Rousseau',
-      'confucius': 'Confucius',
-      'laozi': 'Laozi',
-      'buddha': 'Buddha',
-      'georg wilhelm friedrich hegel': 'Hegel',
-      'hegel': 'Hegel',
-      'ludwig wittgenstein': 'Wittgenstein',
-      'wittgenstein': 'Wittgenstein'
-    };
-
-    const normalizedName = philosopherName.toLowerCase().trim();
-    const fileName = nameMapping[normalizedName];
-
-    if (fileName) {
-      return `/philosophers_portraits/${fileName}.png`;
-    }
-
-    const words = philosopherName.split(' ');
-    const lastName = words[words.length - 1];
-    const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
-    return `/philosophers_portraits/${capitalizedLastName}.png`;
   };
 
   const togglePhilosopher = (philosopherId: string) => {
@@ -334,7 +291,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {philosophers.map(philosopher => {
                   const pid = (philosopher.id || '').toLowerCase();
-                  const isFineTuned = FINE_TUNED.has(pid);
+                  const isFineTuned = resolvePhilosopher(pid)?.fineTuned === true;
                   const isDisabled = !isFineTuned;
                   const isSelected = selectedPhilosophers.includes(philosopher.id);
                   return (

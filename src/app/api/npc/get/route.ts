@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { philosopherProfiles } from '@/lib/data/philosophers';
+import { PHILOSOPHERS, resolvePhilosopher } from '@/lib/data/philosophers';
 import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
@@ -102,23 +102,22 @@ export async function GET(req: NextRequest) {
       loggers.npc.error('❌ Error generating basic NPC data:', apiError);
     }
     
-    const philosophers = Object.keys(philosopherProfiles);
-    const matchedPhilosopher = philosophers.find(name => 
-      name.toLowerCase() === id.toLowerCase() || 
-      id.toLowerCase().includes(name.toLowerCase())
-    );
-    
-    if (matchedPhilosopher) {
-      const profile = philosopherProfiles[matchedPhilosopher];
-      loggers.npc.info(`✅ Found local philosopher profile: ${matchedPhilosopher}`);
-      
+    const profile =
+      resolvePhilosopher(id) ??
+      Object.values(PHILOSOPHERS).find((p) =>
+        id.toLowerCase().includes(p.id),
+      );
+
+    if (profile) {
+      loggers.npc.info(`✅ Found local philosopher profile: ${profile.name}`);
+
       return NextResponse.json({
-        id: matchedPhilosopher.toLowerCase(),
-        name: matchedPhilosopher,
+        id: profile.id,
+        name: profile.name,
         description: profile.description,
-        key_concepts: profile.key_concepts,
-        portrait_url: null,  // URL
-        is_custom: false
+        key_concepts: profile.keyConcepts,
+        portrait_url: null,
+        is_custom: false,
       });
     }
     

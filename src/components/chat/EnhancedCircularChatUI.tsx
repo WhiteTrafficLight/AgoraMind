@@ -9,6 +9,7 @@ import { freeDiscussionService } from '@/lib/api/freeDiscussionService';
 import { PhilosopherTurn, FreeDiscussionMessage } from '@/app/open-chat/types/freeDiscussion.types';
 import '@/utils/freeDiscussionDebug';
 import { loggers } from '@/utils/logger';
+import { getPhilosopherPortraitPath } from '@/lib/data/philosophers';
 
 interface ChatMessage extends ChatMessageBase {
   isNew?: boolean;
@@ -237,48 +238,6 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
         handleSendMessage(e);
       }
     }
-  };
-
-  // Generate philosopher portrait path
-  const getPhilosopherPortraitPath = (philosopherName: string): string => {
-    const nameMapping: Record<string, string> = {
-      'socrates': 'Socrates',
-      'plato': 'Plato', 
-      'aristotle': 'Aristotle',
-      'immanuel kant': 'Kant',
-      'kant': 'Kant',
-      'friedrich nietzsche': 'Nietzsche',
-      'nietzsche': 'Nietzsche',
-      'jean-paul sartre': 'Sartre',
-      'sartre': 'Sartre',
-      'albert camus': 'Camus',
-      'camus': 'Camus',
-      'simone de beauvoir': 'Beauvoir',
-      'beauvoir': 'Beauvoir',
-      'karl marx': 'Marx',
-      'marx': 'Marx',
-      'jean-jacques rousseau': 'Rousseau',
-      'rousseau': 'Rousseau',
-      'confucius': 'Confucius',
-      'laozi': 'Laozi',
-      'buddha': 'Buddha',
-      'georg wilhelm friedrich hegel': 'Hegel',
-      'hegel': 'Hegel',
-      'ludwig wittgenstein': 'Wittgenstein',
-      'wittgenstein': 'Wittgenstein'
-    };
-    
-    const normalizedName = philosopherName.toLowerCase().trim();
-    const fileName = nameMapping[normalizedName];
-    
-    if (fileName) {
-      return `/philosophers_portraits/${fileName}.png`;
-    }
-    
-    const words = philosopherName.split(' ');
-    const lastName = words[words.length - 1];
-    const capitalizedLastName = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
-    return `/philosophers_portraits/${capitalizedLastName}.png`;
   };
 
   const getNpcDisplayName = (npcId: string): string => {
