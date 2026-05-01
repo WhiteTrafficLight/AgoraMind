@@ -1,7 +1,7 @@
 // Debug utility for Free Discussion
 // Use this in browser console to test the API endpoints
 import { createLogger, LogLevel } from './logger';
-import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { apiUrl, ENDPOINTS } from '@/lib/api/endpoints';
 
 declare global {
   interface Window {
@@ -38,10 +38,10 @@ export const createFreeDiscussionDebug = () => {
     };
 
     try {
-      debugLogger.debug('Sending request to:', `${API_BASE_URL}/api/free-discussion/create`);
+      debugLogger.debug('Sending request to:', apiUrl(ENDPOINTS.freeDiscussion.create));
       debugLogger.debug('Payload:', testPayload);
 
-      const response = await fetch(`${API_BASE_URL}/api/free-discussion/create`, {
+      const response = await fetch(apiUrl(ENDPOINTS.freeDiscussion.create), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export const createFreeDiscussionDebug = () => {
         // Test getting session status
         if (data.session_id) {
           debugLogger.debug('Testing session status...');
-          const statusResponse = await fetch(`${API_BASE_URL}/api/free-discussion/${data.session_id}/status`);
+          const statusResponse = await fetch(apiUrl(ENDPOINTS.freeDiscussion.status(data.session_id)));
           const statusData = await statusResponse.json();
           debugLogger.info('Session status:', statusData);
         }
@@ -74,8 +74,8 @@ export const createFreeDiscussionDebug = () => {
 
   const testAPIEndpoint = async (endpoint: string) => {
     try {
-      debugLogger.debug('Testing endpoint:', `${API_BASE_URL}${endpoint}`);
-      const response = await fetch(`${API_BASE_URL}${endpoint}`);
+      debugLogger.debug('Testing endpoint:', apiUrl(endpoint));
+      const response = await fetch(apiUrl(endpoint));
       debugLogger.debug(`${endpoint} status:`, response.status);
       
       if (response.ok) {

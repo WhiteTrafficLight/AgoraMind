@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { ChatRoom, ChatRoomCreationParams, ChatMessage } from '@/lib/ai/chatService';
 import chatRoomDB from '@/lib/db/chatRoomDB';
 import { loggers } from '@/utils/logger';
-import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { apiUrl, ENDPOINTS } from '@/lib/api/endpoints';
 import connectDB from '@/lib/mongodb';
 
 const corsHeaders: Record<string, string> = {
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             moderator_style_id: params.moderator?.style_id || '0',
           };
 
-          const apiResponse = await fetch(`${API_BASE_URL}/api/chat/create-debate-room`, {
+          const apiResponse = await fetch(apiUrl(ENDPOINTS.chat.createDebateRoom), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestData),

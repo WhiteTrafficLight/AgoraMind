@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { apiUrl, ENDPOINTS } from '@/lib/api/endpoints';
 import { loggers } from '@/utils/logger';
 
 interface RouteContext {
@@ -13,7 +13,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/dialogue/${roomId}/${action}`);
+    const response = await fetch(apiUrl(ENDPOINTS.dialogue.action(roomId, action)));
     if (!response.ok) {
       throw new Error(`API returned ${response.status}: ${response.statusText}`);
     }
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
 
   try {
     const body = await request.json();
-    const response = await fetch(`${API_BASE_URL}/api/dialogue/${roomId}/${action}`, {
+    const response = await fetch(apiUrl(ENDPOINTS.dialogue.action(roomId, action)), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

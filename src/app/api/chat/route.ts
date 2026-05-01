@@ -4,7 +4,7 @@ import path from 'path';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { loggers } from '@/utils/logger';
-import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { apiUrl, ENDPOINTS } from '@/lib/api/endpoints';
 import { DEFAULT_LLM_MODEL } from '@/lib/ai/llmDefaults';
 
 // .env.local API
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
       loggers.chat.info('🔄 Calling Python backend (llm_manager) API with new format...');
       
       // Python API -
-      const backendResponse = await fetch(`${API_BASE_URL}/api/chat/generate`, {
+      const backendResponse = await fetch(apiUrl(ENDPOINTS.chat.generate), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
