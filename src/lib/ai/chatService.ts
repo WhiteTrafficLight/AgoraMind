@@ -1,5 +1,6 @@
 import { loggers } from '@/utils/logger';
 import { DEFAULT_LLM_MODEL } from './llmDefaults';
+import { safeParseJson } from './chatHttp';
 import type {
   Citation,
   ChatMessage,
@@ -23,56 +24,6 @@ export type {
 function log(...args: unknown[]) {
   if (process.env.NODE_ENV !== 'production') {
     loggers.api.debug('[ChatService]', ...args);
-  }
-}
-
-// Helper function to safely parse JSON and detect HTML responses.
-// Returns `any` because every consumer narrows differently and the
-// API responses come from many different endpoints with no shared shape.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- API boundary; consumers narrow.
-async function safeParseJson(response: Response): Promise<any> {
-  // Check content type before reading the response
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('text/html')) {
-    loggers.api.warn('Response has HTML content type');
-    const text = await response.text();
-    loggers.api.error('Received HTML response from API', { 
-      preview: text.substring(0, 500) 
-    });
-    throw new Error(`API returned HTML instead of JSON. Status: ${response.status}`);
-  }
-  
-  const text = await response.text();
-  
-  // Debug the raw response
-  loggers.api.debug('Raw API response', { 
-    preview: text.substring(0, 200) + (text.length > 200 ? '...' : '') 
-  });
-  
-  // Check if response is HTML (indication of an error page)
-  if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-    loggers.api.warn('Received HTML response instead of JSON');
-    loggers.api.error('HTML response preview', { 
-      preview: text.substring(0, 500) 
-    });
-    throw new Error(`API returned HTML instead of JSON. Status: ${response.status}`);
-  }
-  
-  // If empty response
-  if (!text.trim()) {
-    loggers.api.warn('Received empty response');
-    return null;
-  }
-  
-  // Try to parse JSON
-  try {
-    return JSON.parse(text);
-  } catch (error) {
-    loggers.api.error('Failed to parse JSON response', { error });
-    loggers.api.error('Response text preview', { 
-      preview: text.substring(0, 500) 
-    });
-    throw new Error(`Invalid JSON response. Status: ${response.status}`);
   }
 }
 
