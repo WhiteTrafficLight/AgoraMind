@@ -1,0 +1,68 @@
+name: e2e smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # The build phase evaluates module-level code in every API route,
+      # including src/lib/mongodb.ts which throws on missing MONGODB_URI /
+      # MONGODB_DB. The smoke test only hits public pages, but the build
+      # still needs these to be _set_ (the value isn't dialed since no
+      # connection is actually attempted in this job).
+      - name: Build
+        env:
+          MONGODB_URI: mongodb://placeholder-not-used-in-ci
+          MONGODB_DB: placeholder
+          NEXTAUTH_SECRET: ci-smoke-test-secret-not-real
+          NEXTAUTH_URL: http://localhost:3000
+        run: npm run build
+
+      - name: Run e2e smoke test
+        env:
+          MONGODB_URI: mongodb://placeholder-not-used-in-ci
+          MONGODB_DB: placeholder
+          NEXTAUTH_SECRET: ci-smoke-test-secret-not-real
+          NEXTAUTH_URL: http://localhost:3000
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
