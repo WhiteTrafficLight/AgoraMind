@@ -49,5 +49,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# claude code (runtime artifacts only; settings.json and skills/ are tracked)
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+.claude/cache/
+.claude/plans/
+
 # Exclude podcast audio files
 /public/podcasts/
