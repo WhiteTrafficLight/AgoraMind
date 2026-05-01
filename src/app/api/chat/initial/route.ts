@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { philosopherProfiles } from '@/lib/data/philosophers';
 import { loggers } from '@/utils/logger';
-
-const BACKEND_API_URL = 'http://0.0.0.0:8000';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 interface NpcData {
   name: string;
@@ -142,7 +141,7 @@ export async function POST(req: NextRequest) {
       try {
         loggers.chat.info(`🔄 Calling backend API (attempt ${retryCount + 1}/${MAX_RETRIES})`);
         
-        const backendResponse = await fetch(`${BACKEND_API_URL}/api/chat/generate`, {
+        const backendResponse = await fetch(`${API_BASE_URL}/api/chat/generate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
