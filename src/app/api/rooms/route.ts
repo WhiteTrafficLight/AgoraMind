@@ -5,25 +5,7 @@ import chatRoomDB from '@/lib/db/chatRoomDB';
 import { socketCore } from '@/lib/messaging/socket/server/socket-core';
 import { loggers } from '@/utils/logger';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
-
-let isConnected = false;
-const connectDB = async (): Promise<void> => {
-  if (isConnected) {
-    loggers.api.debug('MongoDB already connected');
-    return;
-  }
-  try {
-    const mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017/agoramind';
-    await mongoose.connect(mongoUrl);
-    isConnected = true;
-    loggers.api.debug('MongoDB connected successfully');
-  } catch (error) {
-    loggers.api.error('MongoDB connection error', error);
-    throw error;
-  }
-};
-
-const db = mongoose.connection;
+import connectDB from '@/lib/mongodb';
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -208,7 +190,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               if (isUuid) {
                 try {
                   await connectDB();
-                  const npcCollection = db.collection('npcs');
+                  const npcCollection = mongoose.connection.collection('npcs');
                   const customNpc = await npcCollection.findOne({ backend_id: npcId });
                   if (customNpc) {
                     npcNames[npcId] = customNpc.name;
