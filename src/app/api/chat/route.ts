@@ -4,6 +4,7 @@ import path from 'path';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { loggers } from '@/utils/logger';
+import { API_BASE_URL } from '@/lib/api/baseUrl';
 
 // .env.local API
 function loadEnvLocal() {
@@ -58,8 +59,6 @@ interface NpcDetail {
   is_custom: boolean;
   created_by?: string;
 }
-
-const BACKEND_API_URL = 'http://0.0.0.0:8000';
 
 export async function POST(req: NextRequest) {
   try {
@@ -126,7 +125,7 @@ export async function POST(req: NextRequest) {
       loggers.chat.info('🔄 Calling Python backend (llm_manager) API with new format...');
       
       // Python API -
-      const backendResponse = await fetch(`${BACKEND_API_URL}/api/chat/generate`, {
+      const backendResponse = await fetch(`${API_BASE_URL}/api/chat/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

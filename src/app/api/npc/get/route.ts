@@ -5,8 +5,6 @@ import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
 import { loggers } from '@/utils/logger';
 
-const BACKEND_API_URL = 'http://0.0.0.0:8000';
-
 const NpcSchema = new mongoose.Schema({
   name: String,
   role: String,
