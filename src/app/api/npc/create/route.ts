@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth/authOptions';
 import connectDB from '@/lib/mongodb';
 import CustomNpc from '@/models/Npc';
-import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { apiUrl, ENDPOINTS } from '@/lib/api/endpoints';
 import { loggers } from '@/utils/logger';
 
 /**
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     // : sapiens_engine API .
     try {
       loggers.npc.info('Calling backend to create NPC');
-      const backendResponse = await fetch(`${API_BASE_URL}/api/npc/create`, {
+      const backendResponse = await fetch(apiUrl(ENDPOINTS.npc.create), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

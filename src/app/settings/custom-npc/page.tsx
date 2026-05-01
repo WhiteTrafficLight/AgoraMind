@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal';
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Header from '@/components/ui/Header';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { apiUrl, ENDPOINTS } from '@/lib/api/endpoints';
 import { loggers } from '@/utils/logger';
 
 interface CustomNpc {
@@ -80,7 +81,7 @@ export default function CustomNpcPage() {
     setLoadingPortrait(npc.id);
     setPortraitError(prev => ({ ...prev, [npc.id]: '' }));
     try {
-      const res = await fetch(`${API_BASE_URL}/api/portraits/generate`, {
+      const res = await fetch(apiUrl(ENDPOINTS.portraits.generate), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

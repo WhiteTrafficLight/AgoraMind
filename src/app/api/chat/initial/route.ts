@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolvePhilosopher } from '@/lib/data/philosophers';
 import { loggers } from '@/utils/logger';
-import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { apiUrl, ENDPOINTS } from '@/lib/api/endpoints';
 import { DEFAULT_LLM_MODEL } from '@/lib/ai/llmDefaults';
 
 interface NpcData {
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
       try {
         loggers.chat.info(`🔄 Calling backend API (attempt ${retryCount + 1}/${MAX_RETRIES})`);
         
-        const backendResponse = await fetch(`${API_BASE_URL}/api/chat/generate`, {
+        const backendResponse = await fetch(apiUrl(ENDPOINTS.chat.generate), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

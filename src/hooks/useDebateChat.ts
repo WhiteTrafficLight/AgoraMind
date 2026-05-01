@@ -2,7 +2,7 @@
 
 import { Dispatch, SetStateAction, useCallback, useState } from 'react';
 import { ChatMessage, ChatRoom } from '@/lib/ai/chatService';
-import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { apiUrl, ENDPOINTS } from '@/lib/api/endpoints';
 import { loggers } from '@/utils/logger';
 
 interface UseDebateChatDeps {
@@ -48,7 +48,7 @@ export function useDebateChat(deps: UseDebateChatDeps): UseDebateChatResult {
       loggers.chat.info('Requesting next debate message  room:', chatData.id);
 
       const roomId = String(chatData.id);
-      const response = await fetch(`${API_BASE_URL}/api/chat/debate/${roomId}/next-message`, {
+      const response = await fetch(apiUrl(ENDPOINTS.chat.debateNextMessage(roomId)), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -134,7 +134,7 @@ export function useDebateChat(deps: UseDebateChatDeps): UseDebateChatResult {
       loggers.chat.info('Sending user message request:', requestBody);
 
       const response = await fetch(
-        `${API_BASE_URL}/api/chat/debate/${roomId}/process-user-message`,
+        apiUrl(ENDPOINTS.chat.debateProcessUserMessage(roomId)),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

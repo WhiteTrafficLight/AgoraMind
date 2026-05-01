@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { apiUrl, ENDPOINTS } from '@/lib/api/endpoints';
 import { loggers } from '@/utils/logger';
 
 interface ChatGenerateBody {
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
     room_id = String(room_id);
 
-    const response = await fetch(`${API_BASE_URL}/api/chat/generate`, {
+    const response = await fetch(apiUrl(ENDPOINTS.chat.generate), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...body, room_id, user_message }),
