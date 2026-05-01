@@ -7,9 +7,9 @@ import { chatService, ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 import { useSocket } from '@/hooks/useSocket';
 import { useChatRoom } from '@/hooks/useChatRoom';
 import { useChatUsername } from '@/hooks/useChatUsername';
+import { useChatMessageReceiver } from '@/hooks/useChatMessageReceiver';
 import { loggers } from '@/utils/logger';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
-import { enrichFromMetadata } from '@/lib/chat/messageEnrichment';
 
 function ChatContent() {
   const router = useRouter();
@@ -24,139 +24,18 @@ function ChatContent() {
   const [waitingForUserInput, setWaitingForUserInput] = useState(false);
   const [currentUserTurn, setCurrentUserTurn] = useState<{speaker_id: string, role: string} | null>(null);
 
-  // Socket.IO client connection
+  const onMessage = useChatMessageReceiver({
+    chatData,
+    setChatData,
+    setTypingMessageIds,
+  });
+
   const { socket, isConnected, joinRoom, leaveRoom } = useSocket({
     roomId: chatData?.id ? String(chatData.id) : undefined,
     userId: username,
-    onConnect: () => {
-      loggers.socket.info('V2 socket connected to backend');
-    },
-    onDisconnect: () => {
-      loggers.socket.info('V2 socket disconnected from backend');
-    },
-    onMessage: async (data: { roomId: string, message: ChatMessage }) => {
-      loggers.chat.debug('Socket event received: new-message');
-      loggers.chat.debug('Received data', { 
-        roomId: data.roomId, 
-        messagePreview: JSON.stringify(data).substring(0, 300) 
-      });
-      loggers.chat.debug('Room ID comparison', { 
-        currentRoomId: String(chatData?.id), 
-        receivedRoomId: String(data.roomId) 
-      });
-      
-      const currentRoomId = String(chatData?.id);
-      const receivedRoomId = String(data.roomId);
-      
-      if (currentRoomId === receivedRoomId && data.message) {
-        loggers.chat.info('Room IDs match — saving message to DB then updating UI');
-        loggers.chat.debug('Message content', { 
-          preview: data.message.text?.substring(0, 100),
-          eventType: data.message.metadata?.event_type 
-        });
-        
-        const isCompleteMessage = data.message.metadata?.event_type === 'debate_message_complete';
-        const isUserMessage = data.message.isUser === true;
-        
-        try {
-          // 1. DB ( AI )
-          if (isCompleteMessage || isUserMessage) {
-            loggers.db.info('Starting message DB save', { 
-              messageType: isUserMessage ? 'User message' : 'AI message' 
-            });
-            const saveResponse = await fetch('/api/messages', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                roomId: currentRoomId,
-                message: {
-                  ...data.message,
-                  timestamp: data.message.timestamp || new Date().toISOString()
-                }
-              }),
-            });
-            
-            if (saveResponse.ok) {
-              loggers.db.info('DB save successful');
-            } else {
-              const errorData = await saveResponse.json();
-              loggers.db.error('DB save failed', errorData);
-            }
-          }
-          
-          setChatData(prev => {
-            if (!prev) return prev;
-            
-            if (isCompleteMessage) {
-              loggers.chat.debug('Replacing temporary message with completed message');
-              
-              const messagesCopy = [...(prev.messages || [])];
-              const tempMessageIndex = messagesCopy.findIndex(msg => 
-                msg.isGenerating && msg.sender === data.message.sender
-              );
-              
-              if (tempMessageIndex >= 0) {
-                const completeMessage = enrichFromMetadata(data.message);
-                messagesCopy[tempMessageIndex] = completeMessage;
-                loggers.chat.info('Temporary message replaced');
-                loggers.rag.debug('RAG info', {
-                  rag_used: completeMessage.rag_used,
-                  rag_source_count: completeMessage.rag_source_count,
-                  rag_sources_length: completeMessage.rag_sources?.length || 0
-                });
-                
-                // typingMessageIds
-                setTimeout(() => {
-                  setTypingMessageIds(prev => new Set([...prev, completeMessage.id]));
-                }, 100);
-              } else {
-                loggers.chat.warn('Temporary message not found; adding new');
-                const newMessage = enrichFromMetadata(data.message);
-                
-                loggers.rag.debug('RAG info  regular message', {
-                  rag_used: newMessage.rag_used,
-                  rag_source_count: newMessage.rag_source_count,
-                  rag_sources_length: newMessage.rag_sources?.length || 0
-                });
-                
-                messagesCopy.push(newMessage);
-              }
-              
-              return {
-                ...prev,
-                messages: messagesCopy
-              };
-            } else {
-              loggers.chat.debug('Adding regular message');
-              const newMessage = enrichFromMetadata(data.message);
-              
-              loggers.rag.debug('RAG info  regular message', {
-                rag_used: newMessage.rag_used,
-                rag_source_count: newMessage.rag_source_count,
-                rag_sources_length: newMessage.rag_sources?.length || 0
-              });
-              
-              return {
-                ...prev,
-                messages: [...(prev.messages || []), newMessage]
-              };
-            }
-          });
-          
-        } catch (error) {
-          loggers.chat.error('Error processing message', error);
-        }
-        
-      } else {
-        loggers.chat.warn('Room ID mismatch or no message', {
-          currentRoom: currentRoomId,
-          receivedRoom: receivedRoomId,
-          hasMessage: !!data.message
-        });
-      }
-    }
+    onConnect: () => loggers.socket.info('V2 socket connected to backend'),
+    onDisconnect: () => loggers.socket.info('V2 socket disconnected from backend'),
+    onMessage,
   });
 
   const handleTypingComplete = (messageId: string) => {
