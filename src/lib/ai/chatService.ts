@@ -1,4 +1,5 @@
 import { loggers } from '@/utils/logger';
+import { DEFAULT_LLM_MODEL } from './llmDefaults';
 
 // Types
 export interface Citation {
@@ -1054,7 +1055,7 @@ class ChatService {
         headers: {
           'Content-Type': 'application/json',
           'x-llm-provider': 'openai',
-          'x-llm-model': 'gpt-4o'
+          'x-llm-model': DEFAULT_LLM_MODEL
         },
         body: JSON.stringify({
           npcs: room.participants.npcs,

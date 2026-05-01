@@ -6,6 +6,7 @@ import chatService, { ChatMessage as ChatMessageBase } from '@/lib/ai/chatServic
 import socketClient from '@/lib/socket/socketClient';
 import Image from 'next/image';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { DEFAULT_LLM_MODEL } from '@/lib/ai/llmDefaults';
 import { loggers } from '@/utils/logger';
 
 // socketClient.init() declares its return type as the underlying Socket,
@@ -1010,7 +1011,7 @@ Namespace: ${rawSocket.nsp || '/'}
         headers: {
           'Content-Type': 'application/json',
           'x-llm-provider': 'openai',
-          'x-llm-model': 'gpt-4o'
+          'x-llm-model': DEFAULT_LLM_MODEL
         },
         body: JSON.stringify({
           messages: [...processedMessages, testMsg],

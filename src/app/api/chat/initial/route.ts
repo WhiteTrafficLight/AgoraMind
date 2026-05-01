@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { resolvePhilosopher } from '@/lib/data/philosophers';
 import { loggers } from '@/utils/logger';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { DEFAULT_LLM_MODEL } from '@/lib/ai/llmDefaults';
 
 interface NpcData {
   name: string;
@@ -153,7 +154,7 @@ export async function POST(req: NextRequest) {
             previous_dialogue: "",
             npcs: [isCustomNpc && npcData.id ? npcData.id : philosopher.toLowerCase()],
             llm_provider: llmProvider,
-            llm_model: llmModel || 'gpt-4o'
+            llm_model: llmModel || DEFAULT_LLM_MODEL
           }),
           cache: 'no-store'
         });
