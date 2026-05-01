@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface ParticipantGridProps {
   proParticipants: string[];
@@ -37,9 +38,11 @@ const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           
           return (
             <div key={`pro-${id}`} className="debate-participant-card">
-              <div className={`debate-participant-avatar pro ${
-                selectedNpcId === id ? 'selected' : ''
-              } ${isUserTurn && isUser ? 'user-turn' : ''}`}>
+              <div className={cn(
+                'debate-participant-avatar pro',
+                selectedNpcId === id && 'selected',
+                isUserTurn && isUser && 'user-turn',
+              )}>
                 <img src={avatar} alt={name} className="debate-participant-image" />
               </div>
               <div className="debate-participant-name">{name}</div>
@@ -58,9 +61,11 @@ const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           
           return (
             <div key={`neutral-${id}`} className="debate-participant-card">
-              <div className={`debate-participant-avatar neutral ${
-                selectedNpcId === id ? 'selected' : ''
-              } ${isUserTurn && isUser ? 'user-turn' : ''}`}>
+              <div className={cn(
+                'debate-participant-avatar neutral',
+                selectedNpcId === id && 'selected',
+                isUserTurn && isUser && 'user-turn',
+              )}>
                 <img src={avatar} alt={name} className="debate-participant-image" />
               </div>
               <div className="debate-participant-name">{name}</div>
@@ -92,9 +97,11 @@ const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           
           return (
             <div key={`con-${id}`} className="debate-participant-card">
-              <div className={`debate-participant-avatar con ${
-                selectedNpcId === id ? 'selected' : ''
-              } ${isUserTurn && isUser ? 'user-turn' : ''}`}>
+              <div className={cn(
+                'debate-participant-avatar con',
+                selectedNpcId === id && 'selected',
+                isUserTurn && isUser && 'user-turn',
+              )}>
                 <img src={avatar} alt={name} className="debate-participant-image" />
               </div>
               <div className="debate-participant-name">{name}</div>
