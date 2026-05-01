@@ -5,6 +5,7 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { loggers } from '@/utils/logger';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { DEFAULT_LLM_MODEL } from '@/lib/ai/llmDefaults';
 
 // .env.local API
 function loadEnvLocal() {
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
     
     // LLM
     const llmProvider = req.headers.get('x-llm-provider') || clientLlmProvider || 'openai';
-    const llmModel = req.headers.get('x-llm-model') || clientLlmModel || 'gpt-4o';
+    const llmModel = req.headers.get('x-llm-model') || clientLlmModel || DEFAULT_LLM_MODEL;
     
     loggers.chat.info(`Using LLM Provider: ${llmProvider}, Model: ${llmModel}`);
     

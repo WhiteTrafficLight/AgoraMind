@@ -5,6 +5,7 @@ import type { ChatMessage, ChatRoom } from '@/lib/ai/chatService';
 import { SendMessageData } from '../../types/common.types';
 import chatRoomDB from '@/lib/db/chatRoomDB';
 import { API_BASE_URL } from '@/lib/api/baseUrl';
+import { DEFAULT_LLM_MODEL } from '@/lib/ai/llmDefaults';
 import { loggers } from '@/utils/logger';
 
 export class FreeSocketServer {
@@ -114,7 +115,7 @@ export class FreeSocketServer {
           topic: room?.title,
           context: room?.context,
           llm_provider: 'openai',
-          llm_model: 'gpt-4o',
+          llm_model: DEFAULT_LLM_MODEL,
           api_key: process.env.OPENAI_API_KEY
         }),
       });
