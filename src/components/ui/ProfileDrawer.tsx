@@ -4,6 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
+import { cn } from '@/lib/utils';
 
 interface ProfileDrawerProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export default function ProfileDrawer({ isOpen, onClose, anchor }: ProfileDrawer
 
   return (
     <div
-      className={`${isOpen ? 'fixed inset-0 z-[10000]' : 'hidden'}`}
+      className={cn(isOpen ? 'fixed inset-0 z-[10000]' : 'hidden')}
       onClick={onClose}
     >
       {/* Backdrop */}
@@ -43,7 +44,10 @@ export default function ProfileDrawer({ isOpen, onClose, anchor }: ProfileDrawer
       <div
         ref={drawerRef}
         onClick={e => e.stopPropagation()}
-        className={`fixed z-[10001] max-h-[90vh] w-[22rem] bg-white shadow-2xl border border-gray-200 rounded-xl transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+        className={cn(
+          'fixed z-[10001] max-h-[90vh] w-[22rem] bg-white shadow-2xl border border-gray-200 rounded-xl transform transition-transform duration-300',
+          isOpen ? 'translate-x-0' : 'translate-x-full',
+        )}
         style={{ top: anchor?.top ?? 24, right: anchor?.right ?? 24 }}
       >
         <div className="p-4 flex flex-col gap-2 overflow-y-auto max-h-[85vh]">
