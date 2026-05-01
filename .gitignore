@@ -57,3 +57,8 @@ next-env.d.ts
 
 # Exclude podcast audio files
 /public/podcasts/
+
+# playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
