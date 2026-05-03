@@ -1,28 +1,37 @@
 import { MongoClient } from 'mongodb';
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('MONGODB_URI environment variable is not set.');
-}
+// Lazy-initialized MongoClient connection. Reads MONGODB_URI on first
+// call rather than at module load, so build-phase page-data collection
+// can evaluate this module without tripping on a missing env var when
+// no route actually calls getMongoClient().
 
-const uri = process.env.MONGODB_URI;
-const options = {};
+const globalWithMongo = global as typeof globalThis & {
+  _mongoClientPromise?: Promise<MongoClient>;
+};
 
-let client;
-let clientPromise: Promise<MongoClient>;
+let clientPromise: Promise<MongoClient> | null = null;
 
-if (process.env.NODE_ENV === 'development') {
-  const globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
-  
-  if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect();
+function buildClientPromise(): Promise<MongoClient> {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI environment variable is not set.');
   }
-  clientPromise = globalWithMongo._mongoClientPromise;
-} else {
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  const client = new MongoClient(uri, {});
+  return client.connect();
 }
 
-export default clientPromise; 
+export function getMongoClient(): Promise<MongoClient> {
+  // In dev, cache on the global so HMR doesn't open new connections.
+  if (process.env.NODE_ENV === 'development') {
+    if (!globalWithMongo._mongoClientPromise) {
+      globalWithMongo._mongoClientPromise = buildClientPromise();
+    }
+    return globalWithMongo._mongoClientPromise;
+  }
+  if (!clientPromise) {
+    clientPromise = buildClientPromise();
+  }
+  return clientPromise;
+}
+
+export default getMongoClient;
