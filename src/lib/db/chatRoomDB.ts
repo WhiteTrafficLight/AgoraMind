@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import clientPromise from './mongodb';
+import { getMongoClient } from './mongodb';
 import { ChatRoom, ChatMessage } from '@/lib/ai/chatService';
 import { loggers } from '@/utils/logger';
 
@@ -51,7 +51,7 @@ export interface DBChatMessage {
 class ChatRoomDB {
   async getAllChatRooms(): Promise<ChatRoom[]> {
     try {
-      const client = await clientPromise;
+      const client = await getMongoClient();
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
       const rooms = await db.collection<DBChatRoom>('chatRooms')
@@ -92,7 +92,7 @@ class ChatRoomDB {
         return null;
       }
       
-      const client = await clientPromise;
+      const client = await getMongoClient();
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
       const roomId = String(id).trim();
@@ -140,7 +140,7 @@ class ChatRoomDB {
 
   async createChatRoom(room: ChatRoom): Promise<ChatRoom> {
     try {
-      const client = await clientPromise;
+      const client = await getMongoClient();
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
       // room.id ,
@@ -261,7 +261,7 @@ class ChatRoomDB {
 
   async addMessage(roomId: string, message: ChatMessage): Promise<boolean> {
     try {
-      const client = await clientPromise;
+      const client = await getMongoClient();
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
       const normalizedRoomId = String(roomId).trim();
@@ -316,7 +316,7 @@ class ChatRoomDB {
 
   async updateChatRoom(roomId: string, updates: Partial<ChatRoom>): Promise<boolean> {
     try {
-      const client = await clientPromise;
+      const client = await getMongoClient();
       const db = client.db(process.env.MONGODB_DB || 'agoramind');
       
       const normalizedRoomId = String(roomId).trim();
