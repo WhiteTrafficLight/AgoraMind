@@ -28,8 +28,11 @@ jobs:
 
       - name: TypeScript check
         run: npm run typecheck
-      # NOTE: `npm run lint` is intentionally NOT run here. The repo
-      # currently has ~21 ESLint errors / ~108 warnings that are real
-      # findings (not formatting). Adding lint as a gate without first
-      # triaging those would block every PR. Re-enable in a follow-up
-      # once the backlog is cleared (or scoped via --max-warnings).
+
+      # ESLint with a strict warning cap. Current baseline is 124
+      # warnings (post the rule demotions in eslint.config.mjs — see
+      # the comment block there for what's demoted and why). Hitting
+      # 125 fails CI, forcing either a fix or a conscious raise of
+      # the cap. Errors fail CI unconditionally.
+      - name: ESLint
+        run: npm run lint -- --max-warnings 124
