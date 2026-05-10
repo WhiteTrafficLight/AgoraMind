@@ -10,7 +10,7 @@ NEXT_PUBLIC_LOG_LEVEL=ERROR
 
 # 카테고리별 세부 설정 (선택사항)
 NEXT_PUBLIC_SOCKET_LOG_LEVEL=ERROR
-NEXT_PUBLIC_CHAT_LOG_LEVEL=ERROR  
+NEXT_PUBLIC_CHAT_LOG_LEVEL=ERROR
 NEXT_PUBLIC_API_LOG_LEVEL=WARN
 NEXT_PUBLIC_NPC_LOG_LEVEL=ERROR
 NEXT_PUBLIC_AUTH_LOG_LEVEL=WARN
@@ -29,6 +29,7 @@ NEXT_PUBLIC_RAG_LOG_LEVEL=ERROR
 ## 사용법
 
 ### 기본 사용
+
 ```typescript
 import { logger, loggers } from '@/utils/logger';
 
@@ -45,6 +46,7 @@ loggers.api.warn('API 응답 지연');
 ```
 
 ### 기존 console.log 교체
+
 ```typescript
 // 이전
 console.log('✅ 사용자 로그인 성공');
@@ -59,20 +61,20 @@ loggers.auth.info('사용자 로그인 성공');
 
 ```javascript
 // 도움말 보기
-AgoraLoggers.showHelp()
+AgoraLoggers.showHelp();
 
 // 모든 로그 활성화
-AgoraLoggers.setGlobalLevel('DEBUG')
+AgoraLoggers.setGlobalLevel('DEBUG');
 
 // 에러만 표시
-AgoraLoggers.setGlobalLevel('ERROR')
+AgoraLoggers.setGlobalLevel('ERROR');
 
 // 특정 카테고리만 디버그 모드
-loggerControls.setSOCKETLogLevel('DEBUG')
-loggerControls.setCHATLogLevel('INFO')
+loggerControls.setSOCKETLogLevel('DEBUG');
+loggerControls.setCHATLogLevel('INFO');
 
 // 현재 설정 확인
-loggerControls.getSOCKETLogLevel()
+loggerControls.getSOCKETLogLevel();
 ```
 
 ## URL 파라미터로 디버그 모드
@@ -80,6 +82,7 @@ loggerControls.getSOCKETLogLevel()
 ```
 https://agoramind.net?debug
 ```
+
 URL에 `?debug` 파라미터를 추가하면 모든 로그가 활성화됩니다.
 
 ## 그룹 로깅 및 성능 측정
@@ -103,16 +106,19 @@ logger.force('긴급 디버깅 정보');
 ## 배포 환경별 권장 설정
 
 ### 개발환경 (.env.local)
+
 ```bash
 NEXT_PUBLIC_LOG_LEVEL=DEBUG
 ```
 
-### 스테이징환경 (.env.staging)  
+### 스테이징환경 (.env.staging)
+
 ```bash
 NEXT_PUBLIC_LOG_LEVEL=INFO
 ```
 
 ### 프로덕션환경 (.env.production)
+
 ```bash
 NEXT_PUBLIC_LOG_LEVEL=ERROR
 NEXT_PUBLIC_API_LOG_LEVEL=WARN  # API 에러는 모니터링 필요
@@ -126,6 +132,6 @@ NEXT_PUBLIC_API_LOG_LEVEL=WARN  # API 에러는 모니터링 필요
 2. **카테고리 분류**: 기능별로 적절한 로거 사용
 3. **로그 레벨 분류**:
    - 에러: `logger.error()`
-   - 중요 상태: `logger.warn()`  
+   - 중요 상태: `logger.warn()`
    - 정보성: `logger.info()`
-   - 디버깅: `logger.debug()` 
+   - 디버깅: `logger.debug()`

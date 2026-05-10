@@ -10,24 +10,18 @@ interface ModalProps {
   footer?: React.ReactNode;
 }
 
-const Modal: React.FC<ModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
-  footer 
-}) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    
+
     if (isOpen) {
       document.body.classList.add('modal-open');
     } else {
       document.body.classList.remove('modal-open');
     }
-    
+
     return () => {
       document.body.classList.remove('modal-open');
     };
@@ -38,11 +32,11 @@ const Modal: React.FC<ModalProps> = ({
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    
+
     if (isOpen) {
       window.addEventListener('keydown', handleEsc);
     }
-    
+
     return () => {
       window.removeEventListener('keydown', handleEsc);
     };
@@ -50,7 +44,7 @@ const Modal: React.FC<ModalProps> = ({
 
   // Don't render on the server
   if (!mounted || !isOpen) return null;
-  
+
   // Create portal for modal
   return createPortal(
     <div
@@ -70,7 +64,7 @@ const Modal: React.FC<ModalProps> = ({
           padding: '20px',
           boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)',
           width: '90%',
-          maxWidth: '1000px'
+          maxWidth: '1000px',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -86,7 +80,7 @@ const Modal: React.FC<ModalProps> = ({
               transition: 'all 0.2s',
               width: '28px',
               height: '28px',
-              borderRadius: '50%'
+              borderRadius: '50%',
             }}
           >
             ✕
@@ -101,11 +95,7 @@ const Modal: React.FC<ModalProps> = ({
           {children}
         </div>
         {/* Footer */}
-        {footer && (
-          <div className="mt-5 flex justify-end">
-            {footer}
-          </div>
-        )}
+        {footer && <div className="mt-5 flex justify-end">{footer}</div>}
       </div>
       <style jsx global>{`
         body.modal-open {
@@ -114,7 +104,7 @@ const Modal: React.FC<ModalProps> = ({
           width: 100%;
           height: 100%;
         }
-        
+
         .modal-wrapper {
           position: fixed;
           top: 0;
@@ -123,35 +113,38 @@ const Modal: React.FC<ModalProps> = ({
           bottom: 0;
           isolation: isolate;
         }
-        
+
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
-        
+
         @keyframes slideIn {
-          from { 
+          from {
             opacity: 0;
             transform: translate(-50%, -48%) scale(0.92);
           }
-          to { 
+          to {
             opacity: 1;
             transform: translate(-50%, -50%) scale(1);
           }
         }
-        
+
         .modal-backdrop {
           animation: fadeIn 0.3s ease-out;
         }
-        
+
         .modal-container {
           animation: slideIn 0.4s ease-out;
         }
       `}</style>
     </div>,
-    document.body
+    document.body,
   );
 };
 
-export default Modal; 
- 
+export default Modal;

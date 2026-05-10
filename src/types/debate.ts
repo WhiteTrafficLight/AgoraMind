@@ -1,4 +1,3 @@
-
 export enum DebateStage {
   OPENING = 'opening',
   PRO_ARGUMENT = 'pro_argument',
@@ -9,21 +8,21 @@ export enum DebateStage {
   PRO_CONCLUSION = 'pro_conclusion',
   CON_CONCLUSION = 'con_conclusion',
   CLOSING = 'closing',
-  COMPLETED = 'completed'
+  COMPLETED = 'completed',
 }
 
 export enum ParticipantRole {
   PRO = 'pro',
   CON = 'con',
   MODERATOR = 'moderator',
-  OBSERVER = 'observer'
+  OBSERVER = 'observer',
 }
 
 export enum ParticipantSide {
   PRO = 'pro',
   CON = 'con',
   NEUTRAL = 'neutral',
-  MODERATOR = 'moderator'
+  MODERATOR = 'moderator',
 }
 
 export interface DebateRoom {
@@ -133,10 +132,13 @@ export interface ParticipantInfo {
 
 export interface SocketEvents {
   'new-message': (data: { message: ChatMessage; roomId: string }) => void;
-  'user_turn': (data: { is_user: boolean; speaker_id?: string }) => void;
+  user_turn: (data: { is_user: boolean; speaker_id?: string }) => void;
   'npc-selected': (data: { npc_id: string; roomId: string }) => void;
-  'user_message': (data: { message: string; user_id: string }) => void;
-  'next-speaker-update': (data: { roomId: string; nextSpeaker: { speaker_id?: string; role?: string; [key: string]: unknown } }) => void;
+  user_message: (data: { message: string; user_id: string }) => void;
+  'next-speaker-update': (data: {
+    roomId: string;
+    nextSpeaker: { speaker_id?: string; role?: string; [key: string]: unknown };
+  }) => void;
 }
 
 // Props
@@ -155,7 +157,7 @@ export interface DebateChatContainerProps {
   typingMessageIds?: Set<string>;
   onTypingComplete?: (messageId: string) => void;
   waitingForUserInput?: boolean;
-  currentUserTurn?: {speaker_id: string, role: string} | null;
+  currentUserTurn?: { speaker_id: string; role: string } | null;
   onProcessUserMessage?: (message: string) => void;
 }
 
@@ -201,4 +203,4 @@ export interface ControlPanelProps {
   isGeneratingNext: boolean;
   isGeneratingResponse: boolean;
   canShowNextButton: boolean;
-} 
+}

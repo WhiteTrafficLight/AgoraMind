@@ -25,24 +25,26 @@ const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   isUserTurn,
   getNameFromId,
   getProfileImage,
-  isUserParticipant
+  isUserParticipant,
 }) => {
   return (
     <div className="debate-participants-grid">
       {/* Pro Side */}
       <div className="debate-participants-column pro">
-        {proParticipants.map(id => {
+        {proParticipants.map((id) => {
           const isUser = isUserParticipant(id);
           const name = getNameFromId(id, isUser);
           const avatar = getProfileImage(id, isUser);
-          
+
           return (
             <div key={`pro-${id}`} className="debate-participant-card">
-              <div className={cn(
-                'debate-participant-avatar pro',
-                selectedNpcId === id && 'selected',
-                isUserTurn && isUser && 'user-turn',
-              )}>
+              <div
+                className={cn(
+                  'debate-participant-avatar pro',
+                  selectedNpcId === id && 'selected',
+                  isUserTurn && isUser && 'user-turn',
+                )}
+              >
                 <img src={avatar} alt={name} className="debate-participant-image" />
               </div>
               <div className="debate-participant-name">{name}</div>
@@ -51,21 +53,23 @@ const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           );
         })}
       </div>
-      
+
       {/* Neutral */}
       <div className="debate-participants-column neutral">
-        {neutralParticipants.map(id => {
+        {neutralParticipants.map((id) => {
           const isUser = isUserParticipant(id);
           const name = getNameFromId(id, isUser);
           const avatar = getProfileImage(id, isUser);
-          
+
           return (
             <div key={`neutral-${id}`} className="debate-participant-card">
-              <div className={cn(
-                'debate-participant-avatar neutral',
-                selectedNpcId === id && 'selected',
-                isUserTurn && isUser && 'user-turn',
-              )}>
+              <div
+                className={cn(
+                  'debate-participant-avatar neutral',
+                  selectedNpcId === id && 'selected',
+                  isUserTurn && isUser && 'user-turn',
+                )}
+              >
                 <img src={avatar} alt={name} className="debate-participant-image" />
               </div>
               <div className="debate-participant-name">{name}</div>
@@ -73,7 +77,7 @@ const ParticipantGrid: React.FC<ParticipantGridProps> = ({
             </div>
           );
         })}
-        
+
         {/* Moderator */}
         <div key="moderator" className="debate-participant-card">
           <div className="debate-participant-avatar moderator">
@@ -87,21 +91,23 @@ const ParticipantGrid: React.FC<ParticipantGridProps> = ({
           <div className="debate-participant-role moderator">MODERATOR</div>
         </div>
       </div>
-      
+
       {/* Con Side */}
       <div className="debate-participants-column con">
-        {conParticipants.map(id => {
+        {conParticipants.map((id) => {
           const isUser = isUserParticipant(id);
           const name = getNameFromId(id, isUser);
           const avatar = getProfileImage(id, isUser);
-          
+
           return (
             <div key={`con-${id}`} className="debate-participant-card">
-              <div className={cn(
-                'debate-participant-avatar con',
-                selectedNpcId === id && 'selected',
-                isUserTurn && isUser && 'user-turn',
-              )}>
+              <div
+                className={cn(
+                  'debate-participant-avatar con',
+                  selectedNpcId === id && 'selected',
+                  isUserTurn && isUser && 'user-turn',
+                )}
+              >
                 <img src={avatar} alt={name} className="debate-participant-image" />
               </div>
               <div className="debate-participant-name">{name}</div>
@@ -114,4 +120,4 @@ const ParticipantGrid: React.FC<ParticipantGridProps> = ({
   );
 };
 
-export default ParticipantGrid; 
+export default ParticipantGrid;

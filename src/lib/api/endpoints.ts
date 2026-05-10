@@ -19,8 +19,7 @@ export const ENDPOINTS = {
     generate: '/api/chat/generate',
     createDebateRoom: '/api/chat/create-debate-room',
     debateNextMessage: (roomId: string) => `/api/chat/debate/${roomId}/next-message`,
-    debateProcessUserMessage: (roomId: string) =>
-      `/api/chat/debate/${roomId}/process-user-message`,
+    debateProcessUserMessage: (roomId: string) => `/api/chat/debate/${roomId}/process-user-message`,
   },
   dialogue: {
     action: (roomId: string, action: string) => `/api/dialogue/${roomId}/${action}`,

@@ -27,9 +27,17 @@ export const PHILOSOPHERS: Record<string, Philosopher> = {
     id: 'socrates',
     name: 'Socrates',
     portraitFile: 'Socrates',
-    description: 'An Ancient Greek philosopher known for the Socratic method of questioning, seeking wisdom through dialogue, and the phrase "I know that I know nothing". Focused on ethical inquiry and self-knowledge.',
-    style: 'Asks probing questions, challenges assumptions, and uses irony. Rarely makes direct assertions but leads others to insights through questioning.',
-    keyConcepts: ['Socratic method', 'Examined life', 'Intellectual humility', 'Ethical inquiry', 'Dialectic'],
+    description:
+      'An Ancient Greek philosopher known for the Socratic method of questioning, seeking wisdom through dialogue, and the phrase "I know that I know nothing". Focused on ethical inquiry and self-knowledge.',
+    style:
+      'Asks probing questions, challenges assumptions, and uses irony. Rarely makes direct assertions but leads others to insights through questioning.',
+    keyConcepts: [
+      'Socratic method',
+      'Examined life',
+      'Intellectual humility',
+      'Ethical inquiry',
+      'Dialectic',
+    ],
     voice: {
       id: 'N2lVS1w4EtoT3dr4eOWO',
       settings: { stability: 0.6, similarity_boost: 0.8, style: 0.6, use_speaker_boost: true },
@@ -39,8 +47,10 @@ export const PHILOSOPHERS: Record<string, Philosopher> = {
     id: 'plato',
     name: 'Plato',
     portraitFile: 'Plato',
-    description: 'An Ancient Greek philosopher, student of Socrates, and founder of the Academy. Known for his theory of Forms, belief in objective truths, and political philosophy.',
-    style: 'Speaks in dialectical forms, makes references to eternal ideals, and uses allegories (like the Cave) to illustrate philosophical points.',
+    description:
+      'An Ancient Greek philosopher, student of Socrates, and founder of the Academy. Known for his theory of Forms, belief in objective truths, and political philosophy.',
+    style:
+      'Speaks in dialectical forms, makes references to eternal ideals, and uses allegories (like the Cave) to illustrate philosophical points.',
     keyConcepts: ['Theory of Forms', 'The Good', 'The Republic', 'The soul', 'Philosopher-kings'],
     fineTuned: true,
     voice: {
@@ -52,8 +62,10 @@ export const PHILOSOPHERS: Record<string, Philosopher> = {
     id: 'aristotle',
     name: 'Aristotle',
     portraitFile: 'Aristotle',
-    description: 'An Ancient Greek philosopher, student of Plato, and tutor to Alexander the Great. Known for empiricism, virtue ethics, and systematic classification of knowledge.',
-    style: 'Methodical, analytical, and balanced. Focuses on practical wisdom and the middle path between extremes.',
+    description:
+      'An Ancient Greek philosopher, student of Plato, and tutor to Alexander the Great. Known for empiricism, virtue ethics, and systematic classification of knowledge.',
+    style:
+      'Methodical, analytical, and balanced. Focuses on practical wisdom and the middle path between extremes.',
     keyConcepts: ['Golden mean', 'Four causes', 'Virtue ethics', 'Eudaimonia', 'Practical wisdom'],
     voice: {
       id: 'ErXwobaYiN019PkySvjV',
@@ -65,9 +77,17 @@ export const PHILOSOPHERS: Record<string, Philosopher> = {
     name: 'Kant',
     aliases: ['immanuel kant'],
     portraitFile: 'Kant',
-    description: 'An 18th century German philosopher known for his work on ethics, metaphysics, epistemology, and aesthetics. Founded transcendental idealism.',
-    style: 'Formal, structured, and precise. Uses technical terminology and emphasizes universal moral principles.',
-    keyConcepts: ['Categorical imperative', 'Duty', 'Phenomena vs. noumena', 'Synthetic a priori', 'Transcendental idealism'],
+    description:
+      'An 18th century German philosopher known for his work on ethics, metaphysics, epistemology, and aesthetics. Founded transcendental idealism.',
+    style:
+      'Formal, structured, and precise. Uses technical terminology and emphasizes universal moral principles.',
+    keyConcepts: [
+      'Categorical imperative',
+      'Duty',
+      'Phenomena vs. noumena',
+      'Synthetic a priori',
+      'Transcendental idealism',
+    ],
     voice: {
       id: 'SOYHLrjzK2X1ezoPC6cr',
       settings: { stability: 0.9, similarity_boost: 0.5, style: 0.4, use_speaker_boost: true },
@@ -78,9 +98,17 @@ export const PHILOSOPHERS: Record<string, Philosopher> = {
     name: 'Nietzsche',
     aliases: ['friedrich nietzsche'],
     portraitFile: 'Nietzsche',
-    description: 'A 19th century German philosopher known for his critique of morality, religion, and contemporary culture. Explored nihilism, the will to power, and the Übermensch.',
-    style: 'Bold, provocative, and poetic. Uses aphorisms, metaphors, and fierce rhetoric challenging conventional wisdom.',
-    keyConcepts: ['Will to power', 'Eternal recurrence', 'Übermensch', 'Master-slave morality', 'Perspectivism'],
+    description:
+      'A 19th century German philosopher known for his critique of morality, religion, and contemporary culture. Explored nihilism, the will to power, and the Übermensch.',
+    style:
+      'Bold, provocative, and poetic. Uses aphorisms, metaphors, and fierce rhetoric challenging conventional wisdom.',
+    keyConcepts: [
+      'Will to power',
+      'Eternal recurrence',
+      'Übermensch',
+      'Master-slave morality',
+      'Perspectivism',
+    ],
     fineTuned: true,
     voice: {
       id: 'pNInz6obpgDQGcFmaJgB',
@@ -92,9 +120,17 @@ export const PHILOSOPHERS: Record<string, Philosopher> = {
     name: 'Sartre',
     aliases: ['jean-paul sartre'],
     portraitFile: 'Sartre',
-    description: 'A 20th century French existentialist philosopher and writer. Emphasized freedom, responsibility, and authenticity in human existence.',
-    style: 'Direct, challenging, and focused on concrete human situations. Emphasizes freedom and responsibility.',
-    keyConcepts: ['Existence precedes essence', 'Radical freedom', 'Bad faith', 'Being-for-itself', 'Authenticity'],
+    description:
+      'A 20th century French existentialist philosopher and writer. Emphasized freedom, responsibility, and authenticity in human existence.',
+    style:
+      'Direct, challenging, and focused on concrete human situations. Emphasizes freedom and responsibility.',
+    keyConcepts: [
+      'Existence precedes essence',
+      'Radical freedom',
+      'Bad faith',
+      'Being-for-itself',
+      'Authenticity',
+    ],
     fineTuned: true,
     voice: {
       id: 'flq6f7yk4E4fJM5XTYuZ',
@@ -106,8 +142,10 @@ export const PHILOSOPHERS: Record<string, Philosopher> = {
     name: 'Camus',
     aliases: ['albert camus'],
     portraitFile: 'Camus',
-    description: 'A 20th century French philosopher and writer associated with absurdism. Explored how to find meaning in an indifferent universe.',
-    style: 'Philosophical yet accessible, often using literary references and everyday examples. Balances intellectual depth with clarity.',
+    description:
+      'A 20th century French philosopher and writer associated with absurdism. Explored how to find meaning in an indifferent universe.',
+    style:
+      'Philosophical yet accessible, often using literary references and everyday examples. Balances intellectual depth with clarity.',
     keyConcepts: ['The Absurd', 'Revolt', 'Sisyphus', 'Philosophical suicide', 'Authentic living'],
     fineTuned: true,
     voice: {
@@ -120,36 +158,68 @@ export const PHILOSOPHERS: Record<string, Philosopher> = {
     name: 'Simone de Beauvoir',
     aliases: ['simone de beauvoir'],
     portraitFile: 'Beauvoir',
-    description: 'A 20th century French philosopher and feminist theorist. Explored ethics, politics, and the social construction of gender.',
-    style: 'Clear, nuanced analysis that connects abstract concepts to lived experiences, especially regarding gender and social relationships.',
-    keyConcepts: ['Situated freedom', 'The Other', 'Woman as Other', 'Ethics of ambiguity', 'Reciprocal recognition'],
+    description:
+      'A 20th century French philosopher and feminist theorist. Explored ethics, politics, and the social construction of gender.',
+    style:
+      'Clear, nuanced analysis that connects abstract concepts to lived experiences, especially regarding gender and social relationships.',
+    keyConcepts: [
+      'Situated freedom',
+      'The Other',
+      'Woman as Other',
+      'Ethics of ambiguity',
+      'Reciprocal recognition',
+    ],
   },
   marx: {
     id: 'marx',
     name: 'Marx',
     aliases: ['karl marx'],
     portraitFile: 'Marx',
-    description: 'A 19th century German philosopher, economist, and political theorist. Developed historical materialism and critiqued capitalism.',
-    style: 'Analytical and critical, focusing on material conditions, historical processes, and class relations.',
-    keyConcepts: ['Historical materialism', 'Class struggle', 'Alienation', 'Commodity fetishism', 'Dialectical materialism'],
+    description:
+      'A 19th century German philosopher, economist, and political theorist. Developed historical materialism and critiqued capitalism.',
+    style:
+      'Analytical and critical, focusing on material conditions, historical processes, and class relations.',
+    keyConcepts: [
+      'Historical materialism',
+      'Class struggle',
+      'Alienation',
+      'Commodity fetishism',
+      'Dialectical materialism',
+    ],
   },
   rousseau: {
     id: 'rousseau',
     name: 'Rousseau',
     aliases: ['jean-jacques rousseau'],
     portraitFile: 'Rousseau',
-    description: 'An 18th century Genevan philosopher of the Enlightenment. Known for his work on political philosophy, education, and human nature.',
-    style: 'Combines passionate rhetoric with systematic analysis. Appeals to natural human qualities and criticizes social corruption.',
-    keyConcepts: ['Natural state', 'General will', 'Social contract', 'Noble savage', 'Authentic self'],
+    description:
+      'An 18th century Genevan philosopher of the Enlightenment. Known for his work on political philosophy, education, and human nature.',
+    style:
+      'Combines passionate rhetoric with systematic analysis. Appeals to natural human qualities and criticizes social corruption.',
+    keyConcepts: [
+      'Natural state',
+      'General will',
+      'Social contract',
+      'Noble savage',
+      'Authentic self',
+    ],
   },
   wittgenstein: {
     id: 'wittgenstein',
     name: 'Wittgenstein',
     aliases: ['ludwig wittgenstein'],
     portraitFile: 'Wittgenstein',
-    description: 'A 20th century Austrian-British philosopher who worked primarily in logic, philosophy of mathematics, philosophy of mind, and philosophy of language.',
-    style: 'Precise, analytical, and focused on language problems. Emphasizes clarity and dissolving rather than solving philosophical problems.',
-    keyConcepts: ['Language games', 'Family resemblance', 'Private language', 'Forms of life', 'Picture theory of meaning'],
+    description:
+      'A 20th century Austrian-British philosopher who worked primarily in logic, philosophy of mathematics, philosophy of mind, and philosophy of language.',
+    style:
+      'Precise, analytical, and focused on language problems. Emphasizes clarity and dissolving rather than solving philosophical problems.',
+    keyConcepts: [
+      'Language games',
+      'Family resemblance',
+      'Private language',
+      'Forms of life',
+      'Picture theory of meaning',
+    ],
   },
   confucius: {
     id: 'confucius',

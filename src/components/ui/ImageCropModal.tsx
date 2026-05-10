@@ -11,19 +11,24 @@ interface ImageCropModalProps {
   imageSrc?: string;
 }
 
-export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: externalImageSrc }: ImageCropModalProps) {
+export default function ImageCropModal({
+  isOpen,
+  onClose,
+  onSave,
+  imageSrc: externalImageSrc,
+}: ImageCropModalProps) {
   const [imgSrc, setImgSrc] = useState<string>('');
   const [crop, setCrop] = useState<Crop>({
     unit: '%',
     width: 80,
     height: 80,
     x: 10,
-    y: 10
+    y: 10,
   });
   const [completedCrop, setCompletedCrop] = useState<Crop | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [loading, setLoading] = useState(false);
-  
+
   // Add body lock when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -36,7 +41,7 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
       setImgSrc('');
       setCompletedCrop(null);
     }
-    
+
     return () => {
       document.body.style.overflow = '';
     };
@@ -52,15 +57,12 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
     }
   };
 
-  const getCroppedImg = (
-    image: HTMLImageElement,
-    crop: Crop,
-  ): string => {
-    const canvas = document.createElement("canvas");
+  const getCroppedImg = (image: HTMLImageElement, crop: Crop): string => {
+    const canvas = document.createElement('canvas');
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
-    const ctx = canvas.getContext("2d");
-    
+    const ctx = canvas.getContext('2d');
+
     if (!ctx) {
       throw new Error('No 2d context');
     }
@@ -69,28 +71,18 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
     const cropY = crop.y * scaleY;
     const cropWidth = crop.width * scaleX;
     const cropHeight = crop.height * scaleY;
-    
+
     canvas.width = cropWidth;
     canvas.height = cropHeight;
-    
-    ctx.drawImage(
-      image,
-      cropX,
-      cropY,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      cropWidth,
-      cropHeight
-    );
-    
+
+    ctx.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
     return canvas.toDataURL('image/jpeg');
   };
 
   const handleSave = () => {
     if (!completedCrop || !imgRef.current) return;
-    
+
     try {
       setLoading(true);
       const croppedImageBase64 = getCroppedImg(imgRef.current, completedCrop);
@@ -106,7 +98,7 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         top: 0,
@@ -118,10 +110,10 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
         justifyContent: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         zIndex: 9999,
-        backdropFilter: 'blur(2px)'
+        backdropFilter: 'blur(2px)',
       }}
     >
-      <div 
+      <div
         style={{
           background: 'white',
           borderRadius: '8px',
@@ -130,35 +122,41 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
           maxWidth: '400px',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
           position: 'relative',
-          margin: '0 20px'
+          margin: '0 20px',
         }}
       >
-        <h2 style={{ 
-          fontSize: '18px', 
-          fontWeight: 600, 
-          marginBottom: '16px',
-          textAlign: 'center'
-        }}>
+        <h2
+          style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            marginBottom: '16px',
+            textAlign: 'center',
+          }}
+        >
           Set Profile Image
         </h2>
-        
+
         {!imgSrc ? (
-          <div style={{ 
-            marginBottom: '16px', 
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <label style={{
-              display: 'block',
-              width: '90%',
-              padding: '16px',
-              textAlign: 'center',
-              border: '2px dashed #e5e7eb',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              margin: '0 auto'
-            }}>
+          <div
+            style={{
+              marginBottom: '16px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <label
+              style={{
+                display: 'block',
+                width: '90%',
+                padding: '16px',
+                textAlign: 'center',
+                border: '2px dashed #e5e7eb',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                margin: '0 auto',
+              }}
+            >
               <span style={{ color: '#666' }}>Select Image</span>
               <input
                 type="file"
@@ -169,14 +167,16 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
             </label>
           </div>
         ) : (
-          <div style={{ 
-            marginBottom: '16px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            maxHeight: '280px',
-            overflow: 'hidden'
-          }}>
+          <div
+            style={{
+              marginBottom: '16px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              maxHeight: '280px',
+              overflow: 'hidden',
+            }}
+          >
             <ReactCrop
               crop={crop}
               onChange={(c) => setCrop(c)}
@@ -185,29 +185,31 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
               circularCrop
               style={{
                 maxWidth: '100%',
-                margin: '0 auto'
+                margin: '0 auto',
               }}
             >
               <img
                 ref={imgRef}
                 src={imgSrc}
                 alt="Crop me"
-                style={{ 
+                style={{
                   maxHeight: '220px',
                   maxWidth: '100%',
                   margin: '0 auto',
-                  display: 'block'
+                  display: 'block',
                 }}
               />
             </ReactCrop>
           </div>
         )}
-        
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end', 
-          gap: '8px' 
-        }}>
+
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '8px',
+          }}
+        >
           <button
             onClick={onClose}
             style={{
@@ -215,7 +217,7 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
               border: '1px solid #d1d5db',
               borderRadius: '4px',
               backgroundColor: 'white',
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
           >
             Cancel
@@ -230,7 +232,7 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
               border: 'none',
               borderRadius: '4px',
               cursor: !completedCrop || loading ? 'not-allowed' : 'pointer',
-              opacity: !completedCrop || loading ? 0.5 : 1
+              opacity: !completedCrop || loading ? 0.5 : 1,
             }}
           >
             {loading ? 'Processing...' : 'Save'}
@@ -239,4 +241,4 @@ export default function ImageCropModal({ isOpen, onClose, onSave, imageSrc: exte
       </div>
     </div>
   );
-} 
+}

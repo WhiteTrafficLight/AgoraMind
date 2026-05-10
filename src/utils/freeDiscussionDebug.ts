@@ -14,27 +14,31 @@ declare global {
   }
 }
 
-const debugLogger = createLogger({ name: 'FREE_DISCUSSION_DEBUG', useEmojis: false, level: LogLevel.DEBUG });
+const debugLogger = createLogger({
+  name: 'FREE_DISCUSSION_DEBUG',
+  useEmojis: false,
+  level: LogLevel.DEBUG,
+});
 
 export const createFreeDiscussionDebug = () => {
   const testCreateSession = async () => {
     debugLogger.info('Testing Free Discussion API...');
-    
+
     const testPayload = {
-      topic: "Test: The nature of consciousness",
-      philosophers: ["nietzsche", "sartre"],
-      context: "A philosophical exploration of consciousness",
+      topic: 'Test: The nature of consciousness',
+      philosophers: ['nietzsche', 'sartre'],
+      context: 'A philosophical exploration of consciousness',
       user_info: {
-        user_id: "test_user_123",
-        user_name: "Test User"
+        user_id: 'test_user_123',
+        user_name: 'Test User',
       },
       config: {
         auto_play: true,
         playback_speed: 1.0,
         turn_interval: 3.0,
         max_turns: 10,
-        allow_user_interruption: true
-      }
+        allow_user_interruption: true,
+      },
     };
 
     try {
@@ -55,11 +59,13 @@ export const createFreeDiscussionDebug = () => {
       if (response.ok) {
         const data = await response.json();
         debugLogger.info('Success response:', data);
-        
+
         // Test getting session status
         if (data.session_id) {
           debugLogger.debug('Testing session status...');
-          const statusResponse = await fetch(apiUrl(ENDPOINTS.freeDiscussion.status(data.session_id)));
+          const statusResponse = await fetch(
+            apiUrl(ENDPOINTS.freeDiscussion.status(data.session_id)),
+          );
           const statusData = await statusResponse.json();
           debugLogger.info('Session status:', statusData);
         }
@@ -77,7 +83,7 @@ export const createFreeDiscussionDebug = () => {
       debugLogger.debug('Testing endpoint:', apiUrl(endpoint));
       const response = await fetch(apiUrl(endpoint));
       debugLogger.debug(`${endpoint} status:`, response.status);
-      
+
       if (response.ok) {
         const data = await response.text();
         debugLogger.info(`${endpoint} response (first 200 chars):`, data.substring(0, 200));
@@ -98,27 +104,27 @@ export const createFreeDiscussionDebug = () => {
 
   const simulateModalSubmission = () => {
     debugLogger.info('Simulating modal submission...');
-    
+
     const mockParams = {
-      title: "Test Free Discussion",
+      title: 'Test Free Discussion',
       maxParticipants: 6,
-      npcs: ["nietzsche", "sartre"],
+      npcs: ['nietzsche', 'sartre'],
       isPublic: true,
       generateInitialMessage: true,
       dialogueType: 'free' as const,
-      context: "Test context for debugging",
+      context: 'Test context for debugging',
       freeDiscussionConfig: {
         auto_play: true,
         playback_speed: 1.0,
         turn_interval: 3.0,
         max_turns: 50,
         allow_user_interruption: true,
-      }
+      },
     };
 
     debugLogger.debug('Mock params:', mockParams);
     debugLogger.info('Use this payload to test your createChat function');
-    
+
     return mockParams;
   };
 
@@ -135,5 +141,3 @@ if (typeof window !== 'undefined') {
   window.debugFreeDiscussion = createFreeDiscussionDebug();
   debugLogger.info('Free Discussion debug tools loaded. Use window.debugFreeDiscussion');
 }
-
-

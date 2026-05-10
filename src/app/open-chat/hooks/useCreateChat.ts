@@ -15,8 +15,10 @@ export const useCreateChat = () => {
     setError(null);
 
     try {
-      loggers.chat.info('🚀 useCreateChat: Starting chat creation...', { dialogueType: params.dialogueType });
-      
+      loggers.chat.info('🚀 useCreateChat: Starting chat creation...', {
+        dialogueType: params.dialogueType,
+      });
+
       // Check if this is a free discussion
       if (params.dialogueType === 'free' && params.freeDiscussionConfig) {
         // 1) Create room in MongoDB first
@@ -26,8 +28,8 @@ export const useCreateChat = () => {
           body: JSON.stringify({
             ...params,
             dialogueType: 'free',
-            generateInitialMessage: false
-          })
+            generateInitialMessage: false,
+          }),
         });
         if (!roomResponse.ok) throw new Error('Failed to create chat room');
         const dbRoom = await roomResponse.json();
@@ -39,7 +41,7 @@ export const useCreateChat = () => {
           context: params.context,
           user_info: {
             user_id: params.username || 'anonymous',
-            user_name: params.username || 'Anonymous User'
+            user_name: params.username || 'Anonymous User',
           },
           config: {
             max_turns: params.freeDiscussionConfig.max_turns,
@@ -50,15 +52,15 @@ export const useCreateChat = () => {
             auto_play: params.freeDiscussionConfig.auto_play,
             turn_interval: params.freeDiscussionConfig.turn_interval,
             allow_user_interruption: params.freeDiscussionConfig.allow_user_interruption,
-            playback_speed: params.freeDiscussionConfig.playback_speed
-          }
+            playback_speed: params.freeDiscussionConfig.playback_speed,
+          },
         });
 
         // 3) Fire-and-forget mapping PUT (do not block UX)
         fetch(`/api/rooms?id=${encodeURIComponent(dbRoom.id)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ freeDiscussionSessionId: session.session_id })
+          body: JSON.stringify({ freeDiscussionSessionId: session.session_id }),
         }).catch(() => {});
 
         // 4) Route to session for immediate usability
@@ -67,10 +69,14 @@ export const useCreateChat = () => {
         }
 
         // Return minimal info (not used after redirect)
-        return { ...dbRoom, dialogueType: 'free' as const, freeDiscussionSessionId: session.session_id };
+        return {
+          ...dbRoom,
+          dialogueType: 'free' as const,
+          freeDiscussionSessionId: session.session_id,
+        };
       } else {
         loggers.chat.info('🎪 Creating regular chat room...');
-        
+
         // Handle regular chat creation (debate, socratic, etc.)
         const response = await fetch('/api/rooms', {
           method: 'POST',

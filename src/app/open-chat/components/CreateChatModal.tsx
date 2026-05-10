@@ -12,7 +12,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   onCreateChat,
   isCreating,
   philosophers,
-  customNpcs
+  customNpcs,
 }) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const overlay = useLoadingOverlay();
@@ -25,7 +25,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     dialogueType: 'free',
     context: '',
     contextUrl: '',
-    contextFileContent: ''
+    contextFileContent: '',
   });
 
   const [contextType, setContextType] = useState<'none' | 'url' | 'text'>('none');
@@ -34,12 +34,14 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   const [npcPositions, setNpcPositions] = useState<Record<string, 'pro' | 'con'>>({});
   const [userDebateRole, setUserDebateRole] = useState<'pro' | 'con' | 'neutral'>('neutral');
   const [moderatorStyleId, setModeratorStyleId] = useState<string>('0');
-  
-  const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
+
+  const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(
+    null,
+  );
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
-  
+
   const [showRecommendedTopics, setShowRecommendedTopics] = useState(false);
-  
+
   // Free discussion settings
   const [freeDiscussionSettings, setFreeDiscussionSettings] = useState({
     autoPlay: false,
@@ -48,37 +50,48 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     maxTurns: 50,
     allowInterruption: true,
   });
-  
+
   // Deprecated (file input removed); keep ref to avoid refactor errors
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const moderatorStyles = [
     { id: '0', name: 'Jamie the Host', description: 'Casual and friendly young-style moderator' },
-    { id: '1', name: 'Dr. Lee', description: 'Polite and academic university professor-style moderator' },
-    { id: '2', name: 'Zuri Show', description: 'Energetic and entertaining YouTuber host-style moderator' },
+    {
+      id: '1',
+      name: 'Dr. Lee',
+      description: 'Polite and academic university professor-style moderator',
+    },
+    {
+      id: '2',
+      name: 'Zuri Show',
+      description: 'Energetic and entertaining YouTuber host-style moderator',
+    },
     { id: '3', name: 'Elias of the End', description: 'Serious and weighty tone moderator' },
-    { id: '4', name: 'Miss Hana', description: 'Bright and educational style moderator' }
+    { id: '4', name: 'Miss Hana', description: 'Bright and educational style moderator' },
   ];
 
   // Handle form field changes
-  const handleChange = (field: keyof ChatRoomCreationParams, value: string | string[] | number | boolean) => {
-    setFormData(prev => ({
+  const handleChange = (
+    field: keyof ChatRoomCreationParams,
+    value: string | string[] | number | boolean,
+  ) => {
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   // Handle philosopher selection
   const togglePhilosopher = (philosopherId: string) => {
-    setSelectedPhilosophers(prev => {
+    setSelectedPhilosophers((prev) => {
       const newSelection = prev.includes(philosopherId)
-        ? prev.filter(p => p !== philosopherId)
+        ? prev.filter((p) => p !== philosopherId)
         : [...prev, philosopherId];
-      
+
       // Update formData.npcs
       const allSelected = [...newSelection, ...selectedCustomNpcs];
       handleChange('npcs', allSelected);
-      
+
       return newSelection;
     });
 
@@ -86,20 +99,20 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     if (formData.dialogueType === 'debate') {
       if (selectedPhilosophers.includes(philosopherId)) {
         // Removing philosopher - remove position
-        setNpcPositions(prev => {
+        setNpcPositions((prev) => {
           const updated = { ...prev };
           delete updated[philosopherId];
           return updated;
         });
       } else {
         // Adding philosopher - assign balanced position
-        const proCount = Object.values(npcPositions).filter(p => p === 'pro').length;
-        const conCount = Object.values(npcPositions).filter(p => p === 'con').length;
+        const proCount = Object.values(npcPositions).filter((p) => p === 'pro').length;
+        const conCount = Object.values(npcPositions).filter((p) => p === 'con').length;
         const defaultPosition = proCount <= conCount ? 'pro' : 'con';
-        
-        setNpcPositions(prev => ({
+
+        setNpcPositions((prev) => ({
           ...prev,
-          [philosopherId]: defaultPosition
+          [philosopherId]: defaultPosition,
         }));
       }
     }
@@ -107,15 +120,15 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
 
   // Handle custom NPC selection
   const toggleCustomNpc = (npcId: string) => {
-    setSelectedCustomNpcs(prev => {
+    setSelectedCustomNpcs((prev) => {
       const newSelection = prev.includes(npcId)
-        ? prev.filter(n => n !== npcId)
+        ? prev.filter((n) => n !== npcId)
         : [...prev, npcId];
-      
+
       // Update formData.npcs
       const allSelected = [...selectedPhilosophers, ...newSelection];
       handleChange('npcs', allSelected);
-      
+
       return newSelection;
     });
 
@@ -123,20 +136,20 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
     if (formData.dialogueType === 'debate') {
       if (selectedCustomNpcs.includes(npcId)) {
         // Removing NPC - remove position
-        setNpcPositions(prev => {
+        setNpcPositions((prev) => {
           const updated = { ...prev };
           delete updated[npcId];
           return updated;
         });
       } else {
         // Adding NPC - assign balanced position
-        const proCount = Object.values(npcPositions).filter(p => p === 'pro').length;
-        const conCount = Object.values(npcPositions).filter(p => p === 'con').length;
+        const proCount = Object.values(npcPositions).filter((p) => p === 'pro').length;
+        const conCount = Object.values(npcPositions).filter((p) => p === 'con').length;
         const defaultPosition = proCount <= conCount ? 'pro' : 'con';
-        
-        setNpcPositions(prev => ({
+
+        setNpcPositions((prev) => ({
           ...prev,
-          [npcId]: defaultPosition
+          [npcId]: defaultPosition,
         }));
       }
     }
@@ -168,35 +181,37 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   // Set NPC position for debate
   const setNpcPosition = (npcId: string, position: 'pro' | 'con') => {
     if (selectedPhilosophers.includes(npcId) || selectedCustomNpcs.includes(npcId)) {
-      setNpcPositions(prev => ({
+      setNpcPositions((prev) => ({
         ...prev,
-        [npcId]: position
+        [npcId]: position,
       }));
     }
   };
 
   const loadPhilosopherDetails = async (philosopherId: string) => {
     try {
-      const customNpc = customNpcs.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
+      const customNpc = customNpcs.find((p) => p.id.toLowerCase() === philosopherId.toLowerCase());
       if (customNpc) {
         setSelectedPhilosopherDetails(customNpc);
         setShowPhilosopherDetails(true);
         return;
       }
-      
-      const existingPhil = philosophers.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
+
+      const existingPhil = philosophers.find(
+        (p) => p.id.toLowerCase() === philosopherId.toLowerCase(),
+      );
       if (existingPhil) {
         setSelectedPhilosopherDetails(existingPhil);
         setShowPhilosopherDetails(true);
         return;
       }
-      
+
       // JSON ()
       const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        const philosopher = data.philosophers.find((p: { id: string; name?: string }) => 
-          p.id.toLowerCase() === philosopherId.toLowerCase()
+        const philosopher = data.philosophers.find(
+          (p: { id: string; name?: string }) => p.id.toLowerCase() === philosopherId.toLowerCase(),
         );
         if (philosopher) {
           setSelectedPhilosopherDetails(philosopher);
@@ -215,7 +230,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
       alert('Please enter a chat title');
       return;
@@ -233,7 +248,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
       ...formData,
       context: finalContext,
       contextUrl: contextType === 'url' ? formData.contextUrl : undefined,
-      contextFileContent: undefined
+      contextFileContent: undefined,
     };
 
     // Add debate-specific data
@@ -242,7 +257,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
       finalFormData.userDebateRole = userDebateRole;
       finalFormData.moderator = {
         style_id: moderatorStyleId,
-        style: moderatorStyles.find(s => s.id === moderatorStyleId)?.name || 'Jamie the Host'
+        style: moderatorStyles.find((s) => s.id === moderatorStyleId)?.name || 'Jamie the Host',
       };
     }
 
@@ -263,7 +278,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
       if (contextType === 'url') {
         overlay.update(
           'Reading and summarizing the context…',
-          'When the context is long, it might take some time for philosophers to read it.'
+          'When the context is long, it might take some time for philosophers to read it.',
         );
       } else if (contextType === 'text') {
         overlay.update('Preparing participants…');
@@ -272,8 +287,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
       await onCreateChat(finalFormData);
     } catch (error) {
       loggers.ui.error('Error creating chat:', error);
-    }
-    finally {
+    } finally {
       overlay.hide();
     }
   };
@@ -289,7 +303,7 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
       dialogueType: 'free',
       context: '',
       contextUrl: '',
-      contextFileContent: ''
+      contextFileContent: '',
     });
     setContextType('none');
     setSelectedPhilosophers([]);
@@ -359,14 +373,16 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
             <XMarkIcon className="h-5 w-5" />
           </button>
         </div>
-        
+
         {/* Content */}
         <div className="px-6 py-4">
           <form onSubmit={handleSubmit}>
             {/* Step 1: Dialogue Pattern */}
             {step === 1 && (
               <div className="space-y-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Dialogue Pattern</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dialogue Pattern
+                </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
                   <div
                     className={`relative p-6 border-2 rounded-xl cursor-pointer transition bg-white text-center flex flex-col items-center gap-3 ${
@@ -376,32 +392,70 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                     }`}
                     onClick={() => handleDialogueTypeChange('free')}
                   >
-                    <img src="/Free.png" alt="Free Discussion" className="w-20 h-20 object-cover rounded-md" />
+                    <img
+                      src="/Free.png"
+                      alt="Free Discussion"
+                      className="w-20 h-20 object-cover rounded-md"
+                    />
                     <div className="font-semibold text-base text-gray-900">Free Discussion</div>
                     <div className="text-sm text-gray-600 leading-tight">
-                      Open-format dialogue<br/>with no specific structure
+                      Open-format dialogue
+                      <br />
+                      with no specific structure
                     </div>
                   </div>
 
                   <div className="relative p-6 border-2 rounded-xl bg-gray-100 border-gray-200 cursor-not-allowed opacity-60 text-center flex flex-col items-center gap-3">
-                    <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wide">Coming Soon</div>
-                    <img src="/ProCon.png" alt="Pro-Con Debate" className="w-20 h-20 object-cover rounded-md" />
+                    <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wide">
+                      Coming Soon
+                    </div>
+                    <img
+                      src="/ProCon.png"
+                      alt="Pro-Con Debate"
+                      className="w-20 h-20 object-cover rounded-md"
+                    />
                     <div className="font-semibold text-base text-gray-400">Pro-Con Debate</div>
-                    <div className="text-sm text-gray-300 leading-tight">Structured debate<br/>with opposing positions</div>
+                    <div className="text-sm text-gray-300 leading-tight">
+                      Structured debate
+                      <br />
+                      with opposing positions
+                    </div>
                   </div>
 
                   <div className="relative p-6 border-2 rounded-xl bg-gray-100 border-gray-200 cursor-not-allowed opacity-60 text-center flex flex-col items-center gap-3">
-                    <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wide">Coming Soon</div>
-                    <img src="/Socratic.png" alt="Socratic Dialogue" className="w-20 h-20 object-cover rounded-md" />
+                    <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wide">
+                      Coming Soon
+                    </div>
+                    <img
+                      src="/Socratic.png"
+                      alt="Socratic Dialogue"
+                      className="w-20 h-20 object-cover rounded-md"
+                    />
                     <div className="font-semibold text-base text-gray-400">Socratic Dialogue</div>
-                    <div className="text-sm text-gray-300 leading-tight">Question-based approach<br/>to explore a topic</div>
+                    <div className="text-sm text-gray-300 leading-tight">
+                      Question-based approach
+                      <br />
+                      to explore a topic
+                    </div>
                   </div>
 
                   <div className="relative p-6 border-2 rounded-xl bg-gray-100 border-gray-200 cursor-not-allowed opacity-60 text-center flex flex-col items-center gap-3">
-                    <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wide">Coming Soon</div>
-                    <img src="/Dialectical.png" alt="Dialectical Discussion" className="w-20 h-20 object-cover rounded-md" />
-                    <div className="font-semibold text-base text-gray-400">Dialectical Discussion</div>
-                    <div className="text-sm text-gray-300 leading-tight">Thesis-Antithesis-Synthesis<br/>format</div>
+                    <div className="absolute top-2 right-2 bg-gray-600 text-white px-2 py-1 rounded text-[10px] font-medium uppercase tracking-wide">
+                      Coming Soon
+                    </div>
+                    <img
+                      src="/Dialectical.png"
+                      alt="Dialectical Discussion"
+                      className="w-20 h-20 object-cover rounded-md"
+                    />
+                    <div className="font-semibold text-base text-gray-400">
+                      Dialectical Discussion
+                    </div>
+                    <div className="text-sm text-gray-300 leading-tight">
+                      Thesis-Antithesis-Synthesis
+                      <br />
+                      format
+                    </div>
                   </div>
                 </div>
               </div>
@@ -411,7 +465,9 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
             {step === 2 && (
               <div className="space-y-8">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Chat Title:</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Chat Title:
+                  </label>
                   <input
                     type="text"
                     value={formData.title}
@@ -443,20 +499,27 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                         <line x1="12" y1="16" x2="12" y2="12"></line>
                         <line x1="12" y1="8" x2="12.01" y2="8"></line>
                       </svg>
-                      Recommended Topics for {
-                        formData.dialogueType === 'free' ? 'Free Discussion' :
-                        formData.dialogueType === 'debate' ? 'Pro-Con Debate' :
-                        formData.dialogueType === 'socratic' ? 'Socratic Dialogue' :
-                        'Dialectical Discussion'
-                      }
+                      Recommended Topics for{' '}
+                      {formData.dialogueType === 'free'
+                        ? 'Free Discussion'
+                        : formData.dialogueType === 'debate'
+                          ? 'Pro-Con Debate'
+                          : formData.dialogueType === 'socratic'
+                            ? 'Socratic Dialogue'
+                            : 'Dialectical Discussion'}
                     </div>
                   </div>
 
                   <div className={showRecommendedTopics ? 'mt-3' : 'hidden'}>
                     {formData.dialogueType === 'free' && (
                       <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        <li>&quot;The meaning of happiness in different philosophical traditions&quot;</li>
-                        <li>&quot;How does technology shape human experience in the modern world?&quot;</li>
+                        <li>
+                          &quot;The meaning of happiness in different philosophical traditions&quot;
+                        </li>
+                        <li>
+                          &quot;How does technology shape human experience in the modern
+                          world?&quot;
+                        </li>
                         <li>&quot;The relationship between art and moral values&quot;</li>
                         <li>&quot;Free will and determinism: Are our choices truly free?&quot;</li>
                         <li>&quot;The nature of consciousness and self-awareness&quot;</li>
@@ -465,10 +528,18 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
 
                     {formData.dialogueType === 'debate' && (
                       <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        <li>&quot;Is artificial intelligence beneficial or harmful to humanity?&quot;</li>
-                        <li>&quot;Should we prioritize individual liberty over collective welfare?&quot;</li>
+                        <li>
+                          &quot;Is artificial intelligence beneficial or harmful to humanity?&quot;
+                        </li>
+                        <li>
+                          &quot;Should we prioritize individual liberty over collective
+                          welfare?&quot;
+                        </li>
                         <li>&quot;Is objective morality possible without religion?&quot;</li>
-                        <li>&quot;Should societies focus on equality of opportunity or equality of outcome?&quot;</li>
+                        <li>
+                          &quot;Should societies focus on equality of opportunity or equality of
+                          outcome?&quot;
+                        </li>
                         <li>&quot;Is human nature fundamentally good or self-interested?&quot;</li>
                       </ul>
                     )}
@@ -478,18 +549,38 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                         <li>&quot;What is justice? How can we recognize a just society?&quot;</li>
                         <li>&quot;What constitutes knowledge versus mere opinion?&quot;</li>
                         <li>&quot;What is the nature of virtue? Can it be taught?&quot;</li>
-                        <li>&quot;What makes a life worth living? How should we define success?&quot;</li>
-                        <li>&quot;How should we understand the relationship between mind and body?&quot;</li>
+                        <li>
+                          &quot;What makes a life worth living? How should we define success?&quot;
+                        </li>
+                        <li>
+                          &quot;How should we understand the relationship between mind and
+                          body?&quot;
+                        </li>
                       </ul>
                     )}
 
                     {formData.dialogueType === 'dialectical' && (
                       <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        <li>&quot;Thesis: Reason is the primary source of knowledge | Antithesis: Experience is the primary source of knowledge&quot;</li>
-                        <li>&quot;Thesis: Morality is objective | Antithesis: Morality is culturally relative&quot;</li>
-                        <li>&quot;Thesis: Human technology enhances our humanity | Antithesis: Technology alienates us from our true nature&quot;</li>
-                        <li>&quot;Thesis: Free markets maximize human flourishing | Antithesis: Markets require regulation to prevent exploitation&quot;</li>
-                        <li>&quot;Thesis: Mind is separate from matter | Antithesis: Mind emerges from physical processes&quot;</li>
+                        <li>
+                          &quot;Thesis: Reason is the primary source of knowledge | Antithesis:
+                          Experience is the primary source of knowledge&quot;
+                        </li>
+                        <li>
+                          &quot;Thesis: Morality is objective | Antithesis: Morality is culturally
+                          relative&quot;
+                        </li>
+                        <li>
+                          &quot;Thesis: Human technology enhances our humanity | Antithesis:
+                          Technology alienates us from our true nature&quot;
+                        </li>
+                        <li>
+                          &quot;Thesis: Free markets maximize human flourishing | Antithesis:
+                          Markets require regulation to prevent exploitation&quot;
+                        </li>
+                        <li>
+                          &quot;Thesis: Mind is separate from matter | Antithesis: Mind emerges from
+                          physical processes&quot;
+                        </li>
                       </ul>
                     )}
                   </div>
@@ -500,21 +591,30 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       <>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "The meaning of happiness in different philosophical traditions")}
+                          onClick={() =>
+                            handleChange(
+                              'title',
+                              'The meaning of happiness in different philosophical traditions',
+                            )
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Happiness
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "The nature of consciousness and self-awareness")}
+                          onClick={() =>
+                            handleChange('title', 'The nature of consciousness and self-awareness')
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Consciousness
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "How does technology shape human experience?")}
+                          onClick={() =>
+                            handleChange('title', 'How does technology shape human experience?')
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Technology & Humanity
@@ -526,21 +626,33 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       <>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "Is artificial intelligence beneficial or harmful to humanity?")}
+                          onClick={() =>
+                            handleChange(
+                              'title',
+                              'Is artificial intelligence beneficial or harmful to humanity?',
+                            )
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           AI Ethics
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "Individual liberty vs. collective welfare")}
+                          onClick={() =>
+                            handleChange('title', 'Individual liberty vs. collective welfare')
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Liberty vs. Community
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "Is human nature fundamentally good or self-interested?")}
+                          onClick={() =>
+                            handleChange(
+                              'title',
+                              'Is human nature fundamentally good or self-interested?',
+                            )
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Human Nature
@@ -552,21 +664,28 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       <>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "What is justice? How can we recognize a just society?")}
+                          onClick={() =>
+                            handleChange(
+                              'title',
+                              'What is justice? How can we recognize a just society?',
+                            )
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           On Justice
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "What constitutes knowledge versus mere opinion?")}
+                          onClick={() =>
+                            handleChange('title', 'What constitutes knowledge versus mere opinion?')
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Knowledge vs. Opinion
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "What makes a life worth living?")}
+                          onClick={() => handleChange('title', 'What makes a life worth living?')}
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           The Good Life
@@ -578,21 +697,30 @@ const CreateChatModal: React.FC<CreateChatModalProps> = ({
                       <>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "Reason vs. Experience as the source of knowledge")}
+                          onClick={() =>
+                            handleChange(
+                              'title',
+                              'Reason vs. Experience as the source of knowledge',
+                            )
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Reason vs. Experience
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "Is morality objective or culturally relative?")}
+                          onClick={() =>
+                            handleChange('title', 'Is morality objective or culturally relative?')
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Moral Objectivity
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleChange('title', "Mind-body relationship: dualism or physicalism?")}
+                          onClick={() =>
+                            handleChange('title', 'Mind-body relationship: dualism or physicalism?')
+                          }
                           className="px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           Mind-Body Problem
@@ -722,7 +850,7 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                   <div className="mb-6">
                     <h3 className="text-base font-medium mb-3">Select Moderator Style</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {moderatorStyles.map(style => (
+                      {moderatorStyles.map((style) => (
                         <div
                           key={style.id}
                           onClick={() => setModeratorStyleId(style.id)}
@@ -760,15 +888,21 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                         <input
                           type="checkbox"
                           checked={freeDiscussionSettings.autoPlay}
-                          onChange={(e) => setFreeDiscussionSettings(prev => ({
-                            ...prev,
-                            autoPlay: e.target.checked
-                          }))}
+                          onChange={(e) =>
+                            setFreeDiscussionSettings((prev) => ({
+                              ...prev,
+                              autoPlay: e.target.checked,
+                            }))
+                          }
                           className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                         />
                         <div>
-                          <span className="text-sm font-medium text-gray-700">Auto-play conversation</span>
-                          <p className="text-xs text-gray-500">Philosophers will speak automatically in sequence</p>
+                          <span className="text-sm font-medium text-gray-700">
+                            Auto-play conversation
+                          </span>
+                          <p className="text-xs text-gray-500">
+                            Philosophers will speak automatically in sequence
+                          </p>
                         </div>
                       </label>
                     </div>
@@ -779,14 +913,16 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                         Playback Speed
                       </label>
                       <div className="flex gap-2">
-                        {[0.5, 1.0, 1.5, 2.0].map(speed => (
+                        {[0.5, 1.0, 1.5, 2.0].map((speed) => (
                           <button
                             key={speed}
                             type="button"
-                            onClick={() => setFreeDiscussionSettings(prev => ({
-                              ...prev,
-                              playbackSpeed: speed
-                            }))}
+                            onClick={() =>
+                              setFreeDiscussionSettings((prev) => ({
+                                ...prev,
+                                playbackSpeed: speed,
+                              }))
+                            }
                             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                               freeDiscussionSettings.playbackSpeed === speed
                                 ? 'bg-blue-600 text-white'
@@ -810,10 +946,12 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                         max="10"
                         step="0.5"
                         value={freeDiscussionSettings.turnInterval}
-                        onChange={(e) => setFreeDiscussionSettings(prev => ({
-                          ...prev,
-                          turnInterval: parseFloat(e.target.value)
-                        }))}
+                        onChange={(e) =>
+                          setFreeDiscussionSettings((prev) => ({
+                            ...prev,
+                            turnInterval: parseFloat(e.target.value),
+                          }))
+                        }
                         className="w-full"
                       />
                       <div className="text-xs text-gray-500 mt-1">
@@ -827,15 +965,21 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                         <input
                           type="checkbox"
                           checked={freeDiscussionSettings.allowInterruption}
-                          onChange={(e) => setFreeDiscussionSettings(prev => ({
-                            ...prev,
-                            allowInterruption: e.target.checked
-                          }))}
+                          onChange={(e) =>
+                            setFreeDiscussionSettings((prev) => ({
+                              ...prev,
+                              allowInterruption: e.target.checked,
+                            }))
+                          }
                           className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                         />
                         <div>
-                          <span className="text-sm font-medium text-gray-700">Allow interruptions</span>
-                          <p className="text-xs text-gray-500">You can interrupt the discussion at any time</p>
+                          <span className="text-sm font-medium text-gray-700">
+                            Allow interruptions
+                          </span>
+                          <p className="text-xs text-gray-500">
+                            You can interrupt the discussion at any time
+                          </p>
                         </div>
                       </label>
                     </div>
@@ -846,11 +990,12 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                 {(selectedPhilosophers.length > 0 || selectedCustomNpcs.length > 0) && (
                   <div className="mb-6">
                     <h3 className="text-base font-medium mb-3">
-                      Selected Philosophers ({selectedPhilosophers.length + selectedCustomNpcs.length})
+                      Selected Philosophers (
+                      {selectedPhilosophers.length + selectedCustomNpcs.length})
                     </h3>
                     <div className="flex flex-wrap gap-4">
-                      {[...selectedPhilosophers, ...selectedCustomNpcs].map(npcId => {
-                        const npc = [...philosophers, ...customNpcs].find(p => p.id === npcId);
+                      {[...selectedPhilosophers, ...selectedCustomNpcs].map((npcId) => {
+                        const npc = [...philosophers, ...customNpcs].find((p) => p.id === npcId);
                         if (!npc) return null;
 
                         return (
@@ -861,7 +1006,8 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                                 alt={npc.name}
                                 className="w-16 h-16 rounded-full object-cover ring-1 ring-gray-200"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=64`;
+                                  (e.target as HTMLImageElement).src =
+                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=64`;
                                 }}
                               />
                               <button
@@ -919,7 +1065,7 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                   <div className="mb-6">
                     <h3 className="text-base font-medium mb-2">My Custom Philosophers</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {customNpcs.map(npc => (
+                      {customNpcs.map((npc) => (
                         <div
                           key={npc.id}
                           className={`border rounded-lg p-3 transition select-none ${
@@ -937,7 +1083,8 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                               alt={npc.name}
                               className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=32`;
+                                (e.target as HTMLImageElement).src =
+                                  `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=32`;
                               }}
                             />
                             <span className="text-sm text-gray-800">{npc.name}</span>
@@ -963,7 +1110,7 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                 <div>
                   <h3 className="text-base font-medium mb-2">Classic Philosophers</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {philosophers.map(philosopher => {
+                    {philosophers.map((philosopher) => {
                       const pid = (philosopher.id || '').toLowerCase();
                       const isFineTuned = resolvePhilosopher(pid)?.fineTuned === true;
                       const isDisabled = !isFineTuned;
@@ -972,25 +1119,37 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                         <div
                           key={philosopher.id}
                           className={`border rounded-lg p-3 transition select-none relative ${
-                            isSelected ? 'ring-2 ring-black border-black bg-gray-100' : 'hover:shadow-sm'
+                            isSelected
+                              ? 'ring-2 ring-black border-black bg-gray-100'
+                              : 'hover:shadow-sm'
                           } ${isDisabled ? 'opacity-60 grayscale cursor-not-allowed' : ''}`}
                           aria-disabled={isDisabled}
                         >
                           {isDisabled && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg">
-                              <img src="/lock.png" alt="Locked" className="h-full w-auto max-w-full opacity-20 select-none object-contain" />
+                              <img
+                                src="/lock.png"
+                                alt="Locked"
+                                className="h-full w-auto max-w-full opacity-20 select-none object-contain"
+                              />
                             </div>
                           )}
                           <div
                             className={`flex items-center gap-2 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                            onClick={() => { if (!isDisabled) togglePhilosopher(philosopher.id); }}
+                            onClick={() => {
+                              if (!isDisabled) togglePhilosopher(philosopher.id);
+                            }}
                           >
                             <img
-                              src={philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)}
+                              src={
+                                philosopher.portrait_url ||
+                                getPhilosopherPortraitPath(philosopher.name)
+                              }
                               alt={philosopher.name}
                               className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
+                                (e.target as HTMLImageElement).src =
+                                  `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
                               }}
                             />
                             <span className="text-sm text-gray-800">{philosopher.name}</span>
@@ -1007,7 +1166,9 @@ Context: A revolutionary technology can delete specific memories forever. You ca
                             disabled={isDisabled}
                             aria-disabled={isDisabled}
                             className={`mt-2 text-xs ${
-                              isDisabled ? 'text-gray-400 cursor-not-allowed pointer-events-none' : 'text-black hover:underline'
+                              isDisabled
+                                ? 'text-gray-400 cursor-not-allowed pointer-events-none'
+                                : 'text-black hover:underline'
                             }`}
                           >
                             View details
@@ -1056,7 +1217,11 @@ Context: A revolutionary technology can delete specific memories forever. You ca
               type="button"
               onClick={handleSubmit}
               className="inline-flex items-center gap-2 rounded-md bg-black text-white px-4 py-2 text-sm font-medium shadow hover:bg-gray-900 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-black"
-              disabled={!formData.title.trim() || (selectedPhilosophers.length + selectedCustomNpcs.length) === 0 || isCreating}
+              disabled={
+                !formData.title.trim() ||
+                selectedPhilosophers.length + selectedCustomNpcs.length === 0 ||
+                isCreating
+              }
             >
               {isCreating ? (
                 <>
@@ -1070,7 +1235,7 @@ Context: A revolutionary technology can delete specific memories forever. You ca
           </div>
         )}
       </div>
-      
+
       {/* Philosopher Details Modal */}
       <PhilosopherDetailsModal
         philosopher={selectedPhilosopherDetails}
@@ -1082,7 +1247,7 @@ Context: A revolutionary technology can delete specific memories forever. You ca
           } else if (selectedCustomNpcs.includes(philosopherId)) {
             toggleCustomNpc(philosopherId);
           } else {
-            const isCustomNpc = customNpcs.some(npc => npc.id === philosopherId);
+            const isCustomNpc = customNpcs.some((npc) => npc.id === philosopherId);
             if (isCustomNpc) {
               toggleCustomNpc(philosopherId);
             } else {
@@ -1090,11 +1255,13 @@ Context: A revolutionary technology can delete specific memories forever. You ca
             }
           }
         }}
-        isSelected={selectedPhilosophers.includes(selectedPhilosopherDetails?.id || '') || 
-                   selectedCustomNpcs.includes(selectedPhilosopherDetails?.id || '')}
+        isSelected={
+          selectedPhilosophers.includes(selectedPhilosopherDetails?.id || '') ||
+          selectedCustomNpcs.includes(selectedPhilosopherDetails?.id || '')
+        }
       />
     </>
   );
 };
 
-export default CreateChatModal; 
+export default CreateChatModal;

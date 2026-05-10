@@ -37,7 +37,7 @@ const Header = () => {
         }
       }
     };
-    
+
     fetchUserProfile();
   }, [session]);
 
@@ -55,19 +55,24 @@ const Header = () => {
         <div className="relative w-full px-4 h-24 flex items-center justify-center">
           {/* Left: Hamburger flush to edge */}
           <div className="absolute left-2 top-1/2 -translate-y-1/2">
-            <button 
+            <button
               className="inline-flex items-center justify-center p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               onClick={() => setIsNavDrawerOpen(true)}
               aria-label="Open navigation menu"
             >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                fill="none" 
-                viewBox="0 0 24 24" 
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
                 className="h-7 w-7 text-gray-900"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
           </div>
@@ -89,7 +94,7 @@ const Header = () => {
               >
                 <div className="w-[52px] h-[52px] rounded-full overflow-hidden border-2 border-black box-border flex items-center justify-center">
                   {userProfile?.profileImage ? (
-                    <img 
+                    <img
                       src={userProfile.profileImage}
                       alt="Profile"
                       className="w-full h-full object-cover object-center"
@@ -117,16 +122,16 @@ const Header = () => {
           </div>
         </div>
       </header>
-      
+
       <ProfileDrawer
         isOpen={isProfileDrawerOpen}
         onClose={() => setIsProfileDrawerOpen(false)}
         anchor={{ top: 72, right: 16 }}
       />
-      
-      <NavigationDrawer 
-        isOpen={isNavDrawerOpen} 
-        onClose={() => setIsNavDrawerOpen(false)} 
+
+      <NavigationDrawer
+        isOpen={isNavDrawerOpen}
+        onClose={() => setIsNavDrawerOpen(false)}
         onToggleBody={(pushed: boolean) => {
           if (typeof document !== 'undefined') {
             document.body.classList.toggle('app-pushed', pushed);
@@ -137,4 +142,4 @@ const Header = () => {
   );
 };
 
-export default Header; 
+export default Header;

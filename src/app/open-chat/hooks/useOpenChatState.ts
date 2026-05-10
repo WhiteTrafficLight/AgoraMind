@@ -9,21 +9,21 @@ import {
   ChatRoom,
   Philosopher,
   ChatRoomCreationParams,
-  OpenChatState
+  OpenChatState,
 } from '../types/openChat.types';
 
 // Convert service ChatRoom to our ChatRoom type
 const convertChatRoom = (room: ServiceChatRoom): ChatRoom => {
   return {
     ...room,
-    dialogueType: (room.dialogueType as 'free' | 'debate' | 'socratic' | 'dialectical') || 'free'
+    dialogueType: (room.dialogueType as 'free' | 'debate' | 'socratic' | 'dialectical') || 'free',
   };
 };
 
 export function useOpenChatState() {
   const router = useRouter();
   const { createChat, isCreating: isCreatingHook, error: createError } = useCreateChat();
-  
+
   // Core state - completely removed socketConnected since we don't need Socket.IO
   const [state, setState] = useState<OpenChatState>({
     activeChats: [],
@@ -36,9 +36,9 @@ export function useOpenChatState() {
     socketConnected: false, // Keep for compatibility with types but won't be used
     username: '',
     philosophers: [],
-    customNpcs: []
+    customNpcs: [],
   });
-  
+
   const [isCreating, setIsCreating] = useState(false);
 
   // Refs for avoiding stale closures
@@ -47,7 +47,7 @@ export function useOpenChatState() {
 
   // Update state helper
   const updateState = (updates: Partial<OpenChatState>) => {
-    setState(prev => ({ ...prev, ...updates }));
+    setState((prev) => ({ ...prev, ...updates }));
   };
 
   // Load chat rooms
@@ -55,16 +55,16 @@ export function useOpenChatState() {
     try {
       updateState({ isLoading: true });
       const rooms = await chatService.getChatRooms();
-      
+
       // Remove duplicates and convert types
       const uniqueRooms: { [key: string]: ChatRoom } = {};
-      rooms.forEach(room => {
+      rooms.forEach((room) => {
         uniqueRooms[String(room.id)] = convertChatRoom(room);
       });
-      
-      updateState({ 
+
+      updateState({
         activeChats: Object.values(uniqueRooms),
-        isLoading: false 
+        isLoading: false,
       });
     } catch (error) {
       loggers.ui.error('Failed to load chat rooms', { error });
@@ -78,7 +78,7 @@ export function useOpenChatState() {
       const response = await fetch('/api/user/profile');
       if (response.ok) {
         const profileData = await response.json();
-        
+
         if (profileData.username) {
           updateState({ username: profileData.username });
           sessionStorage.setItem('chat_username', profileData.username);
@@ -111,18 +111,34 @@ export function useOpenChatState() {
         loggers.ui.warn('Failed to fetch philosophers from static file');
         // Fallback to basic list
         const basicPhilosophers = [
-          'Socrates', 'Plato', 'Aristotle', 'Kant', 'Nietzsche', 
-          'Sartre', 'Camus', 'Simone de Beauvoir', 'Marx', 'Rousseau'
-        ].map(name => ({ id: name.toLowerCase(), name }));
+          'Socrates',
+          'Plato',
+          'Aristotle',
+          'Kant',
+          'Nietzsche',
+          'Sartre',
+          'Camus',
+          'Simone de Beauvoir',
+          'Marx',
+          'Rousseau',
+        ].map((name) => ({ id: name.toLowerCase(), name }));
         updateState({ philosophers: basicPhilosophers });
       }
     } catch (error) {
       loggers.ui.error('Error fetching philosophers', { error });
       // Fallback to basic list
       const basicPhilosophers = [
-        'Socrates', 'Plato', 'Aristotle', 'Kant', 'Nietzsche', 
-        'Sartre', 'Camus', 'Simone de Beauvoir', 'Marx', 'Rousseau'
-      ].map(name => ({ id: name.toLowerCase(), name }));
+        'Socrates',
+        'Plato',
+        'Aristotle',
+        'Kant',
+        'Nietzsche',
+        'Sartre',
+        'Camus',
+        'Simone de Beauvoir',
+        'Marx',
+        'Rousseau',
+      ].map((name) => ({ id: name.toLowerCase(), name }));
       updateState({ philosophers: basicPhilosophers });
     }
   };
@@ -142,21 +158,27 @@ export function useOpenChatState() {
   // Create chat room
   const handleCreateChat = async (params: ChatRoomCreationParams) => {
     if (isCreating || isCreatingHook) return;
-    
+
     try {
       // Add current username to params
       const paramsWithUser = {
         ...params,
-        username: state.username || sessionStorage.getItem('chat_username') || 'Anonymous'
+        username: state.username || sessionStorage.getItem('chat_username') || 'Anonymous',
       };
-      
+
       loggers.ui.info('Creating chat with params', { paramsWithUser });
       loggers.ui.debug('Username passed to chat creation', { username: paramsWithUser.username });
-      
+
       // Use the new createChat hook that handles both Free Discussion and regular chats
       const newChat = await createChat(paramsWithUser);
-      const chatWithSession = newChat as (typeof newChat & { freeDiscussionSessionId?: string }) | null | undefined;
-      loggers.ui.info('Chat creation response received', { chatId: newChat?.id, freeSession: chatWithSession?.freeDiscussionSessionId });
+      const chatWithSession = newChat as
+        | (typeof newChat & { freeDiscussionSessionId?: string })
+        | null
+        | undefined;
+      loggers.ui.info('Chat creation response received', {
+        chatId: newChat?.id,
+        freeSession: chatWithSession?.freeDiscussionSessionId,
+      });
 
       // Free discussion: avoid intermediate ROOM_* redirect; navigate directly to session id if available.
       if (paramsWithUser.dialogueType === 'free') {
@@ -190,12 +212,9 @@ export function useOpenChatState() {
     const init = async () => {
       await fetchUserProfile();
       await loadChatRooms();
-      await Promise.all([
-        fetchPhilosophers(),
-        fetchCustomNpcs()
-      ]);
+      await Promise.all([fetchPhilosophers(), fetchCustomNpcs()]);
     };
-    
+
     init();
   }, []);
 
@@ -206,7 +225,7 @@ export function useOpenChatState() {
         loadChatRooms();
       }
     }, 60000);
-    
+
     return () => clearInterval(intervalId);
   }, [state.isLoading, state.showCreateChatModal]);
 
@@ -223,13 +242,13 @@ export function useOpenChatState() {
     philosophers: state.philosophers,
     customNpcs: state.customNpcs,
     isCreating: isCreating || isCreatingHook,
-    
+
     // Actions
     updateState,
     loadChatRooms,
     handleCreateChat,
     handleJoinChat,
-    
+
     // Socket removed - no longer needed for open-chat page
   };
-} 
+}

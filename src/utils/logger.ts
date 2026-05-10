@@ -2,7 +2,7 @@ export enum LogLevel {
   ERROR = 0,
   WARN = 1,
   INFO = 2,
-  DEBUG = 3
+  DEBUG = 3,
 }
 
 interface LoggerConfig {
@@ -50,9 +50,9 @@ class Logger {
       }
     }
 
-    const envLevel = process.env.NEXT_PUBLIC_LOG_LEVEL || 
-                     process.env[`NEXT_PUBLIC_${this.name}_LOG_LEVEL`];
-    
+    const envLevel =
+      process.env.NEXT_PUBLIC_LOG_LEVEL || process.env[`NEXT_PUBLIC_${this.name}_LOG_LEVEL`];
+
     if (envLevel && LogLevel[envLevel as keyof typeof LogLevel] !== undefined) {
       return LogLevel[envLevel as keyof typeof LogLevel];
     }
@@ -78,7 +78,7 @@ class Logger {
         const currentLevel = LogLevel[this.level];
         console.log(`${this.name} current log level: ${currentLevel}`);
         return currentLevel;
-      }
+      },
     };
   }
 
@@ -163,7 +163,7 @@ export const loggers = {
   auth: new Logger({ name: 'AUTH' }),
   db: new Logger({ name: 'DB' }),
   ui: new Logger({ name: 'UI' }),
-  rag: new Logger({ name: 'RAG' })
+  rag: new Logger({ name: 'RAG' }),
 };
 
 // Factory for creating custom loggers externally without exposing class
@@ -180,13 +180,13 @@ export const createCompatLogger = () => ({
   groupCollapsed: (name: string) => logger.group(name, true),
   groupEnd: () => logger.groupEnd(),
   time: (label: string) => logger.time(label),
-  timeEnd: (label: string) => logger.timeEnd(label)
+  timeEnd: (label: string) => logger.timeEnd(label),
 });
 
 if (typeof window !== 'undefined') {
   (window as unknown as { AgoraLoggers: Record<string, unknown> }).AgoraLoggers = {
     setGlobalLevel: (level: string) => {
-      Object.values(loggers).forEach(logger => {
+      Object.values(loggers).forEach((logger) => {
         if (LogLevel[level as keyof typeof LogLevel] !== undefined) {
           logger.setLevel(LogLevel[level as keyof typeof LogLevel]);
         }
@@ -194,8 +194,10 @@ if (typeof window !== 'undefined') {
       console.log(`All loggers' levels set to ${level}`);
     },
     showHelp: () => {
-      console.log(`AgoraMind Logger Controls:\n\nGlobal:\n  AgoraLoggers.setGlobalLevel('DEBUG')\n  AgoraLoggers.setGlobalLevel('ERROR')\n\nPer logger:\n  loggerControls.setSOCKETLogLevel('DEBUG')\n  loggerControls.setCHATLogLevel('INFO')\n  loggerControls.setAPILogLevel('WARN')\n\nLevels: ERROR < WARN < INFO < DEBUG\n\nCurrent:\n  loggerControls.getSOCKETLogLevel()`);
-    }
+      console.log(
+        `AgoraMind Logger Controls:\n\nGlobal:\n  AgoraLoggers.setGlobalLevel('DEBUG')\n  AgoraLoggers.setGlobalLevel('ERROR')\n\nPer logger:\n  loggerControls.setSOCKETLogLevel('DEBUG')\n  loggerControls.setCHATLogLevel('INFO')\n  loggerControls.setAPILogLevel('WARN')\n\nLevels: ERROR < WARN < INFO < DEBUG\n\nCurrent:\n  loggerControls.getSOCKETLogLevel()`,
+      );
+    },
   };
 
   if (process.env.NODE_ENV === 'development') {
@@ -203,4 +205,4 @@ if (typeof window !== 'undefined') {
       console.log('Type AgoraLoggers.showHelp() for logger help');
     }, 1000);
   }
-} 
+}

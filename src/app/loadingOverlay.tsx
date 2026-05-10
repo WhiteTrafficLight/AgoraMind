@@ -25,7 +25,7 @@ export function LoadingOverlayProvider({ children }: { children: React.ReactNode
   }, []);
 
   const update = useCallback((message?: string, subtext?: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       visible: true,
       message: message ?? prev.message,
       subtext: subtext ?? prev.subtext,
@@ -33,7 +33,7 @@ export function LoadingOverlayProvider({ children }: { children: React.ReactNode
   }, []);
 
   const hide = useCallback(() => {
-    setState(prev => ({ ...prev, visible: false }));
+    setState((prev) => ({ ...prev, visible: false }));
   }, []);
 
   const value = useMemo(() => ({ state, show, update, hide }), [state, show, update, hide]);
@@ -63,9 +63,7 @@ function LoadingOverlay() {
           <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent" />
           <p className="text-sm font-medium text-gray-900">{state.message}</p>
         </div>
-        {state.subtext && (
-          <p className="mt-2 text-xs text-gray-600">{state.subtext}</p>
-        )}
+        {state.subtext && <p className="mt-2 text-xs text-gray-600">{state.subtext}</p>}
         <div className="mt-4 h-1 w-full overflow-hidden rounded bg-gray-100">
           <div className="h-full w-1/2 animate-[loading_1.2s_ease-in-out_infinite] rounded bg-black" />
         </div>
@@ -73,13 +71,17 @@ function LoadingOverlay() {
 
       <style jsx global>{`
         @keyframes loading {
-          0% { transform: translateX(-100%); }
-          50% { transform: translateX(50%); }
-          100% { transform: translateX(200%); }
+          0% {
+            transform: translateX(-100%);
+          }
+          50% {
+            transform: translateX(50%);
+          }
+          100% {
+            transform: translateX(200%);
+          }
         }
       `}</style>
     </div>
   );
 }
-
-

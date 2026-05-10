@@ -25,14 +25,14 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   onTypingComplete: externalOnTypingComplete,
   waitingForUserInput = false,
   currentUserTurn = null,
-  onProcessUserMessage
+  onProcessUserMessage,
 }) => {
   const moderatorStyles = [
     { id: '0', name: 'Jamie the Host' },
     { id: '1', name: 'Dr. Lee' },
     { id: '2', name: 'Zuri Show' },
     { id: '3', name: 'Elias of the End' },
-    { id: '4', name: 'Miss Hana' }
+    { id: '4', name: 'Miss Hana' },
   ];
 
   const [messageText, setMessageText] = useState('');
@@ -42,18 +42,18 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   const [isUserTurn, setIsUserTurn] = useState<boolean>(false);
   const [turnIndicatorVisible, setTurnIndicatorVisible] = useState<boolean>(false);
   const [isGeneratingNext, setIsGeneratingNext] = useState<boolean>(false);
-  
+
   const [lastMessageCount, setLastMessageCount] = useState<number>(0);
   const [typingMessageIds, setTypingMessageIds] = useState<Set<string>>(new Set());
-  
+
   const handleTypingComplete = (messageId: string) => {
-    setTypingMessageIds(prev => {
+    setTypingMessageIds((prev) => {
       const newSet = new Set(prev);
       newSet.delete(messageId);
       return newSet;
     });
   };
-  
+
   // props
   const activeTypingMessageIds = externalTypingMessageIds || typingMessageIds;
   const activeOnTypingComplete = externalOnTypingComplete || handleTypingComplete;
@@ -64,19 +64,19 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
 
   const getModeratorInfo = useMemo(() => {
     const moderatorConfig = (room as { moderator?: { style_id?: string } }).moderator;
-    
+
     if (moderatorConfig && moderatorConfig.style_id) {
-      const style = moderatorStyles.find(s => s.id === moderatorConfig.style_id);
-      
+      const style = moderatorStyles.find((s) => s.id === moderatorConfig.style_id);
+
       return {
         name: style?.name || 'Jamie the Host',
-        profileImage: `/moderator_portraits/Moderator${moderatorConfig.style_id}.png`
+        profileImage: `/moderator_portraits/Moderator${moderatorConfig.style_id}.png`,
       };
     }
-    
+
     return {
       name: 'Jamie the Host',
-      profileImage: '/moderator_portraits/Moderator0.png'
+      profileImage: '/moderator_portraits/Moderator0.png',
     };
   }, [room]);
 
@@ -99,31 +99,31 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   useEffect(() => {
     const loadNpcDetails = async () => {
       const details: Record<string, NpcDetail> = {};
-      
+
       if (initialNpcDetails && initialNpcDetails.length > 0) {
-        initialNpcDetails.forEach(npc => {
+        initialNpcDetails.forEach((npc) => {
           details[npc.id] = npc;
         });
         setNpcDetails(details);
         return;
       }
-      
-      const npcIds = [...(room.pro || []), ...(room.con || []), ...(room.neutral || [])].filter(id => 
-        !room.participants.users.includes(id)
+
+      const npcIds = [...(room.pro || []), ...(room.con || []), ...(room.neutral || [])].filter(
+        (id) => !room.participants.users.includes(id),
       );
-      
+
       for (const npcId of npcIds) {
         // API - NPC
         details[npcId] = {
           id: npcId,
           name: npcId.charAt(0).toUpperCase() + npcId.slice(1),
-          is_custom: false
+          is_custom: false,
         };
       }
-      
+
       setNpcDetails(details);
     };
-    
+
     loadNpcDetails();
   }, [initialNpcDetails, room.pro, room.con, room.neutral, room.participants.users]);
 
@@ -144,8 +144,9 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
       const newMessages = messages.slice(lastMessageCount);
       const newTypingIds = new Set(typingMessageIds);
 
-      newMessages.forEach(message => {
-        const isUser = room.participants.users.includes(message.sender) || message.sender === username;
+      newMessages.forEach((message) => {
+        const isUser =
+          room.participants.users.includes(message.sender) || message.sender === username;
         // skipAnimation true ( )
         if (!isUser && !message.id.startsWith('temp-waiting-') && !message.skipAnimation) {
           newTypingIds.add(message.id);
@@ -170,14 +171,14 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (messageText.trim() && !isInputDisabled) {
       // onProcessUserMessage
       if (waitingForUserInput && currentUserTurn && onProcessUserMessage) {
-        loggers.chat.info('Handling user message via onProcessUserMessage', { 
+        loggers.chat.info('Handling user message via onProcessUserMessage', {
           messageLength: messageText.trim().length,
-          userTurn: currentUserTurn 
+          userTurn: currentUserTurn,
         });
         onProcessUserMessage(messageText.trim());
       } else {
-        loggers.chat.info('Sending message via onSendMessage', { 
-          messageLength: messageText.trim().length 
+        loggers.chat.info('Sending message via onSendMessage', {
+          messageLength: messageText.trim().length,
         });
         onSendMessage(messageText.trim());
       }
@@ -188,10 +189,10 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   // Next
   const handleNextMessage = async () => {
     if (isGeneratingNext || !onRequestNextMessage) return;
-    
+
     setIsGeneratingNext(true);
     loggers.chat.info(`Next button clicked — requesting next message  room`, { roomId: room.id });
-    
+
     try {
       await onRequestNextMessage();
     } catch (error) {
@@ -207,7 +208,9 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     setTurnIndicatorVisible(visible);
   };
 
-  const isInputDisabled = isLoading || isGeneratingResponse || 
+  const isInputDisabled =
+    isLoading ||
+    isGeneratingResponse ||
     !(waitingForUserInput || (isUserTurn && !waitingForUserInput));
 
   const displayUserTurn = waitingForUserInput || isUserTurn;
@@ -223,16 +226,16 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (id === 'Moderator' || id === 'moderator') {
       return moderatorInfo.name;
     }
-    
+
     if (isUser) {
       return username;
     }
-    
+
     const npc = npcDetails[id];
     if (npc) {
       return npc.name;
     }
-    
+
     return id.charAt(0).toUpperCase() + id.slice(1);
   };
 
@@ -247,7 +250,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (npcId === 'Moderator' || npcId === 'moderator') {
       return moderatorInfo.profileImage;
     }
-    
+
     const npc = npcDetails[npcId];
     if (npc && npc.portrait_url) {
       return npc.portrait_url;
@@ -260,7 +263,7 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
     if (id === 'Moderator' || id === 'moderator') {
       return moderatorInfo.profileImage;
     }
-    
+
     if (isUser) {
       if (userProfilePicture && userProfilePicture.length > 0) {
         return userProfilePicture;
@@ -286,15 +289,11 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
       <div className="debate-chat-header">
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <h2 className="debate-chat-title">{room.title}</h2>
-          <button 
-            onClick={onRefresh} 
-            className="debate-refresh-button"
-            disabled={isLoading}
-          >
+          <button onClick={onRefresh} className="debate-refresh-button" disabled={isLoading}>
             <ArrowPathIcon className={`debate-refresh-icon ${isLoading ? 'spinning' : ''}`} />
           </button>
         </div>
-        
+
         {onEndChat && (
           <button onClick={onEndChat} className="debate-end-button">
             End Conversation
@@ -358,4 +357,4 @@ const DebateChatContainer: React.FC<DebateChatContainerProps> = ({
   );
 };
 
-export default DebateChatContainer; 
+export default DebateChatContainer;

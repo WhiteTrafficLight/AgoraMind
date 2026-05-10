@@ -51,7 +51,7 @@ function ChatContent() {
   });
 
   const handleTypingComplete = (messageId: string) => {
-    setTypingMessageIds(prev => {
+    setTypingMessageIds((prev) => {
       const newSet = new Set(prev);
       newSet.delete(messageId);
       return newSet;
@@ -72,21 +72,21 @@ function ChatContent() {
 
   const handleSendMessage = async (message: string) => {
     if (!chatData) return;
-    
+
     try {
       loggers.chat.info(`V2: User message sent: ${message}`);
-      
+
       const result = await chatService.sendMessage(chatData.id, message, {
         id: `user-${Date.now()}`,
         text: message.trim(),
         sender: username || 'User',
         isUser: true,
         timestamp: new Date(),
-        role: 'user'
+        role: 'user',
       });
-      
+
       loggers.chat.info('Message sent successfully:', result);
-      
+
       const updatedRoom = await chatService.getChatRoomById(chatData.id);
       if (updatedRoom) {
         setChatData(updatedRoom);
@@ -113,10 +113,7 @@ function ChatContent() {
       <FullScreenState>
         <p className="text-xl text-gray-500 mb-4">{error}</p>
         <div className="text-sm text-red-600 mb-4">V2 Error Page</div>
-        <button
-          onClick={handleBackToOpenChat}
-          className="px-4 py-2 bg-black text-white rounded-md"
-        >
+        <button onClick={handleBackToOpenChat} className="px-4 py-2 bg-black text-white rounded-md">
           Back to Open Chat
         </button>
       </FullScreenState>
@@ -137,9 +134,7 @@ function ChatContent() {
         <p className="text-xl text-gray-500 mb-4">
           V2 structure currently supports only debate and free chat types.
         </p>
-        <div className="text-sm text-blue-600 mb-4">
-          Current chat type: {chatData.dialogueType}
-        </div>
+        <div className="text-sm text-blue-600 mb-4">Current chat type: {chatData.dialogueType}</div>
         <button
           onClick={() => router.push(ROUTES.chat(String(chatData.id)))}
           className="px-4 py-2 bg-blue-600 text-white rounded-md mr-2"
@@ -160,8 +155,8 @@ function ChatContent() {
     chatData.pro?.includes(username) || chatData.pro?.includes('You')
       ? 'pro'
       : chatData.con?.includes(username) || chatData.con?.includes('You')
-      ? 'con'
-      : 'neutral';
+        ? 'con'
+        : 'neutral';
 
   return (
     <div className="fixed inset-0 z-50 w-screen h-screen bg-white">
@@ -184,7 +179,7 @@ function ChatContent() {
             room={{
               ...chatData,
               id: String(chatData.id),
-              dialogueType: chatData.dialogueType || 'debate'
+              dialogueType: chatData.dialogueType || 'debate',
             }}
             messages={chatData.messages || []}
             npcDetails={chatData.npcDetails || []}
@@ -214,4 +209,4 @@ export default function ChatPage() {
       <ChatContent />
     </Suspense>
   );
-} 
+}

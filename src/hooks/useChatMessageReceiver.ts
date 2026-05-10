@@ -63,78 +63,81 @@ export function useChatMessageReceiver(
     chatDataRef.current = chatData;
   }, [chatData]);
 
-  return useCallback(async (data: IncomingPayload) => {
-    loggers.chat.debug('Socket event received: new-message');
-    loggers.chat.debug('Received data', {
-      roomId: data.roomId,
-      messagePreview: JSON.stringify(data).substring(0, 300),
-    });
-
-    const currentRoomId = String(chatDataRef.current?.id);
-    const receivedRoomId = String(data.roomId);
-
-    loggers.chat.debug('Room ID comparison', { currentRoomId, receivedRoomId });
-
-    if (currentRoomId !== receivedRoomId || !data.message) {
-      loggers.chat.warn('Room ID mismatch or no message', {
-        currentRoom: currentRoomId,
-        receivedRoom: receivedRoomId,
-        hasMessage: !!data.message,
+  return useCallback(
+    async (data: IncomingPayload) => {
+      loggers.chat.debug('Socket event received: new-message');
+      loggers.chat.debug('Received data', {
+        roomId: data.roomId,
+        messagePreview: JSON.stringify(data).substring(0, 300),
       });
-      return;
-    }
 
-    loggers.chat.info('Room IDs match — saving message to DB then updating UI');
-    loggers.chat.debug('Message content', {
-      preview: data.message.text?.substring(0, 100),
-      eventType: data.message.metadata?.event_type,
-    });
+      const currentRoomId = String(chatDataRef.current?.id);
+      const receivedRoomId = String(data.roomId);
 
-    const isCompleteMessage = data.message.metadata?.event_type === 'debate_message_complete';
-    const isUserMessage = data.message.isUser === true;
+      loggers.chat.debug('Room ID comparison', { currentRoomId, receivedRoomId });
 
-    try {
-      if (isCompleteMessage || isUserMessage) {
-        loggers.db.info('Starting message DB save', {
-          messageType: isUserMessage ? 'User message' : 'AI message',
+      if (currentRoomId !== receivedRoomId || !data.message) {
+        loggers.chat.warn('Room ID mismatch or no message', {
+          currentRoom: currentRoomId,
+          receivedRoom: receivedRoomId,
+          hasMessage: !!data.message,
         });
-        await persistMessage(currentRoomId, data.message);
+        return;
       }
 
-      setChatData((prev) => {
-        if (!prev) return prev;
+      loggers.chat.info('Room IDs match — saving message to DB then updating UI');
+      loggers.chat.debug('Message content', {
+        preview: data.message.text?.substring(0, 100),
+        eventType: data.message.metadata?.event_type,
+      });
 
-        if (isCompleteMessage) {
-          loggers.chat.debug('Replacing temporary message with completed message');
-          const messagesCopy = [...(prev.messages || [])];
-          const tempIndex = messagesCopy.findIndex(
-            (msg) => msg.isGenerating && msg.sender === data.message.sender,
-          );
+      const isCompleteMessage = data.message.metadata?.event_type === 'debate_message_complete';
+      const isUserMessage = data.message.isUser === true;
 
-          if (tempIndex >= 0) {
-            const completeMessage = enrichFromMetadata(data.message);
-            messagesCopy[tempIndex] = completeMessage;
-            loggers.chat.info('Temporary message replaced');
-            logRagInfo('RAG info', completeMessage);
-            setTimeout(() => {
-              setTypingMessageIds((ids) => new Set([...ids, completeMessage.id]));
-            }, 100);
-          } else {
-            loggers.chat.warn('Temporary message not found; adding new');
-            const newMessage = enrichFromMetadata(data.message);
-            logRagInfo('RAG info  regular message', newMessage);
-            messagesCopy.push(newMessage);
-          }
-          return { ...prev, messages: messagesCopy };
+      try {
+        if (isCompleteMessage || isUserMessage) {
+          loggers.db.info('Starting message DB save', {
+            messageType: isUserMessage ? 'User message' : 'AI message',
+          });
+          await persistMessage(currentRoomId, data.message);
         }
 
-        loggers.chat.debug('Adding regular message');
-        const newMessage = enrichFromMetadata(data.message);
-        logRagInfo('RAG info  regular message', newMessage);
-        return { ...prev, messages: [...(prev.messages || []), newMessage] };
-      });
-    } catch (error) {
-      loggers.chat.error('Error processing message', error);
-    }
-  }, [setChatData, setTypingMessageIds]);
+        setChatData((prev) => {
+          if (!prev) return prev;
+
+          if (isCompleteMessage) {
+            loggers.chat.debug('Replacing temporary message with completed message');
+            const messagesCopy = [...(prev.messages || [])];
+            const tempIndex = messagesCopy.findIndex(
+              (msg) => msg.isGenerating && msg.sender === data.message.sender,
+            );
+
+            if (tempIndex >= 0) {
+              const completeMessage = enrichFromMetadata(data.message);
+              messagesCopy[tempIndex] = completeMessage;
+              loggers.chat.info('Temporary message replaced');
+              logRagInfo('RAG info', completeMessage);
+              setTimeout(() => {
+                setTypingMessageIds((ids) => new Set([...ids, completeMessage.id]));
+              }, 100);
+            } else {
+              loggers.chat.warn('Temporary message not found; adding new');
+              const newMessage = enrichFromMetadata(data.message);
+              logRagInfo('RAG info  regular message', newMessage);
+              messagesCopy.push(newMessage);
+            }
+            return { ...prev, messages: messagesCopy };
+          }
+
+          loggers.chat.debug('Adding regular message');
+          const newMessage = enrichFromMetadata(data.message);
+          logRagInfo('RAG info  regular message', newMessage);
+          return { ...prev, messages: [...(prev.messages || []), newMessage] };
+        });
+      } catch (error) {
+        loggers.chat.error('Error processing message', error);
+      }
+    },
+    [setChatData, setTypingMessageIds],
+  );
 }

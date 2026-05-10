@@ -15,11 +15,11 @@ allowed-tools: Read Grep Glob
 
 ```js
 // eslint.config.mjs
-import js from '@eslint/js'
-import ts from 'typescript-eslint'
-import reactHooks from 'eslint-plugin-react-hooks'
-import nextPlugin from '@next/eslint-plugin-next'
-import globals from 'globals'
+import js from '@eslint/js';
+import ts from 'typescript-eslint';
+import reactHooks from 'eslint-plugin-react-hooks';
+import nextPlugin from '@next/eslint-plugin-next';
+import globals from 'globals';
 
 export default ts.config(
   { ignores: ['dist/**', '.next/**', 'node_modules/**'] },
@@ -57,19 +57,19 @@ export default ts.config(
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
-)
+);
 ```
 
 ## Rule Reference
 
-| Rule | Why |
-|------|-----|
-| `no-explicit-any` | Type safety |
-| `consistent-type-imports` | Forces `import type` — tree-shaking friendly |
-| `no-floating-promises` | Catches unawaited Promises |
-| `exhaustive-deps` | Catches missing useEffect dependencies |
-| `no-img-element` | Enforces `<Image />` for Next.js optimization |
-| `rules-of-hooks` | Enforces React Hooks call rules |
+| Rule                      | Why                                           |
+| ------------------------- | --------------------------------------------- |
+| `no-explicit-any`         | Type safety                                   |
+| `consistent-type-imports` | Forces `import type` — tree-shaking friendly  |
+| `no-floating-promises`    | Catches unawaited Promises                    |
+| `exhaustive-deps`         | Catches missing useEffect dependencies        |
+| `no-img-element`          | Enforces `<Image />` for Next.js optimization |
+| `rules-of-hooks`          | Enforces React Hooks call rules               |
 
 ## File-Scoped Overrides
 
@@ -93,11 +93,11 @@ Always include a reason when disabling a rule inline:
 ```ts
 // ✅ With reason
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Third-party API returns untyped JSON
-const data: any = await externalApi.fetch()
+const data: any = await externalApi.fetch();
 
 // ❌ No reason given
 // eslint-disable-next-line
-const data: any = await externalApi.fetch()
+const data: any = await externalApi.fetch();
 ```
 
 ---

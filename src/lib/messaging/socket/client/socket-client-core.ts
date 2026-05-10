@@ -14,9 +14,9 @@ export class SocketClientCore {
   async connect(url: string = API_BASE_URL): Promise<Socket> {
     try {
       loggers.socket.info('Initializing Socket.IO connection');
-      loggers.socket.debug('Connection details', { 
-        url, 
-        currentLocation: typeof window !== 'undefined' ? window.location.origin : 'SSR'
+      loggers.socket.debug('Connection details', {
+        url,
+        currentLocation: typeof window !== 'undefined' ? window.location.origin : 'SSR',
       });
 
       if (this.socket?.connected) {
@@ -34,7 +34,7 @@ export class SocketClientCore {
       loggers.socket.debug('Creating new Socket.IO instance');
       this.socket = io(url, {
         path: '/socket.io/',
-        transports: ['polling', 'websocket'],  // polling
+        transports: ['polling', 'websocket'], // polling
         autoConnect: false,
         reconnection: true,
         reconnectionAttempts: this.maxReconnectAttempts,
@@ -42,8 +42,8 @@ export class SocketClientCore {
         reconnectionDelayMax: 5000,
         timeout: 60000,
         forceNew: true,
-        upgrade: true,  // WebSocket
-        withCredentials: false
+        upgrade: true, // WebSocket
+        withCredentials: false,
       });
 
       loggers.socket.debug('Socket.IO instance created, setting up events');
@@ -57,7 +57,6 @@ export class SocketClientCore {
 
       loggers.socket.info('Socket.IO connection established (polling)');
       return this.socket;
-
     } catch (error) {
       loggers.socket.error('Socket connection failed', error);
       throw error;
@@ -134,15 +133,18 @@ export class SocketClientCore {
       this.isConnected = false;
     });
 
-    this.socket.on('connect_error', (error: Error & { type?: string; description?: string; context?: string; code?: string }) => {
-      loggers.socket.error('Socket connection error', {
-        message: error.message || String(error),
-        type: error.type || 'unknown',
-        description: error.description || 'No description',
-        context: error.context || 'No context',
-        code: error.code || 'No code'
-      });
-    });
+    this.socket.on(
+      'connect_error',
+      (error: Error & { type?: string; description?: string; context?: string; code?: string }) => {
+        loggers.socket.error('Socket connection error', {
+          message: error.message || String(error),
+          type: error.type || 'unknown',
+          description: error.description || 'No description',
+          context: error.context || 'No context',
+          code: error.code || 'No code',
+        });
+      },
+    );
 
     this.socket.on('error', (error) => {
       loggers.socket.error('Socket general error', error);
@@ -150,8 +152,8 @@ export class SocketClientCore {
 
     // Transport
     this.socket.on('connect', () => {
-      loggers.socket.info('Connected via transport', { 
-        transport: this.socket?.io?.engine?.transport?.name 
+      loggers.socket.info('Connected via transport', {
+        transport: this.socket?.io?.engine?.transport?.name,
       });
     });
 
@@ -170,10 +172,10 @@ export class SocketClientCore {
     this.username = username;
 
     loggers.socket.info('Joining room', { roomId, username });
-    
+
     this.socket.emit('join-room', {
       roomId,
-      username
+      username,
     });
 
     this.socket.emit('register-handlers', { roomId });
@@ -183,10 +185,10 @@ export class SocketClientCore {
     if (!this.socket) return;
 
     loggers.socket.info('Leaving room', { roomId, username });
-    
+
     this.socket.emit('leave-room', {
       roomId,
-      username
+      username,
     });
 
     this.roomId = null;
@@ -203,7 +205,7 @@ export class SocketClientCore {
     this.socket.emit('send-message', {
       roomId,
       message,
-      sender
+      sender,
     });
   }
 
@@ -258,9 +260,9 @@ export class SocketClientCore {
       roomId: this.roomId,
       username: this.username,
       reconnectAttempts: this.reconnectAttempts,
-      transport: this.socket?.io?.engine?.transport?.name
+      transport: this.socket?.io?.engine?.transport?.name,
     };
   }
 }
 
-export const socketClientCore = new SocketClientCore(); 
+export const socketClientCore = new SocketClientCore();

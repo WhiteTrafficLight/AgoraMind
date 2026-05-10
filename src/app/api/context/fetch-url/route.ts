@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       if (!response.ok) {
         return NextResponse.json(
           { error: `Upstream responded with ${response.status}` },
-          { status: 502 }
+          { status: 502 },
         );
       }
       html = await response.text();
@@ -37,26 +37,29 @@ export async function POST(req: NextRequest) {
       clearTimeout(timeout);
     }
     const $ = cheerio.load(html);
-    
+
     const title = $('title').text() || '';
     const description = $('meta[name="description"]').attr('content') || '';
-    
+
     let content = '';
-    
+
     // 1. article
     const articleContent = $('article, .content, .post, .article, main').text();
     if (articleContent && articleContent.length > 100) {
       content = articleContent;
     } else {
-      content = $('p').map((_, el) => $(el).text().trim()).get().join('\n\n');
+      content = $('p')
+        .map((_, el) => $(el).text().trim())
+        .get()
+        .join('\n\n');
     }
-    
+
     content = content.replace(/\s+/g, ' ').trim();
-    
+
     if (content.length > 5000) {
       content = content.substring(0, 5000) + '...';
     }
-    
+
     let finalContent = '';
     if (title) {
       finalContent += `Title: ${title}\n\n`;
@@ -65,13 +68,10 @@ export async function POST(req: NextRequest) {
       finalContent += `Description: ${description}\n\n`;
     }
     finalContent += `Content from URL: ${url}\n\n${content}`;
-    
+
     return NextResponse.json({ content: finalContent, url });
   } catch (error) {
     loggers.api.error('Error fetching URL content:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch content from URL' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch content from URL' }, { status: 500 });
   }
-} 
+}

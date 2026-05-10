@@ -23,7 +23,8 @@ const CustomNpcSchema = new mongoose.Schema<ICustomNpc>({
   created_by: { type: String, required: true },
   created_at: { type: Date, default: Date.now },
   backend_id: { type: String },
-  portrait_url: { type: String }
+  portrait_url: { type: String },
 });
 
-export default mongoose.models.CustomNpc || mongoose.model<ICustomNpc>('CustomNpc', CustomNpcSchema); 
+export default mongoose.models.CustomNpc ||
+  mongoose.model<ICustomNpc>('CustomNpc', CustomNpcSchema);

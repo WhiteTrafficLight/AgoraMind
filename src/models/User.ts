@@ -30,7 +30,7 @@ const UserSchema = new mongoose.Schema<IUser>(
     },
     password: {
       type: String,
-      required: function(this: IUser): boolean {
+      required: function (this: IUser): boolean {
         return !this.googleId; // password is required if no googleId
       },
       minlength: [6, 'Password must be at least 6 characters'],
@@ -43,15 +43,15 @@ const UserSchema = new mongoose.Schema<IUser>(
     },
     profileImage: {
       type: String,
-      default: null
+      default: null,
     },
     bio: {
       type: String,
       default: '',
-      maxlength: [500, 'Bio cannot be more than 500 characters']
-    }
+      maxlength: [500, 'Bio cannot be more than 500 characters'],
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Hash password before saving
@@ -74,10 +74,10 @@ UserSchema.pre('save', async function (this: IUser, next) {
 });
 
 // Compare password method
-UserSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+UserSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
   if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 
 // This is to prevent OverwriteModelError when model is compiled multiple times during hot reloads
-export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema); 
+export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

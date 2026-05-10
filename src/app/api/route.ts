@@ -5,6 +5,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    message: 'API server is running'
+    message: 'API server is running',
   });
-} 
+}

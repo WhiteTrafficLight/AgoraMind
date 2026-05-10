@@ -9,7 +9,7 @@ interface MessageInputProps {
   isInputDisabled: boolean;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   isGeneratingResponse: boolean;
-  currentUserTurn?: {speaker_id: string, role: string} | null;
+  currentUserTurn?: { speaker_id: string; role: string } | null;
   waitingForUserInput?: boolean;
 }
 
@@ -22,9 +22,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
   inputRef,
   isGeneratingResponse,
   currentUserTurn,
-  waitingForUserInput
+  waitingForUserInput,
 }) => {
-  
   // Enter
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !isInputDisabled && messageText.trim() && isUserTurn) {
@@ -35,22 +34,28 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const getPlaceholderText = () => {
     if (waitingForUserInput && currentUserTurn) {
-      const roleText = currentUserTurn.role === 'pro' ? 'Pro' : 
-                      currentUserTurn.role === 'con' ? 'Con' : 
-                      currentUserTurn.role;
+      const roleText =
+        currentUserTurn.role === 'pro'
+          ? 'Pro'
+          : currentUserTurn.role === 'con'
+            ? 'Con'
+            : currentUserTurn.role;
       return `It's your turn (${roleText} side). Please enter your opinion.`;
     } else if (isUserTurn) {
       return "It's your turn now. Please enter your message.";
     } else {
-      return "Press the Next button to continue the conversation.";
+      return 'Press the Next button to continue the conversation.';
     }
   };
 
   const getTurnMessage = () => {
     if (waitingForUserInput && currentUserTurn) {
-      const roleText = currentUserTurn.role === 'pro' ? 'Pro' : 
-                      currentUserTurn.role === 'con' ? 'Con' : 
-                      currentUserTurn.role;
+      const roleText =
+        currentUserTurn.role === 'pro'
+          ? 'Pro'
+          : currentUserTurn.role === 'con'
+            ? 'Con'
+            : currentUserTurn.role;
       return `It's your turn to speak as the ${roleText} side. Please enter your opinion.`;
     } else if (!isUserTurn && !isGeneratingResponse) {
       return "It's currently another participant's turn. You'll be notified when it's your turn.";
@@ -67,30 +72,22 @@ const MessageInput: React.FC<MessageInputProps> = ({
           onChange={(e) => setMessageText(e.target.value)}
           onKeyDown={handleKeyPress}
           placeholder={getPlaceholderText()}
-          className={`debate-input-field ${
-            isUserTurn ? 'user-turn' : 'disabled'
-          }`}
+          className={`debate-input-field ${isUserTurn ? 'user-turn' : 'disabled'}`}
           disabled={isInputDisabled}
         />
-        
+
         <button
           type="submit"
           disabled={!messageText.trim() || isInputDisabled}
-          className={`debate-send-button ${
-            isUserTurn && messageText.trim() ? 'user-turn' : ''
-          }`}
+          className={`debate-send-button ${isUserTurn && messageText.trim() ? 'user-turn' : ''}`}
         >
           <PaperAirplaneIcon style={{ height: '20px', width: '20px' }} />
         </button>
       </form>
-      
-      {getTurnMessage() && (
-        <div className="debate-turn-message">
-          {getTurnMessage()}
-        </div>
-      )}
+
+      {getTurnMessage() && <div className="debate-turn-message">{getTurnMessage()}</div>}
     </div>
   );
 };
 
-export default MessageInput; 
+export default MessageInput;

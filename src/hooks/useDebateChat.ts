@@ -115,65 +115,65 @@ export function useDebateChat(deps: UseDebateChatDeps): UseDebateChatResult {
     }
   }, [chatData, setChatData, username]);
 
-  const processUserMessage = useCallback(async (message: string) => {
-    if (!currentUserTurn || !chatData) {
-      loggers.chat.error('Cannot process user message - missing currentUserTurn or chatData');
-      return;
-    }
+  const processUserMessage = useCallback(
+    async (message: string) => {
+      if (!currentUserTurn || !chatData) {
+        loggers.chat.error('Cannot process user message - missing currentUserTurn or chatData');
+        return;
+      }
 
-    try {
-      loggers.chat.info('Processing user message:', message);
-      loggers.chat.info('Current user turn:', currentUserTurn);
-      loggers.chat.info('Username:', username);
+      try {
+        loggers.chat.info('Processing user message:', message);
+        loggers.chat.info('Current user turn:', currentUserTurn);
+        loggers.chat.info('Username:', username);
 
-      const roomId = String(chatData.id);
-      const requestBody = {
-        message,
-        user_id: currentUserTurn.speaker_id,
-      };
-      loggers.chat.info('Sending user message request:', requestBody);
+        const roomId = String(chatData.id);
+        const requestBody = {
+          message,
+          user_id: currentUserTurn.speaker_id,
+        };
+        loggers.chat.info('Sending user message request:', requestBody);
 
-      const response = await fetch(
-        apiUrl(ENDPOINTS.chat.debateProcessUserMessage(roomId)),
-        {
+        const response = await fetch(apiUrl(ENDPOINTS.chat.debateProcessUserMessage(roomId)), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody),
-        },
-      );
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to process user message');
-      }
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to process user message');
+        }
 
-      const result = await response.json();
-      loggers.chat.info('User message processed:', result);
+        const result = await response.json();
+        loggers.chat.info('User message processed:', result);
 
-      if (result.status === 'success') {
-        loggers.chat.info('User message successfully processed - clearing user turn state');
+        if (result.status === 'success') {
+          loggers.chat.info('User message successfully processed - clearing user turn state');
+          setWaitingForUserInput(false);
+          setCurrentUserTurn(null);
+          loggers.chat.info('Requesting next AI message...');
+          setTimeout(() => {
+            requestNextMessage();
+          }, 1000);
+        } else if (result.status === 'error' && result.reason === 'not_your_turn') {
+          loggers.chat.error('Not user turn:', result.message);
+          alert(`It's currently ${result.next_speaker}'s turn.`);
+          setWaitingForUserInput(false);
+          setCurrentUserTurn(null);
+        } else {
+          throw new Error(result.message || 'Failed to process user message');
+        }
+      } catch (error) {
+        loggers.chat.error('Error processing user message:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+        alert(`Error occurred while processing message: ${errorMessage}`);
         setWaitingForUserInput(false);
         setCurrentUserTurn(null);
-        loggers.chat.info('Requesting next AI message...');
-        setTimeout(() => {
-          requestNextMessage();
-        }, 1000);
-      } else if (result.status === 'error' && result.reason === 'not_your_turn') {
-        loggers.chat.error('Not user turn:', result.message);
-        alert(`It's currently ${result.next_speaker}'s turn.`);
-        setWaitingForUserInput(false);
-        setCurrentUserTurn(null);
-      } else {
-        throw new Error(result.message || 'Failed to process user message');
       }
-    } catch (error) {
-      loggers.chat.error('Error processing user message:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      alert(`Error occurred while processing message: ${errorMessage}`);
-      setWaitingForUserInput(false);
-      setCurrentUserTurn(null);
-    }
-  }, [chatData, currentUserTurn, username, requestNextMessage]);
+    },
+    [chatData, currentUserTurn, username, requestNextMessage],
+  );
 
   return {
     isGeneratingResponse,

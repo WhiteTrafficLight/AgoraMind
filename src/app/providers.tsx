@@ -3,13 +3,13 @@
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'react-hot-toast';
 import { LoadingOverlayProvider } from './loadingOverlay';
- 
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <LoadingOverlayProvider>
         {children}
-        <Toaster 
+        <Toaster
           position="top-center"
           toastOptions={{
             duration: 3000,
@@ -23,4 +23,4 @@ export function Providers({ children }: { children: React.ReactNode }) {
       </LoadingOverlayProvider>
     </SessionProvider>
   );
-} 
+}

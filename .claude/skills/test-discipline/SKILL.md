@@ -75,7 +75,7 @@ The current smoke test only covers public pages (`/`, `/login`, `/register`, log
 - Authenticated routes
 - Socket.IO real-time events
 
-When a new feature ships, add at least one assertion that exercises its primary user path. The bar is not "comprehensive coverage" — it's "this feature has *some* test that would have caught the regression I just made". A 5-line test is better than zero.
+When a new feature ships, add at least one assertion that exercises its primary user path. The bar is not "comprehensive coverage" — it's "this feature has _some_ test that would have caught the regression I just made". A 5-line test is better than zero.
 
 If the new feature requires the backend, decide between:
 
