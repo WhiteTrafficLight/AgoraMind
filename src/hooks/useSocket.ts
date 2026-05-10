@@ -26,7 +26,6 @@ let connectionCount = 0;
 
 export const useSocket = (options: UseSocketOptions = {}) => {
   const [isConnected, setIsConnected] = useState(false);
-  const [transport, setTransport] = useState('N/A');
   const socketRef = useRef<Socket | null>(null);
   const hasJoinedRoom = useRef(false);
 
@@ -68,7 +67,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       loggers.socket.debug('Reusing existing Socket.IO connection');
       socketRef.current = globalSocket;
       setIsConnected(true);
-      setTransport(globalSocket.io.engine.transport.name);
       connectionCount++;
 
       // (roomId userId )
@@ -107,7 +105,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     socket.on('connect', () => {
       loggers.socket.info('Socket.IO connected successfully', { socketId: socket.id });
       setIsConnected(true);
-      setTransport(socket.io.engine.transport.name);
       stableOnConnect();
 
       // (roomId userId )
@@ -124,7 +121,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     socket.on('disconnect', (reason) => {
       loggers.socket.warn('Socket.IO disconnected', { reason });
       setIsConnected(false);
-      setTransport('N/A');
       hasJoinedRoom.current = false;
       stableOnDisconnect();
     });
@@ -160,10 +156,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       loggers.socket.info('Chat room deleted', data);
     });
 
-    socket.io.engine.on('upgrade', () => {
-      setTransport(socket.io.engine.transport.name);
-    });
-
     return () => {
       loggers.socket.debug('Cleaning up Socket.IO connection');
       connectionCount--;
@@ -186,28 +178,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       }
     };
   }, [roomId, userId]);
-  const sendMessage = (message: string, side: string = 'neutral') => {
-    if (!socketRef.current || !roomId || !userId) {
-      loggers.socket.error('Cannot send message: socket, roomId or userId missing', {
-        hasSocket: !!socketRef.current,
-        roomId,
-        userId,
-      });
-      return false;
-    }
-
-    const messageData = {
-      room_id: roomId,
-      user_id: userId,
-      message,
-      side,
-      timestamp: new Date().toISOString(),
-    };
-
-    loggers.socket.debug('Sending message', { roomId, userId, messageLength: message.length });
-    socketRef.current.emit('send_message', messageData);
-    return true;
-  };
 
   const joinRoom = (newRoomId: string, newUserId: string) => {
     if (!socketRef.current) {
@@ -224,27 +194,8 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     return true;
   };
 
-  const leaveRoom = (roomIdToLeave: string, userIdToLeave: string) => {
-    if (!socketRef.current) {
-      loggers.socket.error('Cannot leave room: socket not connected');
-      return false;
-    }
-
-    socketRef.current.emit('leave_room', {
-      room_id: roomIdToLeave,
-      user_id: userIdToLeave,
-    });
-
-    loggers.socket.info(`Leaving room: ${roomIdToLeave} (user: ${userIdToLeave})`);
-    return true;
-  };
-
   return {
-    socket: socketRef.current,
     isConnected,
-    transport,
-    sendMessage,
     joinRoom,
-    leaveRoom,
   };
 };

@@ -65,6 +65,11 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
     { id: '4', name: 'Miss Hana', description: 'Bright and educational style moderator' },
   ];
 
+  // Generate default avatar
+  const getDefaultAvatar = (name: string) => {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128`;
+  };
+
   // Load user profile on component mount
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -112,11 +117,6 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
       setUserPosition('neutral');
     }
   }, [isOpen, topic]);
-
-  // Generate default avatar
-  const getDefaultAvatar = (name: string) => {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=128`;
-  };
 
   if (!isOpen || !topic) {
     return null;
