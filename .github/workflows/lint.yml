@@ -25,6 +25,9 @@ jobs:
 
       - name: Prettier check
         run: npm run format:check
+
+      - name: TypeScript check
+        run: npm run typecheck
       # NOTE: `npm run lint` is intentionally NOT run here. The repo
       # currently has ~21 ESLint errors / ~108 warnings that are real
       # findings (not formatting). Adding lint as a gate without first
