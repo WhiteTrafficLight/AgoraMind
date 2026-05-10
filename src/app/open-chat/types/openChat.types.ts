@@ -25,7 +25,7 @@ export interface ChatRoom {
 export interface Philosopher {
   id: string;
   name: string;
-  period?: string; 
+  period?: string;
   era?: string;
   nationality?: string;
   school?: string;
@@ -73,22 +73,22 @@ export interface OpenChatState {
   // Chat rooms
   activeChats: ChatRoom[];
   isLoading: boolean;
-  
+
   // Search and filtering
   searchQuery: string;
   activeTab: 'all' | 'active' | 'recent' | 'popular';
   showParticipants: number | null;
-  
+
   // Modals
   showCreateChatModal: boolean;
   chatToJoin: ChatRoom | null;
-  
+
   socketConnected: boolean;
-  
+
   // User
   username: string;
-  
+
   // Philosophers
   philosophers: Philosopher[];
   customNpcs: Philosopher[];
-} 
+}

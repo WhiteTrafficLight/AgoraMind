@@ -12,20 +12,20 @@ import { loggers } from '@/utils/logger';
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-    
+
     await connectDB();
-    
+
     // Find user by email
     const user = await User.findOne({ email: session.user.email }).select('-password');
-    
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
+
     return NextResponse.json({
       id: user._id,
       username: user.username,
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       bio: user.bio || '',
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      profileImage: user.profileImage || null
+      profileImage: user.profileImage || null,
     });
   } catch (error) {
     loggers.api.error('Error fetching user profile:', error);
@@ -45,35 +45,35 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-    
+
     const data = await req.json();
-    
+
     // Updatable fields (excluding sensitive information like passwords)
     const { username, bio } = data;
-    
+
     if (!username) {
       return NextResponse.json({ error: 'Username is required' }, { status: 400 });
     }
-    
+
     await connectDB();
-    
+
     // Update user information
     const updatedUser = await User.findOneAndUpdate(
       { email: session.user.email },
       { username, bio },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select('-password');
-    
+
     if (!updatedUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
+
     revalidatePath('/settings');
-    
+
     return NextResponse.json({
       message: 'Profile updated successfully',
       user: {
@@ -83,8 +83,8 @@ export async function PUT(req: NextRequest) {
         bio: updatedUser.bio || '',
         createdAt: updatedUser.createdAt,
         updatedAt: updatedUser.updatedAt,
-        profileImage: updatedUser.profileImage || null
-      }
+        profileImage: updatedUser.profileImage || null,
+      },
     });
   } catch (error) {
     loggers.api.error('Error updating user profile:', error);
@@ -96,38 +96,38 @@ export async function PUT(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-    
+
     const formData = await req.formData();
     const profileImage = formData.get('profileImage') as File;
-    
+
     if (!profileImage) {
       return NextResponse.json({ error: 'Profile image is required' }, { status: 400 });
     }
-    
+
     await connectDB();
-    
+
     // Find the user to get their ID
     const user = await User.findOne({ email: session.user.email });
-    
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
+
     // Find the correct path to the portraits directory at project root
     const currentDir = process.cwd();
-    const rootProjectDir = currentDir.includes('/agoramind') 
-      ? currentDir.substring(0, currentDir.indexOf('/agoramind')) 
+    const rootProjectDir = currentDir.includes('/agoramind')
+      ? currentDir.substring(0, currentDir.indexOf('/agoramind'))
       : currentDir;
-    
+
     const portraitsDir = path.join(rootProjectDir, 'portraits');
     loggers.api.info('Current directory:', currentDir);
     loggers.api.info('Root project directory:', rootProjectDir);
     loggers.api.info('Portraits directory:', portraitsDir);
-    
+
     try {
       await fs.access(portraitsDir);
       loggers.api.info(`Portraits directory found at: ${portraitsDir}`);
@@ -135,34 +135,34 @@ export async function POST(req: NextRequest) {
       loggers.api.error(`Error accessing portraits directory: ${portraitsDir}`, error);
       throw new Error(`Portraits directory not found at ${portraitsDir}`);
     }
-    
+
     // Create a unique filename based on user ID
     const fileName = `user_${user._id}.jpg`;
     const filePath = path.join(portraitsDir, fileName);
     loggers.api.info(`Saving image to: ${filePath}`);
-    
+
     // Convert image data to buffer and save it
     const bytes = await profileImage.arrayBuffer();
     const buffer = Buffer.from(bytes);
     await fs.writeFile(filePath, buffer);
     loggers.api.info(`File saved: ${filePath}`);
-    
+
     // This is the URL that will be used to access the image
     const imageUrl = `/portraits/${fileName}`;
     loggers.api.info(`Image URL saved to database: ${imageUrl}`);
-    
+
     // Update the user profile in the database
     const updatedUser = await User.findOneAndUpdate(
       { email: session.user.email },
       { profileImage: imageUrl },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).select('-password');
-    
+
     revalidatePath('/settings');
-    
+
     return NextResponse.json({
       message: 'Profile image updated successfully',
-      profileImage: imageUrl
+      profileImage: imageUrl,
     });
   } catch (error) {
     loggers.api.error('Error uploading profile image:', error);
@@ -174,32 +174,32 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
-    
+
     await connectDB();
-    
+
     // Update user to remove profile image
     const updatedUser = await User.findOneAndUpdate(
       { email: session.user.email },
       { profileImage: null },
-      { new: true }
+      { new: true },
     ).select('-password');
-    
+
     if (!updatedUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
+
     revalidatePath('/settings');
-    
+
     return NextResponse.json({
       message: 'Profile image removed successfully',
-      profileImage: null
+      profileImage: null,
     });
   } catch (error) {
     loggers.api.error('Error removing profile image:', error);
     return NextResponse.json({ error: 'Failed to remove profile image' }, { status: 500 });
   }
-} 
+}

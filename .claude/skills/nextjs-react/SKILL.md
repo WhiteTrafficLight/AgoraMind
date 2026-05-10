@@ -39,21 +39,21 @@ src/
 ```tsx
 // app/users/page.tsx
 export default async function UsersPage() {
-  const users = await fetchUsers() // direct await — no useEffect
-  return <UserList users={users} />
+  const users = await fetchUsers(); // direct await — no useEffect
+  return <UserList users={users} />;
 }
 ```
 
 ## Client Component Pattern
 
 ```tsx
-'use client'
+'use client';
 
-import { useState } from 'react'
+import { useState } from 'react';
 
 export function Counter() {
-  const [count, setCount] = useState(0)
-  return <button onClick={() => setCount(c => c + 1)}>{count}</button>
+  const [count, setCount] = useState(0);
+  return <button onClick={() => setCount((c) => c + 1)}>{count}</button>;
 }
 ```
 
@@ -61,12 +61,12 @@ export function Counter() {
 
 ```tsx
 // app/actions.ts
-'use server'
+'use server';
 
 export async function createPost(formData: FormData) {
-  const title = formData.get('title') as string
-  await db.post.create({ data: { title } })
-  revalidatePath('/posts')
+  const title = formData.get('title') as string;
+  await db.post.create({ data: { title } });
+  revalidatePath('/posts');
 }
 ```
 
@@ -82,25 +82,25 @@ export async function createPost(formData: FormData) {
 
 ```tsx
 // Static (SSG) — cached at build time
-const res = await fetch(url, { cache: 'force-cache' })
+const res = await fetch(url, { cache: 'force-cache' });
 
 // Dynamic (SSR) — fresh on every request
-const res = await fetch(url, { cache: 'no-store' })
+const res = await fetch(url, { cache: 'no-store' });
 
 // ISR — revalidate every N seconds
-const res = await fetch(url, { next: { revalidate: 3600 } })
+const res = await fetch(url, { next: { revalidate: 3600 } });
 ```
 
 ## Metadata
 
 ```tsx
 // Static
-export const metadata: Metadata = { title: 'Page Title' }
+export const metadata: Metadata = { title: 'Page Title' };
 
 // Dynamic
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params
-  return { title: `Post ${id}` }
+  const { id } = await params;
+  return { title: `Post ${id}` };
 }
 ```
 
@@ -131,11 +131,11 @@ export default async function Page({ params: { id } }) { ... }
 
 ```tsx
 // ✅ Correct
-const cookieStore = await cookies()
-const headersList = await headers()
+const cookieStore = await cookies();
+const headersList = await headers();
 
 // ❌ Wrong
-const cookieStore = cookies()
+const cookieStore = cookies();
 ```
 
 ### React 19: ref is now a plain prop — no forwardRef
@@ -154,31 +154,31 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => ...)
 
 ```tsx
 // Unwrap a Promise inside a component (pair with Suspense)
-const data = use(dataPromise)
+const data = use(dataPromise);
 
 // Replace useContext
-const value = use(MyContext)
+const value = use(MyContext);
 ```
 
 ### React 19: useFormStatus()
 
 ```tsx
-'use client'
-import { useFormStatus } from 'react-dom'
+'use client';
+import { useFormStatus } from 'react-dom';
 
 function SubmitButton() {
-  const { pending } = useFormStatus()
-  return <button disabled={pending}>{pending ? 'Submitting...' : 'Submit'}</button>
+  const { pending } = useFormStatus();
+  return <button disabled={pending}>{pending ? 'Submitting...' : 'Submit'}</button>;
 }
 ```
 
 ### React 19: useOptimistic()
 
 ```tsx
-const [optimisticItems, addOptimistic] = useOptimistic(
-  items,
-  (state, newItem) => [...state, newItem],
-)
+const [optimisticItems, addOptimistic] = useOptimistic(items, (state, newItem) => [
+  ...state,
+  newItem,
+]);
 ```
 
 ---

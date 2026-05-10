@@ -10,7 +10,7 @@ import { loggers } from '@/utils/logger';
 
 const OpenChatContainer: React.FC = () => {
   const [showTooltip, setShowTooltip] = useState(false);
-  
+
   const {
     // State
     activeChats,
@@ -20,7 +20,7 @@ const OpenChatContainer: React.FC = () => {
     philosophers,
     customNpcs,
     isCreating,
-    
+
     // Actions
     updateState,
     loadChatRooms,
@@ -36,7 +36,7 @@ const OpenChatContainer: React.FC = () => {
     // TODO: Navigate to debate room creation or directly start a debate
     // For now, we'll just log the selection
     loggers.chat.info('Selected topic:', { categoryKey, topicIndex, topic });
-    
+
     // You could implement navigation here, for example:
     // router.push(`/debate/${categoryKey}/${topicIndex}`);
     // or open a modal to configure the debate
@@ -51,7 +51,7 @@ const OpenChatContainer: React.FC = () => {
           <div className="flex items-center gap-4">
             {/* Create Chat Button */}
             <div className="relative z-10">
-              <button 
+              <button
                 onClick={handleCreateChatClick}
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
@@ -61,9 +61,9 @@ const OpenChatContainer: React.FC = () => {
               >
                 <PlusIcon className="h-6 w-6" />
               </button>
-              
+
               {/* Tooltip */}
-              <div 
+              <div
                 className={`absolute right-0 mt-2 w-40 rounded-md bg-gray-900 text-white text-xs px-3 py-2 shadow-lg ${showTooltip ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity z-10`}
               >
                 Create Custom Debate
@@ -72,7 +72,7 @@ const OpenChatContainer: React.FC = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Debate Topics List */}
       <div className="flex-1 overflow-hidden">
         <DebateTopicsList
@@ -81,7 +81,7 @@ const OpenChatContainer: React.FC = () => {
           customNpcs={customNpcs}
         />
       </div>
-      
+
       {/* Create Chat Modal */}
       <CreateChatModal
         isOpen={showCreateChatModal}
@@ -95,4 +95,4 @@ const OpenChatContainer: React.FC = () => {
   );
 };
 
-export default OpenChatContainer; 
+export default OpenChatContainer;

@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   // Docker용 standalone 출력 설정
@@ -19,9 +19,7 @@ const nextConfig: NextConfig = {
   // CSP and contentDispositionType=attachment below mitigate the typical
   // SVG XSS vector (no inline scripts, served as download not inline).
   images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: 'ui-avatars.com' },
-    ],
+    remotePatterns: [{ protocol: 'https', hostname: 'ui-avatars.com' }],
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
@@ -43,9 +41,15 @@ const nextConfig: NextConfig = {
         source: '/api/socket/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: process.env.NEXTAUTH_URL || 'http://localhost:3000' },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+          },
           { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'X-Requested-With,Content-Type,Accept,Authorization' },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'X-Requested-With,Content-Type,Accept,Authorization',
+          },
         ],
       },
       {
@@ -53,9 +57,15 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: process.env.NEXTAUTH_URL || 'http://localhost:3000' },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+          },
           { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PUT,DELETE,OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'X-Requested-With,Content-Type,Accept,Authorization' },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'X-Requested-With,Content-Type,Accept,Authorization',
+          },
         ],
       },
     ];

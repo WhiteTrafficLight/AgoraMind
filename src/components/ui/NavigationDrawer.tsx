@@ -43,12 +43,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
   return (
     <>
       {/* Backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40"
-          onClick={onClose}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />}
 
       {/* Drawer Panel */}
       <div
@@ -56,7 +51,7 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
         className={`fixed top-0 left-0 h-full w-72 bg-white shadow-xl z-50 border-r border-gray-200 transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="p-4 flex flex-col gap-2">
-          <Link 
+          <Link
             href={ROUTES.home}
             onClick={onClose}
             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-gray-800"
@@ -64,8 +59,8 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
             <HomeIcon className="h-5 w-5 text-gray-600" />
             <span className="text-sm font-medium">Home</span>
           </Link>
-          
-          <Link 
+
+          <Link
             href={ROUTES.openChat}
             onClick={onClose}
             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-gray-800"
@@ -73,8 +68,8 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
             <ChatBubbleLeftIcon className="h-5 w-5 text-gray-600" />
             <span className="text-sm font-medium">Open Chat</span>
           </Link>
-          
-          <Link 
+
+          <Link
             href={ROUTES.podcast}
             prefetch={false}
             onClick={onClose}
@@ -89,4 +84,4 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
   );
 };
 
-export default NavigationDrawer; 
+export default NavigationDrawer;

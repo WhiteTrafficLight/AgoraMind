@@ -72,11 +72,14 @@ export interface PlaybackControlEvent {
 
 export interface ConversationSummary {
   message_count: number;
-  speaker_stats: Record<string, {
-    message_count: number;
-    total_words: number;
-    avg_response_time?: number;
-  }>;
+  speaker_stats: Record<
+    string,
+    {
+      message_count: number;
+      total_words: number;
+      avg_response_time?: number;
+    }
+  >;
   engagement_score: number;
   topic_shifts: number;
   status: string;
@@ -90,22 +93,22 @@ export interface FreeDiscussionUIState {
   isPaused: boolean;
   currentTurn: number;
   maxTurns: number;
-  
+
   // Session info
   sessionId: string | null;
   sessionStatus: FreeDiscussionSession['status'];
   sessionContext?: string;
   conversationMode: 'general_discussion' | 'focused_debate' | 'conclusion_building';
-  
+
   // Speaker stats
   speakerStats: ConversationSummary['speaker_stats'];
   engagementScore: number;
-  
+
   // User interaction
   allowInterruption: boolean;
   userQueuePosition: number | null;
   isProcessingControl: boolean;
-  
+
   // UI state
   showPlaybackControls: boolean;
   showContextPanel: boolean;
@@ -137,5 +140,3 @@ export interface TimelineMarker {
   color: string;
   isHighlight?: boolean;
 }
-
-

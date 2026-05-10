@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { 
-  FreeDiscussionUIState, 
+import {
+  FreeDiscussionUIState,
   FreeDiscussionMessage,
   CreateFreeDiscussionRequest,
   FreeDiscussionConfig,
-  PlaybackControlEvent
+  PlaybackControlEvent,
 } from '@/app/open-chat/types/freeDiscussion.types';
 import { freeDiscussionService } from '@/lib/api/freeDiscussionService';
 import { socketClientCore } from '@/lib/messaging/socket/client/socket-client-core';
@@ -52,7 +52,10 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
     timestamp: string | Date;
     text: string;
   }): string => {
-    const ts = typeof params.timestamp === 'string' ? new Date(params.timestamp).getTime() : params.timestamp.getTime();
+    const ts =
+      typeof params.timestamp === 'string'
+        ? new Date(params.timestamp).getTime()
+        : params.timestamp.getTime();
     const input = `${params.sessionId}|${params.sender}|${ts}|${params.text}`;
     let hash = 5381;
     for (let i = 0; i < input.length; i++) {
@@ -89,7 +92,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       senderType: db.senderType,
       role: db.role,
       // carry over optional extras
-      ...(db.citations ? { citations: db.citations } : {})
+      ...(db.citations ? { citations: db.citations } : {}),
     } as FreeDiscussionMessage;
   };
 
@@ -107,13 +110,13 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
           role: msg.role,
           senderType: msg.senderType,
           stage: msg.stage,
-          citations: msg.citations
-        }
+          citations: msg.citations,
+        },
       };
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         loggers.db.warn('Message persistence failed', { status: res.status });
@@ -130,7 +133,9 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
 
     const loadMessages = async () => {
       try {
-        const res = await fetch(`/api/messages?action=getMessages&roomId=${encodeURIComponent(roomId)}`);
+        const res = await fetch(
+          `/api/messages?action=getMessages&roomId=${encodeURIComponent(roomId)}`,
+        );
         if (!res.ok) {
           loggers.db.warn('Failed to load messages from DB', { status: res.status });
           return;
@@ -141,21 +146,24 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
 
         // Seed dedupe set with DB ids
         const newSeen = new Set<string>(seenMessageIdsRef.current);
-        normalized.forEach(m => {
+        normalized.forEach((m) => {
           const id = m.id;
           if (id) newSeen.add(String(id));
         });
         seenMessageIdsRef.current = newSeen;
 
         // Merge with any existing messages without duplicating by id
-        setMessages(prev => {
+        setMessages((prev) => {
           const existingIds = new Set<string>();
-          prev.forEach(p => {
+          prev.forEach((p) => {
             if (p.id) existingIds.add(String(p.id));
           });
-          const merged = [...normalized.filter(n => {
-            return n.id ? !existingIds.has(String(n.id)) : true;
-          }), ...prev];
+          const merged = [
+            ...normalized.filter((n) => {
+              return n.id ? !existingIds.has(String(n.id)) : true;
+            }),
+            ...prev,
+          ];
           return merged;
         });
       } catch (err) {
@@ -175,7 +183,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         config,
       });
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         sessionId: response.session_id,
         sessionStatus: 'active',
@@ -187,7 +195,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       return response.session_id;
     } catch (error) {
       loggers.api.error('Failed to initialize session:', error);
-      setState(prev => ({ ...prev, sessionStatus: 'error' }));
+      setState((prev) => ({ ...prev, sessionStatus: 'error' }));
       throw error;
     }
   }, []);
@@ -195,99 +203,105 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
   // Playback control handlers
   const handlePlay = useCallback(async () => {
     if (!state.sessionId) return;
-    
-    setState(prev => ({ ...prev, isProcessingControl: true }));
+
+    setState((prev) => ({ ...prev, isProcessingControl: true }));
     try {
       await freeDiscussionService.resumeSession(state.sessionId);
-      setState(prev => ({ 
-        ...prev, 
+      setState((prev) => ({
+        ...prev,
         isPaused: false,
-        isProcessingControl: false 
+        isProcessingControl: false,
       }));
     } catch (error) {
       loggers.api.error('Failed to resume:', error);
-      setState(prev => ({ ...prev, isProcessingControl: false }));
+      setState((prev) => ({ ...prev, isProcessingControl: false }));
     }
   }, [state.sessionId]);
 
   const handlePause = useCallback(async () => {
     if (!state.sessionId) return;
-    
-    setState(prev => ({ ...prev, isProcessingControl: true }));
+
+    setState((prev) => ({ ...prev, isProcessingControl: true }));
     try {
       await freeDiscussionService.pauseSession(state.sessionId);
-      setState(prev => ({ 
-        ...prev, 
+      setState((prev) => ({
+        ...prev,
         isPaused: true,
-        isProcessingControl: false 
+        isProcessingControl: false,
       }));
     } catch (error) {
       loggers.api.error('Failed to pause:', error);
-      setState(prev => ({ ...prev, isProcessingControl: false }));
+      setState((prev) => ({ ...prev, isProcessingControl: false }));
     }
   }, [state.sessionId]);
 
-  const handleSpeedChange = useCallback(async (speed: number) => {
-    if (!state.sessionId) return;
-    
-    setState(prev => ({ ...prev, isProcessingControl: true }));
-    try {
-      await freeDiscussionService.updateSettings(state.sessionId, { 
-        playback_speed: speed 
-      });
-      setState(prev => ({ 
-        ...prev, 
-        playbackSpeed: speed,
-        isProcessingControl: false 
-      }));
-    } catch (error) {
-      loggers.api.error('Failed to update speed:', error);
-      setState(prev => ({ ...prev, isProcessingControl: false }));
-    }
-  }, [state.sessionId]);
+  const handleSpeedChange = useCallback(
+    async (speed: number) => {
+      if (!state.sessionId) return;
 
-  const handleUserInterruption = useCallback(async (content: string) => {
-    if (!state.sessionId || !state.allowInterruption) return;
-    
-    try {
-      const trimmed = (content || '').trim();
-      if (!trimmed) return;
-      const now = Date.now();
-      if (lastSentRef.current && lastSentRef.current.content === trimmed && (now - lastSentRef.current.ts) < 1500) {
-        // Drop rapid duplicate within 1.5s window
-        return;
+      setState((prev) => ({ ...prev, isProcessingControl: true }));
+      try {
+        await freeDiscussionService.updateSettings(state.sessionId, {
+          playback_speed: speed,
+        });
+        setState((prev) => ({
+          ...prev,
+          playbackSpeed: speed,
+          isProcessingControl: false,
+        }));
+      } catch (error) {
+        loggers.api.error('Failed to update speed:', error);
+        setState((prev) => ({ ...prev, isProcessingControl: false }));
       }
-      lastSentRef.current = { content: trimmed, ts: now };
+    },
+    [state.sessionId],
+  );
 
-      const localMessage = {
-        id: generateStableMessageId({
-          sessionId: state.sessionId,
+  const handleUserInterruption = useCallback(
+    async (content: string) => {
+      if (!state.sessionId || !state.allowInterruption) return;
+
+      try {
+        const trimmed = (content || '').trim();
+        if (!trimmed) return;
+        const now = Date.now();
+        if (
+          lastSentRef.current &&
+          lastSentRef.current.content === trimmed &&
+          now - lastSentRef.current.ts < 1500
+        ) {
+          // Drop rapid duplicate within 1.5s window
+          return;
+        }
+        lastSentRef.current = { content: trimmed, ts: now };
+
+        const localMessage = {
+          id: generateStableMessageId({
+            sessionId: state.sessionId,
+            sender: username || 'User',
+            timestamp: new Date().toISOString(),
+            text: trimmed,
+          }),
+          session_id: state.sessionId,
           sender: username || 'User',
+          content: trimmed,
+          text: trimmed,
           timestamp: new Date().toISOString(),
-          text: trimmed
-        }),
-        session_id: state.sessionId,
-        sender: username || 'User',
-        content: trimmed,
-        text: trimmed,
-        timestamp: new Date().toISOString(),
-        message_type: 'user' as const,
-        senderType: 'user',
-        isUser: true,
-      } satisfies FreeDiscussionMessage;
-      seenMessageIdsRef.current.add(localMessage.id);
-      setMessages(prev => [...prev, localMessage]);
-      // Persist immediately (do not block UX)
-      void persistMessage(localMessage);
-      await freeDiscussionService.sendUserMessage(
-        state.sessionId, 
-        username, 
-        trimmed
-      );
-    } catch (error) {
-      loggers.ui.error('Failed to send interruption:', error);
-    }
-  }, [state.sessionId, state.allowInterruption, username]);
+          message_type: 'user' as const,
+          senderType: 'user',
+          isUser: true,
+        } satisfies FreeDiscussionMessage;
+        seenMessageIdsRef.current.add(localMessage.id);
+        setMessages((prev) => [...prev, localMessage]);
+        // Persist immediately (do not block UX)
+        void persistMessage(localMessage);
+        await freeDiscussionService.sendUserMessage(state.sessionId, username, trimmed);
+      } catch (error) {
+        loggers.ui.error('Failed to send interruption:', error);
+      }
+    },
+    [state.sessionId, state.allowInterruption, username],
+  );
 
   // Socket event handlers
   useEffect(() => {
@@ -304,28 +318,31 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
 
       switch (event.event_type) {
         case 'pause':
-          setState(prev => ({ ...prev, isPaused: true }));
+          setState((prev) => ({ ...prev, isPaused: true }));
           break;
         case 'resume':
-          setState(prev => ({ ...prev, isPaused: false }));
+          setState((prev) => ({ ...prev, isPaused: false }));
           break;
         case 'speed_change':
           if (event.data?.speed) {
-            setState(prev => ({ ...prev, playbackSpeed: event.data!.speed! }));
+            setState((prev) => ({ ...prev, playbackSpeed: event.data!.speed! }));
           }
           break;
         case 'turn_complete':
           if (event.data?.current_turn) {
-            setState(prev => ({ 
-              ...prev, 
-              currentTurn: event.data!.current_turn! 
+            setState((prev) => ({
+              ...prev,
+              currentTurn: event.data!.current_turn!,
             }));
           }
           break;
       }
     };
 
-    const handleNewMessage = (data: { roomId: string; message: Partial<FreeDiscussionMessage> & Record<string, unknown> }) => {
+    const handleNewMessage = (data: {
+      roomId: string;
+      message: Partial<FreeDiscussionMessage> & Record<string, unknown>;
+    }) => {
       if (String(data.roomId) === String(state.sessionId || chatId)) {
         const raw = data.message || {};
         // Handle control messages sent via new_message with sender like "control:conversation:paused"
@@ -335,14 +352,14 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
             const payload = typeof raw.text === 'string' ? JSON.parse(raw.text) : raw.text;
             switch (controlType) {
               case 'conversation:paused':
-                setState(prev => ({ ...prev, isPaused: true }));
+                setState((prev) => ({ ...prev, isPaused: true }));
                 break;
               case 'conversation:resumed':
-                setState(prev => ({ ...prev, isPaused: false }));
+                setState((prev) => ({ ...prev, isPaused: false }));
                 break;
               case 'playback:speed_changed':
                 if (payload && typeof payload.speed === 'number') {
-                  setState(prev => ({ ...prev, playbackSpeed: payload.speed }));
+                  setState((prev) => ({ ...prev, playbackSpeed: payload.speed }));
                 }
                 break;
               default:
@@ -356,12 +373,16 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         const computedId = ((): string => {
           if (raw.id) return String(raw.id);
           const ts = (raw.timestamp as string | Date | undefined) || new Date().toISOString();
-          const text = (raw.text as string | undefined) || (raw.content as string | undefined) || '';
+          const text =
+            (raw.text as string | undefined) || (raw.content as string | undefined) || '';
           return generateStableMessageId({
             sessionId: state.sessionId || String(chatId),
-            sender: (raw.sender as string | undefined) || (raw.senderName as string | undefined) || 'Unknown',
+            sender:
+              (raw.sender as string | undefined) ||
+              (raw.senderName as string | undefined) ||
+              'Unknown',
             timestamp: ts,
-            text
+            text,
           });
         })();
 
@@ -376,10 +397,17 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
           content: (raw.content as string) || (raw.text as string) || '',
           text: (raw.text as string) || (raw.content as string) || '',
           timestamp: (raw.timestamp as string) || new Date().toISOString(),
-          message_type: (raw.message_type as FreeDiscussionMessage['message_type'])
-            || (raw.isUser ? 'user' : ((raw.role === 'philosopher' || raw.senderType === 'npc') ? 'philosopher' : 'system')),
-          senderType: (raw.senderType as string) || (raw.isUser ? 'user' : ((raw.role === 'philosopher') ? 'philosopher' : 'system')),
-          isUser: (raw.isUser as boolean) ?? (raw.message_type === 'user'),
+          message_type:
+            (raw.message_type as FreeDiscussionMessage['message_type']) ||
+            (raw.isUser
+              ? 'user'
+              : raw.role === 'philosopher' || raw.senderType === 'npc'
+                ? 'philosopher'
+                : 'system'),
+          senderType:
+            (raw.senderType as string) ||
+            (raw.isUser ? 'user' : raw.role === 'philosopher' ? 'philosopher' : 'system'),
+          isUser: (raw.isUser as boolean) ?? raw.message_type === 'user',
           npc_id: raw.npc_id,
           role: raw.role as string | undefined,
           metadata: (raw.metadata as Record<string, unknown>) || {},
@@ -387,13 +415,13 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
         };
 
         seenMessageIdsRef.current.add(normalized.id);
-        setMessages(prev => [...prev, normalized]);
+        setMessages((prev) => [...prev, normalized]);
         // Persist incoming message (do not block)
         void persistMessage(normalized as FreeDiscussionMessage);
 
         // Update turn count
         if (normalized.message_type === 'philosopher') {
-          setState(prev => ({ ...prev, currentTurn: prev.currentTurn + 1 }));
+          setState((prev) => ({ ...prev, currentTurn: prev.currentTurn + 1 }));
         }
       }
     };
@@ -427,7 +455,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
           // Join backend Socket.IO room using server's expected event/payload
           socketClientCore.emit('join_room', {
             room_id: String(state.sessionId),
-            user_id: username || 'anonymous'
+            user_id: username || 'anonymous',
           });
         }
       } catch (error) {
@@ -442,7 +470,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       if (socketRef.current && state.sessionId) {
         socketRef.current.emit('leave_room', {
           room_id: String(state.sessionId || chatId),
-          user_id: username || 'anonymous'
+          user_id: username || 'anonymous',
         });
       }
     };
@@ -455,7 +483,7 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
     const updateStats = async () => {
       try {
         const summary = await freeDiscussionService.getConversationSummary(state.sessionId!);
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           speakerStats: summary.speaker_stats,
           engagementScore: summary.engagement_score,
@@ -483,19 +511,19 @@ export const useFreeDiscussion = (chatId: string, username: string) => {
       onInterrupt: handleUserInterruption,
       onNextTurn: async () => {
         if (!state.sessionId) return;
-        setState(prev => ({ ...prev, isProcessingControl: true }));
+        setState((prev) => ({ ...prev, isProcessingControl: true }));
         try {
           await freeDiscussionService.nextTurn(state.sessionId);
         } catch (err) {
           loggers.api.error('Failed to request next turn:', err);
         } finally {
-          setState(prev => ({ ...prev, isProcessingControl: false }));
+          setState((prev) => ({ ...prev, isProcessingControl: false }));
         }
       },
     },
     initializeSession,
     updateUIState: (updates: Partial<FreeDiscussionUIState>) => {
-      setState(prev => ({ ...prev, ...updates }));
+      setState((prev) => ({ ...prev, ...updates }));
     },
   };
 };

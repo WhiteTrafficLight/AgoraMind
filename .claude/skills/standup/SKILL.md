@@ -1,7 +1,7 @@
 ---
 name: standup
 description: Generate a standup update from recent activity. Use when preparing for daily standup, summarizing yesterday's commits and PRs and ticket moves, formatting work into yesterday/today/blockers, or structuring a few rough notes into a shareable update.
-argument-hint: "[yesterday | today | blockers]"
+argument-hint: '[yesterday | today | blockers]'
 ---
 
 # /standup
@@ -43,28 +43,34 @@ If your tools are connected, just say `/standup` and I'll gather everything auto
 ## Standup — [Date]
 
 ### Yesterday
+
 - [Completed item with ticket reference if available]
 - [Completed item]
 
 ### Today
+
 - [Planned item with ticket reference]
 - [Planned item]
 
 ### Blockers
+
 - [Blocker with context and who can help]
 ```
 
 ## If Connectors Available
 
 If **~~source control** is connected:
+
 - Pull recent commits and PRs (opened, reviewed, merged)
 - Summarize code changes at a high level
 
 If **~~project tracker** is connected:
+
 - Pull tickets moved to "in progress" or "done"
 - Show upcoming sprint items
 
 If **~~chat** is connected:
+
 - Scan for relevant discussions and decisions
 - Flag threads needing your response
 

@@ -15,7 +15,7 @@ export default function Home() {
   // const [thinking, setThinking] = useState(false);
   // const [thinkingText, setThinkingText] = useState('');
   // const [nextSender, setNextSender] = useState('');
-  
+
   useEffect(() => {
     // Staggered animation sequence with slower timing
     const titleTimer = setTimeout(() => setTitleVisible(true), 1200);
@@ -41,12 +41,12 @@ export default function Home() {
   //   if (chatStep < dialogMessages.length) {
   //     // Show thinking animation before displaying the message
   //     setThinking(true);
-      
+
   //     // Set who is thinking next
   //     if (chatStep < dialogMessages.length) {
   //       setNextSender(dialogMessages[chatStep].sender);
   //     }
-      
+
   //     // Thinking dots animation
   //     let dotCount = 0;
   //     const thinkingInterval = setInterval(() => {
@@ -54,14 +54,14 @@ export default function Home() {
   //       const dots = '.'.repeat(dotCount);
   //       setThinkingText(`${dots}`);
   //     }, 500);
-      
+
   //     // Display the message after 5 seconds
   //     const timer = setTimeout(() => {
   //       setThinking(false);
   //       setChatStep(prev => prev + 1);
   //       clearInterval(thinkingInterval);
   //     }, 5000);
-      
+
   //     return () => {
   //       clearTimeout(timer);
   //       clearInterval(thinkingInterval);
@@ -100,31 +100,34 @@ export default function Home() {
         <section className="min-h-screen w-full flex items-center snap-start">
           <main className="flex-1 flex flex-col justify-center px-6">
             <div className="w-full max-w-6xl mx-auto text-left">
-              <h1 
+              <h1
                 className={`text-[5.5rem] md:text-[6rem] font-bold mb-12 font-sans tracking-tight transition-all duration-[1500ms] text-black ${
-                  titleVisible ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-8'
+                  titleVisible
+                    ? 'opacity-100 transform translate-y-0'
+                    : 'opacity-0 transform -translate-y-8'
                 }`}
               >
-                <span className="relative">
-                  AgoraMind
-                </span>
+                <span className="relative">AgoraMind</span>
               </h1>
-              
-              <div 
+
+              <div
                 className={`space-y-12 transition-all duration-[1800ms] ${
-                  textVisible ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-12'
+                  textVisible
+                    ? 'opacity-100 transform translate-y-0'
+                    : 'opacity-0 transform -translate-y-12'
                 }`}
               >
                 <h2 className="text-[3.5rem] md:text-[4rem] font-medium text-black leading-tight tracking-tight">
                   <span>Virtual Restoration of the Ancient Agora</span>
                 </h2>
                 <p className="text-[2.5rem] md:text-[3rem] text-black font-light leading-snug">
-                  AgoraMind revives the intellectual culture of the ancient Agora in a digital space.
+                  AgoraMind revives the intellectual culture of the ancient Agora in a digital
+                  space.
                 </p>
                 <p className="text-[2.5rem] md:text-[3rem] text-black font-light leading-snug">
                   A new public square where AI and humans create knowledge together.
                 </p>
-                
+
                 {/* Debate Button */}
                 <div className="flex justify-center mt-16">
                   <button
@@ -139,7 +142,7 @@ export default function Home() {
             </div>
           </main>
         </section>
-        
+
         {/* Second Section - Example Dialogue */}
         {/* <section className="min-h-screen w-full flex items-center snap-start">
           <div className="container px-6 py-12 mx-auto">
@@ -176,7 +179,7 @@ export default function Home() {
                 ))}
                 
                 {/* Thinking animation */}
-                {/* {thinking && (
+        {/* {thinking && (
                   <div className="chat-message philosopher-message animate-fade-in">
                     <div className="message-header flex items-center mb-2">
                       <span className="font-bold text-lg text-philosopher-1">
@@ -206,7 +209,7 @@ export default function Home() {
             </div>
           </div>
         </section> */}
-        
+
         {/* Footer */}
         <div className="border-t-2 border-black py-4 mt-auto">
           <div className="container mx-auto px-6 grid grid-cols-3 w-full">
@@ -221,7 +224,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-    </div>
+      </div>
     </>
   );
 }

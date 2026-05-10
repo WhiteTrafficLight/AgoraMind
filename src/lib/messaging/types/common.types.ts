@@ -40,8 +40,8 @@ export interface SocketEvents {
   'user-joined': (data: { roomId: string; username: string; userCount: number }) => void;
   'user-left': (data: { roomId: string; username: string; userCount: number }) => void;
   'room-created': (room: BaseRoom) => void;
-  'typing': (data: { roomId: string; username: string; isTyping: boolean }) => void;
-  'error': (data: { message: string; code?: string }) => void;
+  typing: (data: { roomId: string; username: string; isTyping: boolean }) => void;
+  error: (data: { message: string; code?: string }) => void;
 }
 
 export interface ConnectedUser {
@@ -99,33 +99,25 @@ export interface ClientToServerEvents {
   'user-joined': (data: { roomId: string; username: string; userCount: number }) => void;
   'user-left': (data: { roomId: string; username: string; userCount: number }) => void;
   'new-message': (message: ChatMessage) => void;
-  'typing': (data: { username: string; isTyping: boolean }) => void;
+  typing: (data: { username: string; isTyping: boolean }) => void;
   'room-updated': (room: BaseRoom) => void;
-  'error': (error: { message: string; code?: string }) => void;
-  'notification': (data: { type: string; message: string }) => void;
-  'debate-turn-changed': (data: { 
-    currentSpeaker: string; 
-    stage: string; 
-    roomId: string; 
-  }) => void;
+  error: (error: { message: string; code?: string }) => void;
+  notification: (data: { type: string; message: string }) => void;
+  'debate-turn-changed': (data: { currentSpeaker: string; stage: string; roomId: string }) => void;
   'user-message-complete': (data: { message: ChatMessage; roomId: string }) => void;
-  
-  'debate-phase-change': (data: { 
+
+  'debate-phase-change': (data: { roomId: string; newPhase: string; message?: string }) => void;
+
+  'debate-turn-notification': (data: {
     roomId: string;
-    newPhase: string; 
-    message?: string 
-  }) => void;
-  
-  'debate-turn-notification': (data: { 
-    roomId: string;
-    currentSpeaker: string; 
+    currentSpeaker: string;
     turnType: 'user' | 'npc';
     timeRemaining?: number;
   }) => void;
-  
-  'debate-message-complete': (data: { 
+
+  'debate-message-complete': (data: {
     roomId: string;
     message: ChatMessage;
     nextSpeaker?: string;
   }) => void;
-} 
+}

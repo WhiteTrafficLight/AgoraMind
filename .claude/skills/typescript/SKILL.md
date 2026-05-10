@@ -39,21 +39,21 @@ allowed-tools: Read Grep Glob
 ```ts
 // Object shapes → interface
 interface User {
-  id: string
-  name: string
-  email: string
+  id: string;
+  name: string;
+  email: string;
 }
 
 // Unions, intersections → type
-type Status = 'pending' | 'success' | 'error'
-type Result<T> = { data: T; error: null } | { data: null; error: Error }
+type Status = 'pending' | 'success' | 'error';
+type Result<T> = { data: T; error: null } | { data: null; error: Error };
 
 // Component props → interface
 interface ButtonProps {
-  label: string
-  onClick: () => void
-  variant?: 'primary' | 'secondary'
-  disabled?: boolean
+  label: string;
+  onClick: () => void;
+  variant?: 'primary' | 'secondary';
+  disabled?: boolean;
 }
 ```
 
@@ -62,30 +62,30 @@ interface ButtonProps {
 ```ts
 // Always constrain generics
 function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
-  return obj[key]
+  return obj[key];
 }
 
 // Default type parameter
 interface ApiResponse<T = unknown> {
-  data: T
-  status: number
-  message: string
+  data: T;
+  status: number;
+  message: string;
 }
 ```
 
 ## Utility Types
 
 ```ts
-type UserPreview = Pick<User, 'id' | 'name'>
-type PartialUser = Partial<User>
-type ReadonlyUser = Readonly<User>
-type UserWithoutId = Omit<User, 'id'>
+type UserPreview = Pick<User, 'id' | 'name'>;
+type PartialUser = Partial<User>;
+type ReadonlyUser = Readonly<User>;
+type UserWithoutId = Omit<User, 'id'>;
 
 const statusMap: Record<Status, string> = {
   pending: 'Processing',
   success: 'Done',
   error: 'Failed',
-}
+};
 ```
 
 ## unknown + Type Guards
@@ -93,19 +93,14 @@ const statusMap: Record<Status, string> = {
 ```ts
 // Narrow unknown before use
 function processInput(input: unknown): string {
-  if (typeof input === 'string') return input
-  if (typeof input === 'number') return String(input)
-  throw new Error('Unsupported input type')
+  if (typeof input === 'string') return input;
+  if (typeof input === 'number') return String(input);
+  throw new Error('Unsupported input type');
 }
 
 // Type guard function
 function isUser(value: unknown): value is User {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'name' in value
-  )
+  return typeof value === 'object' && value !== null && 'id' in value && 'name' in value;
 }
 ```
 
@@ -114,19 +109,19 @@ function isUser(value: unknown): value is User {
 ```ts
 // Always catch as unknown
 try {
-  await fetchData()
+  await fetchData();
 } catch (error) {
-  if (error instanceof Error) console.error(error.message)
+  if (error instanceof Error) console.error(error.message);
 }
 
 // Result pattern for expected failures
 async function safeFetch<T>(url: string): Promise<Result<T>> {
   try {
-    const res = await fetch(url)
-    const data: T = await res.json()
-    return { data, error: null }
+    const res = await fetch(url);
+    const data: T = await res.json();
+    return { data, error: null };
   } catch (error) {
-    return { data: null, error: error instanceof Error ? error : new Error('Unknown') }
+    return { data: null, error: error instanceof Error ? error : new Error('Unknown') };
   }
 }
 ```
@@ -134,11 +129,11 @@ async function safeFetch<T>(url: string): Promise<Result<T>> {
 ## Import Order
 
 ```ts
-import { type FC } from 'react'           // 1. react
-import { useRouter } from 'next/navigation' // 2. next
-import { clsx } from 'clsx'               // 3. external libraries
-import { fetchUser } from '@/lib/api'      // 4. internal @/ alias
-import { Button } from './Button'          // 5. relative
+import { type FC } from 'react'; // 1. react
+import { useRouter } from 'next/navigation'; // 2. next
+import { clsx } from 'clsx'; // 3. external libraries
+import { fetchUser } from '@/lib/api'; // 4. internal @/ alias
+import { Button } from './Button'; // 5. relative
 ```
 
 ---
@@ -148,34 +143,36 @@ import { Button } from './Button'          // 5. relative
 ### noUncheckedIndexedAccess — array access returns T | undefined
 
 ```ts
-const arr = [1, 2, 3]
-const first = arr[0] // number | undefined — not number!
+const arr = [1, 2, 3];
+const first = arr[0]; // number | undefined — not number!
 
 // Must guard before use
-if (first !== undefined) console.log(first * 2)
+if (first !== undefined) console.log(first * 2);
 ```
 
 ### exactOptionalPropertyTypes — undefined is not a valid optional value
 
 ```ts
-interface Foo { bar?: string }
+interface Foo {
+  bar?: string;
+}
 
 // ❌ Error
-const foo: Foo = { bar: undefined }
+const foo: Foo = { bar: undefined };
 
 // ✅ Correct
-const foo: Foo = {}
+const foo: Foo = {};
 ```
 
 ### as assertions — use only with type guards, not as a shortcut
 
 ```ts
 // ❌ Lazy — bypasses type safety
-const user = data as User
+const user = data as User;
 
 // ✅ Safe — assert only after guard
 if (isUser(data)) {
-  const user = data // already User
+  const user = data; // already User
 }
 ```
 
@@ -187,4 +184,3 @@ if (isUser(data)) {
 - Use `// @ts-ignore` — use `// @ts-expect-error` with an explanation
 - Omit return types on exported functions
 - Use `as` to bypass type errors without a guard
-

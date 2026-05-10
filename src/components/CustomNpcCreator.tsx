@@ -24,28 +24,46 @@ export interface CustomNpcProps {
 }
 
 const AVAILABLE_PHILOSOPHERS = [
-  'Socrates', 'Plato', 'Aristotle', 'Kant', 'Nietzsche', 
-  'Hegel', 'Marx', 'Sartre', 'Camus', 'Simone de Beauvoir',
-  'Rousseau', 'Confucius', 'Lao Tzu', 'Buddha', 'Wittgenstein'
+  'Socrates',
+  'Plato',
+  'Aristotle',
+  'Kant',
+  'Nietzsche',
+  'Hegel',
+  'Marx',
+  'Sartre',
+  'Camus',
+  'Simone de Beauvoir',
+  'Rousseau',
+  'Confucius',
+  'Lao Tzu',
+  'Buddha',
+  'Wittgenstein',
 ];
 
 const COMMUNICATION_STYLES = [
   { value: 'balanced', label: 'Balanced' },
   { value: 'assertive', label: 'Assertive' },
   { value: 'collaborative', label: 'Collaborative' },
-  { value: 'analytical', label: 'Analytical' }
+  { value: 'analytical', label: 'Analytical' },
 ];
 
 const DEBATE_APPROACHES = [
   { value: 'dialectical', label: 'Dialectical' },
   { value: 'analytical', label: 'Analytical' },
   { value: 'pragmatic', label: 'Pragmatic' },
-  { value: 'critical', label: 'Critical' }
+  { value: 'critical', label: 'Critical' },
 ];
 
 // Props  CustomNpcCreator
 interface CustomNpcCreatorProps {
-  onNpcCreated?: (npc: { id: string; name: string; description: string; concepts: string[]; voice_style: string }) => void;
+  onNpcCreated?: (npc: {
+    id: string;
+    name: string;
+    description: string;
+    concepts: string[];
+    voice_style: string;
+  }) => void;
 }
 
 export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps) {
@@ -53,16 +71,18 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [philosophers, setPhilosophers] = useState<Philosopher[]>([]);
-  const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
+  const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(
+    null,
+  );
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
-  
+
   const [npc, setNpc] = useState<CustomNpcProps>({
     name: '',
     role: '',
     voice_style: '',
     reference_philosophers: [],
     communication_style: 'balanced',
-    debate_approach: 'dialectical'
+    debate_approach: 'dialectical',
   });
 
   useEffect(() => {
@@ -92,7 +112,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
           { id: 'confucius', name: 'Confucius' },
           { id: 'laozi', name: 'Lao Tzu' },
           { id: 'buddha', name: 'Buddha' },
-          { id: 'wittgenstein', name: 'Wittgenstein' }
+          { id: 'wittgenstein', name: 'Wittgenstein' },
         ]);
       }
     };
@@ -119,24 +139,24 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setNpc({
       ...npc,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setNpc({
       ...npc,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handlePhilosopherSelect = (philosopherId: string) => {
     setError(null);
-    setNpc(prev => {
+    setNpc((prev) => {
       const selected = prev.reference_philosophers;
       let newSelected: string[];
       if (selected.includes(philosopherId)) {
-        newSelected = selected.filter(id => id !== philosopherId);
+        newSelected = selected.filter((id) => id !== philosopherId);
       } else {
         if (selected.length >= 3) {
           setError('You can select up to 3 philosophers.');
@@ -162,9 +182,9 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
       const response = await fetch('/api/npc/create', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(npc)
+        body: JSON.stringify(npc),
       });
 
       if (!response.ok) {
@@ -175,7 +195,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
       const data = await response.json();
       loggers.npc.info('Created NPC:', data);
       setSuccess(true);
-      
+
       // Notify parent of new NPC
       if (onNpcCreated) {
         onNpcCreated({
@@ -183,17 +203,17 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
           name: data.npc.name,
           description: data.npc.role,
           concepts: data.npc.reference_philosophers,
-          voice_style: data.npc.voice_style
+          voice_style: data.npc.voice_style,
         });
       }
-      
+
       setNpc({
         name: '',
         role: '',
         voice_style: '',
         reference_philosophers: [],
         communication_style: 'balanced',
-        debate_approach: 'dialectical'
+        debate_approach: 'dialectical',
       });
     } catch (err) {
       loggers.npc.error('Error creating NPC:', err);
@@ -202,54 +222,54 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
       setLoading(false);
     }
   };
-  
+
   const PhilosopherDetailsModal = () => {
     if (!selectedPhilosopherDetails) return null;
-    
+
     const getDefaultAvatar = () => {
       const name = selectedPhilosopherDetails.name || 'Philosopher';
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=128&font-size=0.5`;
     };
 
     return (
-      <div 
+      <div
         className="fixed inset-0 bg-black/30 z-50 transition-opacity opacity-100 pointer-events-auto flex items-center justify-center"
         onClick={() => setShowPhilosopherDetails(false)}
       >
-        <div 
+        <div
           className="fixed bg-white rounded-2xl w-full max-h-[80vh] overflow-y-auto z-[101]"
-          onClick={e => e.stopPropagation()}
-          style={{ 
+          onClick={(e) => e.stopPropagation()}
+          style={{
             position: 'fixed',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            backgroundColor: 'white', 
+            backgroundColor: 'white',
             borderRadius: '16px',
             padding: '20px',
             boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)',
             width: '90%',
-            maxWidth: '500px'
+            maxWidth: '500px',
           }}
         >
           <div className="flex justify-end">
-            <button 
-              className="text-gray-500 hover:text-gray-800 absolute top-3 right-3 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200" 
+            <button
+              className="text-gray-500 hover:text-gray-800 absolute top-3 right-3 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
               onClick={() => setShowPhilosopherDetails(false)}
-              style={{ 
-                fontSize: '16px', 
+              style={{
+                fontSize: '16px',
                 fontWeight: 'bold',
-                border: 'none', 
+                border: 'none',
                 transition: 'all 0.2s',
                 width: '28px',
                 height: '28px',
-                borderRadius: '50%'
+                borderRadius: '50%',
               }}
             >
               ✕
             </button>
           </div>
-          
+
           <div className="flex items-center mb-4 mt-2">
             <div className="mr-10 flex-shrink-0">
               <img
@@ -264,65 +284,78 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
               />
             </div>
             <div>
-              <h3 className="text-4xl font-bold" style={{ color: 'black' }}>{selectedPhilosopherDetails.name}</h3>
+              <h3 className="text-4xl font-bold" style={{ color: 'black' }}>
+                {selectedPhilosopherDetails.name}
+              </h3>
               <div className="text-sm text-gray-500">
-                {selectedPhilosopherDetails.period && <div>{selectedPhilosopherDetails.nationality} • {selectedPhilosopherDetails.period}</div>}
+                {selectedPhilosopherDetails.period && (
+                  <div>
+                    {selectedPhilosopherDetails.nationality} • {selectedPhilosopherDetails.period}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          
+
           {selectedPhilosopherDetails.quote && (
-            <div 
+            <div
               className="mt-3 italic border-l-4 border-gray-200 pl-3 py-1 text-gray-600 text-sm"
               style={{ borderLeftColor: '#e5e7eb', paddingLeft: '12px' }}
             >
               &ldquo;{selectedPhilosopherDetails.quote}&rdquo;
             </div>
           )}
-          
+
           {selectedPhilosopherDetails.description && (
-            <div 
+            <div
               className="mt-3 text-gray-700 text-sm"
               style={{ color: '#374151', lineHeight: '1.5' }}
             >
               {selectedPhilosopherDetails.description}
             </div>
           )}
-          
-          {selectedPhilosopherDetails.key_concepts && selectedPhilosopherDetails.key_concepts.length > 0 && (
-            <div className="mt-4">
-              <h4 className="font-medium mb-2 text-sm" style={{ color: '#111827' }}>Key Concepts</h4>
-              <div className="flex flex-wrap gap-1">
-                {selectedPhilosopherDetails.key_concepts.map((concept, index) => (
-                  <span 
-                    key={index} 
-                    className="bg-gray-100 px-2 py-1 rounded-full text-xs"
-                    style={{ backgroundColor: '#f3f4f6', borderRadius: '9999px', padding: '4px 8px' }}
-                  >
-                    {concept}
-                  </span>
-                ))}
+
+          {selectedPhilosopherDetails.key_concepts &&
+            selectedPhilosopherDetails.key_concepts.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-medium mb-2 text-sm" style={{ color: '#111827' }}>
+                  Key Concepts
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {selectedPhilosopherDetails.key_concepts.map((concept, index) => (
+                    <span
+                      key={index}
+                      className="bg-gray-100 px-2 py-1 rounded-full text-xs"
+                      style={{
+                        backgroundColor: '#f3f4f6',
+                        borderRadius: '9999px',
+                        padding: '4px 8px',
+                      }}
+                    >
+                      {concept}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-          
+            )}
+
           <div className="mt-5 flex justify-end">
-            <button 
+            <button
               className="px-3 py-1.5 bg-gray-800 text-white rounded-full hover:bg-gray-700 transition text-sm"
-              style={{ 
-                backgroundColor: '#1f2937', 
-                color: 'white', 
-                borderRadius: '9999px', 
+              style={{
+                backgroundColor: '#1f2937',
+                color: 'white',
+                borderRadius: '9999px',
                 padding: '6px 12px',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
               }}
               onClick={() => {
                 handlePhilosopherSelect(selectedPhilosopherDetails.id);
                 setShowPhilosopherDetails(false);
               }}
             >
-              {npc.reference_philosophers.includes(selectedPhilosopherDetails.id) 
-                ? 'Remove Influence' 
+              {npc.reference_philosophers.includes(selectedPhilosopherDetails.id)
+                ? 'Remove Influence'
                 : 'Add as Influence'}
             </button>
           </div>
@@ -333,25 +366,21 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
 
   return (
     <div className="bg-white rounded-lg p-4">
-      {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded mb-4">
-          {error}
-        </div>
-      )}
-      
+      {error && <div className="bg-red-50 text-red-700 p-3 rounded mb-4">{error}</div>}
+
       {success && (
         <div className="bg-green-50 text-green-700 p-3 rounded mb-4">
           Philosopher created successfully!
         </div>
       )}
-      
+
       {showPhilosopherDetails && <PhilosopherDetailsModal />}
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic info */}
+        {/* Basic info */}
         <div>
           <h3 className="text-lg font-medium mb-4">Basic Information</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -360,15 +389,15 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
               <input
                 id="name"
                 type="text"
-              name="name"
-              value={npc.name}
-              onChange={handleInputChange}
-              required
-              placeholder="e.g., Modern Socrates"
+                name="name"
+                value={npc.name}
+                onChange={handleInputChange}
+                required
+                placeholder="e.g., Modern Socrates"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
+
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
                 Role/Focus *
@@ -376,24 +405,24 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
               <input
                 id="role"
                 type="text"
-              name="role"
-              value={npc.role}
-              onChange={handleInputChange}
-              required
+                name="role"
+                value={npc.role}
+                onChange={handleInputChange}
+                required
                 placeholder="e.g., Digital Ethics Explorer"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
         </div>
-        
+
         {/* Section divider */}
         <hr className="border-t border-gray-200 my-6" />
-        
+
         {/* Style */}
         <div>
           <h3 className="text-lg font-medium mb-4">Voice & Style</h3>
-          
+
           <div className="mb-4">
             <label htmlFor="voice_style" className="block text-sm font-medium text-gray-700 mb-1">
               Voice Style *
@@ -409,10 +438,13 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="communication_style" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="communication_style"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Communication Style
               </label>
               <select
@@ -422,16 +454,19 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
                 onChange={handleSelectChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {COMMUNICATION_STYLES.map(style => (
+                {COMMUNICATION_STYLES.map((style) => (
                   <option key={style.value} value={style.value}>
                     {style.label}
                   </option>
                 ))}
               </select>
             </div>
-            
+
             <div>
-              <label htmlFor="debate_approach" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="debate_approach"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Debate Approach
               </label>
               <select
@@ -441,7 +476,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
                 onChange={handleSelectChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {DEBATE_APPROACHES.map(approach => (
+                {DEBATE_APPROACHES.map((approach) => (
                   <option key={approach.value} value={approach.value}>
                     {approach.label}
                   </option>
@@ -450,30 +485,30 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
             </div>
           </div>
         </div>
-        
+
         {/* Section divider */}
         <hr className="border-t border-gray-200 my-6" />
-        
+
         {/* Philosophical influences */}
         <div>
           <h3 className="text-lg font-medium mb-4">Philosophical Influences</h3>
           <p className="text-sm text-gray-500 mb-3">
-            Select philosophers that influence this custom persona (select at least one). Click on info (ⓘ) to learn more.
+            Select philosophers that influence this custom persona (select at least one). Click on
+            info (ⓘ) to learn more.
           </p>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-            {philosophers.map(philosopher => (
-              <div 
-                key={philosopher.id}
-                className="relative group"
-              >
+            {philosophers.map((philosopher) => (
+              <div key={philosopher.id} className="relative group">
                 <div className="flex items-center">
-                  <div 
+                  <div
                     onClick={() => handlePhilosopherSelect(philosopher.id)}
                     className={`p-2 text-sm rounded cursor-pointer text-center transition flex-grow 
-                      ${npc.reference_philosophers.includes(philosopher.id) 
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300' 
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'}`}
+                      ${
+                        npc.reference_philosophers.includes(philosopher.id)
+                          ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
+                      }`}
                   >
                     {philosopher.name}
                   </div>
@@ -491,12 +526,18 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
           {/* Selected philosopher tags (up to 3) */}
           {npc.reference_philosophers.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-4">
-              {npc.reference_philosophers.map(id => {
-                const phil = philosophers.find(p => p.id === id);
+              {npc.reference_philosophers.map((id) => {
+                const phil = philosophers.find((p) => p.id === id);
                 if (!phil) return null;
-                const avatarUrl = phil.portrait_url ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(phil.name)}&background=random&size=128&font-size=0.5`;
+                const avatarUrl =
+                  phil.portrait_url ??
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(phil.name)}&background=random&size=128&font-size=0.5`;
                 return (
-                  <div key={id} className="relative flex flex-col items-center" style={{ width: '144px' }}>
+                  <div
+                    key={id}
+                    className="relative flex flex-col items-center"
+                    style={{ width: '144px' }}
+                  >
                     <img
                       src={avatarUrl}
                       alt={phil.name}
@@ -506,9 +547,12 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
                         objectFit: 'cover',
                         objectPosition: 'top center',
                         borderRadius: '50%',
-                        boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)'
+                        boxShadow: '-10px 0 20px -5px rgba(0,0,0,0.3), 0 0 20px rgba(0,0,0,0.2)',
                       }}
-                      onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(phil.name)}&background=random&size=128&font-size=0.5`; }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(phil.name)}&background=random&size=128&font-size=0.5`;
+                      }}
                     />
                     <button
                       type="button"
@@ -529,12 +573,21 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
                         color: '#4B5563',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                         border: 'none',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
                       }}
                     >
                       &times;
                     </button>
-                    <span style={{ marginTop: '4px', fontSize: '12px', textAlign: 'center', color: '#374151', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                    <span
+                      style={{
+                        marginTop: '4px',
+                        fontSize: '12px',
+                        textAlign: 'center',
+                        color: '#374151',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                      }}
+                    >
                       {phil.name}
                     </span>
                   </div>
@@ -543,10 +596,10 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
             </div>
           )}
         </div>
-        
+
         {/* Section divider */}
         <hr className="border-t border-gray-200 my-6" />
-        
+
         {/* Button */}
         <div className="flex justify-end space-x-3">
           <button
@@ -558,7 +611,7 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
                 voice_style: '',
                 reference_philosophers: [],
                 communication_style: 'balanced',
-                debate_approach: 'dialectical'
+                debate_approach: 'dialectical',
               });
               setError(null);
               setSuccess(false);
@@ -567,10 +620,10 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
           >
             Reset
           </button>
-          
+
           <button
-              type="submit" 
-              disabled={loading}
+            type="submit"
+            disabled={loading}
             className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
           >
             {loading ? (
@@ -583,4 +636,4 @@ export default function CustomNpcCreator({ onNpcCreated }: CustomNpcCreatorProps
       </form>
     </div>
   );
-} 
+}

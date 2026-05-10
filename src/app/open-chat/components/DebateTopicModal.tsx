@@ -15,7 +15,12 @@ interface DebateTopicModalProps {
   topic: DebateTopic | null;
   categoryKey: string;
   topicIndex: number;
-  onStartDebate: (categoryKey: string, topicIndex: number, topic: DebateTopic, userPosition: 'pro' | 'con' | 'neutral') => void;
+  onStartDebate: (
+    categoryKey: string,
+    topicIndex: number,
+    topic: DebateTopic,
+    userPosition: 'pro' | 'con' | 'neutral',
+  ) => void;
   philosophers?: Philosopher[];
   customNpcs?: Philosopher[];
 }
@@ -28,44 +33,54 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
   topicIndex,
   onStartDebate,
   philosophers = [],
-  customNpcs = []
+  customNpcs = [],
 }) => {
   const [userPosition, setUserPosition] = useState<'pro' | 'con' | 'neutral'>('neutral');
-  const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
+  const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(
+    null,
+  );
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
   const [selectedProPhilosophers, setSelectedProPhilosophers] = useState<string[]>([]);
   const [selectedConPhilosophers, setSelectedConPhilosophers] = useState<string[]>([]);
   const [userProfilePicture, setUserProfilePicture] = useState<string>('');
   const [username, setUsername] = useState<string>('You');
   const [isCreating, setIsCreating] = useState<boolean>(false);
-  
+
   const router = useRouter();
 
   // Moderator styles - same as CreateChatModal
   const moderatorStyles = [
     { id: '0', name: 'Jamie the Host', description: 'Casual and friendly young-style moderator' },
-    { id: '1', name: 'Dr. Lee', description: 'Polite and academic university professor-style moderator' },
-    { id: '2', name: 'Zuri Show', description: 'Energetic and entertaining YouTuber host-style moderator' },
+    {
+      id: '1',
+      name: 'Dr. Lee',
+      description: 'Polite and academic university professor-style moderator',
+    },
+    {
+      id: '2',
+      name: 'Zuri Show',
+      description: 'Energetic and entertaining YouTuber host-style moderator',
+    },
     { id: '3', name: 'Elias of the End', description: 'Serious and weighty tone moderator' },
-    { id: '4', name: 'Miss Hana', description: 'Bright and educational style moderator' }
+    { id: '4', name: 'Miss Hana', description: 'Bright and educational style moderator' },
   ];
 
   // Load user profile on component mount
   useEffect(() => {
     const loadUserProfile = async () => {
       const storedUsername = sessionStorage.getItem('chat_username');
-      
+
       if (storedUsername) {
         setUsername(storedUsername);
       }
-      
+
       // Fetch user profile from API (matching DebateChatContainer pattern)
       try {
         const response = await fetch('/api/user/profile');
         if (response.ok) {
           const profileData = await response.json();
           loggers.auth.debug('Profile data received in DebateTopicModal', profileData);
-          
+
           if (profileData && (profileData.profileImage || profileData.profilePicture)) {
             const profileImageUrl = profileData.profileImage || profileData.profilePicture;
             loggers.auth.debug('Setting profile image', { profileImageUrl });
@@ -109,7 +124,9 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
 
   // Get moderator info based on topic's moderator_style
   const getModeratorInfo = () => {
-    const moderatorStyle = moderatorStyles.find(style => style.id === String(topic.moderator_style));
+    const moderatorStyle = moderatorStyles.find(
+      (style) => style.id === String(topic.moderator_style),
+    );
     return moderatorStyle || moderatorStyles[0]; // Default to Jamie if not found
   };
 
@@ -117,13 +134,13 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
 
   const handleStartDebate = async () => {
     if (isCreating) return;
-    
+
     setIsCreating(true);
-    
+
     try {
       // Prepare NPCs list from selected philosophers
       const allSelectedNpcs = [...selectedProPhilosophers, ...selectedConPhilosophers];
-      
+
       if (allSelectedNpcs.length === 0) {
         alert('Please select at least one philosopher to start the debate');
         setIsCreating(false);
@@ -132,10 +149,10 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
 
       // Prepare NPC positions
       const npcPositions: Record<string, 'pro' | 'con'> = {};
-      selectedProPhilosophers.forEach(npc => {
+      selectedProPhilosophers.forEach((npc) => {
         npcPositions[npc] = 'pro';
       });
-      selectedConPhilosophers.forEach(npc => {
+      selectedConPhilosophers.forEach((npc) => {
         npcPositions[npc] = 'con';
       });
 
@@ -162,10 +179,10 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
         userDebateRole: userPosition,
         moderator: {
           style_id: String(topic.moderator_style),
-          style: moderatorInfo.name
+          style: moderatorInfo.name,
         },
         generateInitialMessage: true,
-        username: username || sessionStorage.getItem('chat_username') || 'Anonymous'
+        username: username || sessionStorage.getItem('chat_username') || 'Anonymous',
       };
 
       loggers.chat.debug('Creating debate room with params', chatParams);
@@ -177,7 +194,6 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
       // Close modal and navigate to chat
       onClose();
       router.push(ROUTES.chat(newChat.id));
-
     } catch (error) {
       loggers.chat.error('Failed to create debate room', error);
       alert('Failed to create debate room. Please try again.');
@@ -188,18 +204,18 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
 
   const handlePhilosopherSelect = (philosopherName: string, isProPosition: boolean) => {
     if (isProPosition) {
-      setSelectedProPhilosophers(prev => {
+      setSelectedProPhilosophers((prev) => {
         if (prev.includes(philosopherName)) {
-          return prev.filter(p => p !== philosopherName);
+          return prev.filter((p) => p !== philosopherName);
         } else {
           // Limit to 2 philosophers per side
           return prev.length < 2 ? [...prev, philosopherName] : prev;
         }
       });
     } else {
-      setSelectedConPhilosophers(prev => {
+      setSelectedConPhilosophers((prev) => {
         if (prev.includes(philosopherName)) {
-          return prev.filter(p => p !== philosopherName);
+          return prev.filter((p) => p !== philosopherName);
         } else {
           // Limit to 2 philosophers per side
           return prev.length < 2 ? [...prev, philosopherName] : prev;
@@ -211,26 +227,28 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
   // (CreateChatModal )
   const loadPhilosopherDetails = async (philosopherId: string) => {
     try {
-      const customNpc = customNpcs.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
+      const customNpc = customNpcs.find((p) => p.id.toLowerCase() === philosopherId.toLowerCase());
       if (customNpc) {
         setSelectedPhilosopherDetails(customNpc);
         setShowPhilosopherDetails(true);
         return;
       }
-      
-      const existingPhil = philosophers.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
+
+      const existingPhil = philosophers.find(
+        (p) => p.id.toLowerCase() === philosopherId.toLowerCase(),
+      );
       if (existingPhil && existingPhil.description) {
         setSelectedPhilosopherDetails(existingPhil);
         setShowPhilosopherDetails(true);
         return;
       }
-      
+
       // JSON ()
       const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        const philosopher = data.philosophers.find((p: { id: string; name?: string }) => 
-          p.id.toLowerCase() === philosopherId.toLowerCase()
+        const philosopher = data.philosophers.find(
+          (p: { id: string; name?: string }) => p.id.toLowerCase() === philosopherId.toLowerCase(),
         );
         if (philosopher) {
           setSelectedPhilosopherDetails(philosopher);
@@ -248,19 +266,21 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
 
   const findPhilosopherInfo = (philosopherName: string): Philosopher | null => {
     // philosophers
-    const foundPhil = philosophers.find(p => 
-      p.id.toLowerCase() === philosopherName.toLowerCase() || 
-      p.name.toLowerCase() === philosopherName.toLowerCase()
+    const foundPhil = philosophers.find(
+      (p) =>
+        p.id.toLowerCase() === philosopherName.toLowerCase() ||
+        p.name.toLowerCase() === philosopherName.toLowerCase(),
     );
-    
+
     if (foundPhil) return foundPhil;
-    
+
     // customNpcs
-    const foundCustom = customNpcs.find(p => 
-      p.id.toLowerCase() === philosopherName.toLowerCase() || 
-      p.name.toLowerCase() === philosopherName.toLowerCase()
+    const foundCustom = customNpcs.find(
+      (p) =>
+        p.id.toLowerCase() === philosopherName.toLowerCase() ||
+        p.name.toLowerCase() === philosopherName.toLowerCase(),
     );
-    
+
     return foundCustom || null;
   };
 
@@ -288,7 +308,8 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
             src={philosopherInfo?.portrait_url || getPhilosopherPortraitPath(philosopherName)}
             alt={philosopherName}
             onError={(e) => {
-              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=48`;
+              (e.target as HTMLImageElement).src =
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=48`;
             }}
             className="w-full h-full object-cover"
           />
@@ -317,8 +338,12 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
       ? selectedProPhilosophers.includes(philosopherName)
       : selectedConPhilosophers.includes(philosopherName);
     const bgClass = isProPosition
-      ? (isSelected ? 'bg-emerald-100' : 'bg-emerald-50')
-      : (isSelected ? 'bg-rose-100' : 'bg-rose-50');
+      ? isSelected
+        ? 'bg-emerald-100'
+        : 'bg-emerald-50'
+      : isSelected
+        ? 'bg-rose-100'
+        : 'bg-rose-50';
     const borderClass = isProPosition ? 'border-emerald-200' : 'border-rose-200';
     const defaultAvatarBg = isProPosition ? '22c55e' : 'ef4444';
     return (
@@ -332,11 +357,14 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
             src={philosopherInfo?.portrait_url || getPhilosopherPortraitPath(philosopherName)}
             alt={philosopherName}
             onError={(e) => {
-              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=32`;
+              (e.target as HTMLImageElement).src =
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopherName)}&background=${defaultAvatarBg}&color=fff&size=32`;
             }}
             className="w-8 h-8 rounded-full"
           />
-          <span className={`capitalize ${isSelected ? 'font-semibold' : 'font-medium'} text-gray-700`}>
+          <span
+            className={`capitalize ${isSelected ? 'font-semibold' : 'font-medium'} text-gray-700`}
+          >
             {philosopherName}
           </span>
         </div>
@@ -359,13 +387,16 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
     <>
       {/* Background overlay */}
       <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose}></div>
-      
+
       {/* Modal container */}
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-4xl max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl z-50 border border-gray-200" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-4xl max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl z-50 border border-gray-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-xl font-bold">Debate Topic</h2>
-          <button 
+          <button
             onClick={onClose}
             className="inline-flex items-center justify-center rounded-full p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="Close"
@@ -373,7 +404,7 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
             <XMarkIcon className="h-5 w-5" />
           </button>
         </div>
-        
+
         {/* Content */}
         <div className="px-6 py-4 space-y-6">
           {/* Topic Title */}
@@ -390,7 +421,12 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
               </div>
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 {topic.context.type === 'url' ? (
-                  <a href={topic.context.content} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all hover:text-blue-700">
+                  <a
+                    href={topic.context.content}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline break-all hover:text-blue-700"
+                  >
                     {topic.context.content}
                   </a>
                 ) : (
@@ -428,11 +464,11 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
               <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                 <h5 className="font-semibold text-emerald-800 mb-3 text-center">Pro Side</h5>
                 <div className="flex flex-col items-center gap-2">
-                  {selectedProPhilosophers.map(philosopher => 
-                    renderParticipantAvatar(philosopher, 'pro')
+                  {selectedProPhilosophers.map((philosopher) =>
+                    renderParticipantAvatar(philosopher, 'pro'),
                   )}
                   {renderUserAvatar('pro')}
-                  {(selectedProPhilosophers.length === 0 && userPosition !== 'pro') && (
+                  {selectedProPhilosophers.length === 0 && userPosition !== 'pro' && (
                     <div className="text-sm text-gray-400 text-center p-4">
                       Select philosophers below
                     </div>
@@ -444,11 +480,11 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
               <div className="bg-rose-50 rounded-lg p-4 border border-rose-200">
                 <h5 className="font-semibold text-rose-800 mb-3 text-center">Con Side</h5>
                 <div className="flex flex-col items-center gap-2">
-                  {selectedConPhilosophers.map(philosopher => 
-                    renderParticipantAvatar(philosopher, 'con')
+                  {selectedConPhilosophers.map((philosopher) =>
+                    renderParticipantAvatar(philosopher, 'con'),
                   )}
                   {renderUserAvatar('con')}
-                  {(selectedConPhilosophers.length === 0 && userPosition !== 'con') && (
+                  {selectedConPhilosophers.length === 0 && userPosition !== 'con' && (
                     <div className="text-sm text-gray-400 text-center p-4">
                       Select philosophers below
                     </div>
@@ -466,8 +502,8 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
               <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
                 <h5 className="font-semibold text-emerald-800 mb-3 text-center">Pro Position</h5>
                 <div>
-                  {topic.pro_philosophers.map(philosopher => 
-                    renderPhilosopherCard(philosopher, true)
+                  {topic.pro_philosophers.map((philosopher) =>
+                    renderPhilosopherCard(philosopher, true),
                   )}
                 </div>
               </div>
@@ -476,8 +512,8 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
               <div className="bg-rose-50 rounded-lg p-4 border border-rose-200">
                 <h5 className="font-semibold text-rose-800 mb-3 text-center">Con Position</h5>
                 <div>
-                  {topic.con_philosophers.map(philosopher => 
-                    renderPhilosopherCard(philosopher, false)
+                  {topic.con_philosophers.map((philosopher) =>
+                    renderPhilosopherCard(philosopher, false),
                   )}
                 </div>
               </div>
@@ -518,7 +554,10 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
           <button
             onClick={handleStartDebate}
             className="inline-flex items-center gap-2 rounded-md bg-blue-600 text-white px-4 py-2 text-sm font-medium shadow hover:bg-blue-700 disabled:opacity-50"
-            disabled={isCreating || (selectedProPhilosophers.length === 0 && selectedConPhilosophers.length === 0)}
+            disabled={
+              isCreating ||
+              (selectedProPhilosophers.length === 0 && selectedConPhilosophers.length === 0)
+            }
           >
             {isCreating ? (
               <>
@@ -544,4 +583,4 @@ const DebateTopicModal: React.FC<DebateTopicModalProps> = ({
   );
 };
 
-export default DebateTopicModal; 
+export default DebateTopicModal;

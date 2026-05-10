@@ -316,7 +316,10 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     if (updates.message) {
       const { message } = updates;
 
-      if (Object.prototype.hasOwnProperty.call(message, 'citations') && message.citations === undefined) {
+      if (
+        Object.prototype.hasOwnProperty.call(message, 'citations') &&
+        message.citations === undefined
+      ) {
         delete message.citations;
       }
       if (message.citations && Array.isArray(message.citations) && message.citations.length === 0) {

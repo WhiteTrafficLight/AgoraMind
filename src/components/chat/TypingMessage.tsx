@@ -31,37 +31,44 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
-    
+
     const linkText = match[1];
     const linkUrl = match[2];
-    
+
     // citations URL
     let fullUrl = linkUrl;
     if (citations && citations.length > 0) {
-      const matchingCitation = citations.find(citation => {
+      const matchingCitation = citations.find((citation) => {
         if (!citation.url) return false;
-        
+
         try {
           const citationDomain = new URL(citation.url).hostname;
           const simplifiedDomain = citationDomain.replace('www.', '');
-          const linkDomain = linkUrl.replace('www.', '').replace('https://', '').replace('http://', '');
-          
-          return simplifiedDomain === linkDomain || 
-                 citation.url.includes(linkDomain) ||
-                 citation.text === linkText ||
-                 citation.title === linkText;
+          const linkDomain = linkUrl
+            .replace('www.', '')
+            .replace('https://', '')
+            .replace('http://', '');
+
+          return (
+            simplifiedDomain === linkDomain ||
+            citation.url.includes(linkDomain) ||
+            citation.text === linkText ||
+            citation.title === linkText
+          );
         } catch (e) {
-          return citation.url.includes(linkUrl) || 
-                 citation.text === linkText ||
-                 citation.title === linkText;
+          return (
+            citation.url.includes(linkUrl) ||
+            citation.text === linkText ||
+            citation.title === linkText
+          );
         }
       });
-      
+
       if (matchingCitation && matchingCitation.url) {
         fullUrl = matchingCitation.url;
       }
     }
-    
+
     parts.push(
       <a
         key={key++}
@@ -73,7 +80,7 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
           color: '#3b82f6',
           textDecoration: 'underline',
           cursor: 'pointer',
-          fontWeight: '500'
+          fontWeight: '500',
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -81,16 +88,16 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
         title={fullUrl !== linkUrl ? `Link to: ${fullUrl}` : undefined}
       >
         {linkText}
-      </a>
+      </a>,
     );
-    
+
     lastIndex = match.index + match[0].length;
   }
-  
+
   if (lastIndex < text.length) {
     parts.push(text.slice(lastIndex));
   }
-  
+
   return parts.length > 0 ? parts : [text];
 };
 
@@ -104,15 +111,15 @@ const TypingMessage: React.FC<TypingMessageProps> = ({
   onTypingComplete,
   className = '',
   style = {},
-  citations = []
+  citations = [],
 }) => {
   const { displayedText, isTyping, startTyping } = useTypingAnimation({
     text,
     speed,
     delay,
-    enabled
+    enabled,
   });
-  
+
   const prevTypingRef = useRef(isTyping);
 
   useEffect(() => {
@@ -135,27 +142,33 @@ const TypingMessage: React.FC<TypingMessageProps> = ({
     <span className={className} style={style}>
       {parsedContent}
       {showCursor && isTyping && (
-        <span 
+        <span
           style={{
             display: 'inline-block',
             width: '2px',
             height: '1.2em',
             backgroundColor: 'currentColor',
             marginLeft: '2px',
-            animation: 'blink 1s infinite'
+            animation: 'blink 1s infinite',
           }}
         />
       )}
-      
+
       {/* CSS animation */}
       <style jsx>{`
         @keyframes blink {
-          0%, 50% { opacity: 1; }
-          51%, 100% { opacity: 0; }
+          0%,
+          50% {
+            opacity: 1;
+          }
+          51%,
+          100% {
+            opacity: 0;
+          }
         }
       `}</style>
     </span>
   );
 };
 
-export default TypingMessage; 
+export default TypingMessage;

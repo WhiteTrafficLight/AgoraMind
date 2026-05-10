@@ -42,11 +42,11 @@ export default function PodcastPage() {
       try {
         setIsLoading(true);
         const response = await fetch('/api/podcast/list');
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch podcasts: ${response.status}`);
         }
-        
+
         const data = await response.json();
         setPodcasts(data.podcasts || []);
       } catch (error) {
@@ -56,10 +56,10 @@ export default function PodcastPage() {
         setIsLoading(false);
       }
     }
-    
+
     fetchPodcasts();
   }, []);
-  
+
   // Handle play podcast
   const handlePlayPodcast = (podcast: Podcast) => {
     // Stop current audio if playing
@@ -67,34 +67,34 @@ export default function PodcastPage() {
       currentAudio.pause();
       currentAudio.currentTime = 0;
     }
-    
+
     // Set current podcast
     setCurrentPodcast(podcast);
-    
+
     // Create a playlist of audio segments
     if (podcast.segments && podcast.segments.length > 0) {
       const audio = new Audio(podcast.segments[0].filename);
       let currentSegmentIndex = 0;
-      
+
       // Play next segment when current one ends
       audio.addEventListener('ended', () => {
         currentSegmentIndex++;
         if (currentSegmentIndex < podcast.segments.length) {
           audio.src = podcast.segments[currentSegmentIndex].filename;
-          audio.play().catch(err => loggers.ui.error('Error playing audio:', err));
+          audio.play().catch((err) => loggers.ui.error('Error playing audio:', err));
         } else {
           // Playlist finished
           setIsPlaying(false);
         }
       });
-      
+
       // Start playing
-      audio.play().catch(err => loggers.ui.error('Error playing audio:', err));
+      audio.play().catch((err) => loggers.ui.error('Error playing audio:', err));
       setCurrentAudio(audio);
       setIsPlaying(true);
     }
   };
-  
+
   // Stop playing
   const handleStopPodcast = () => {
     if (currentAudio) {
@@ -110,7 +110,7 @@ export default function PodcastPage() {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -118,9 +118,7 @@ export default function PodcastPage() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Page Header */}
       <div className="mb-10">
-        <h1 className="text-4xl md:text-5xl font-bold text-black mb-4">
-          Top Podcasts this week
-        </h1>
+        <h1 className="text-4xl md:text-5xl font-bold text-black mb-4">Top Podcasts this week</h1>
         <p className="text-xl text-gray-600">
           Listen to the most thought-provoking philosophical discussions
         </p>
@@ -151,12 +149,24 @@ export default function PodcastPage() {
                 <div className="w-full md:w-40 h-40 bg-gray-200 rounded-lg flex items-center justify-center relative">
                   {isPlaying ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
-                      <button 
+                      <button
                         onClick={handleStopPodcast}
                         className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
@@ -167,24 +177,26 @@ export default function PodcastPage() {
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold mb-2">{currentPodcast.title}</h2>
                   <p className="text-gray-600 mb-4">
-                    With {currentPodcast.participants.map(p => p.name).join(', ')}
+                    With {currentPodcast.participants.map((p) => p.name).join(', ')}
                   </p>
                   <div className="text-sm text-gray-500 mb-4">
                     Created on {formatDate(currentPodcast.created)}
                   </div>
                   <div className="flex gap-3">
-                    <button 
+                    <button
                       onClick={() => handlePlayPodcast(currentPodcast)}
-                      className={`px-4 py-2 rounded-full ${isPlaying 
-                        ? 'bg-gray-200 text-gray-700' 
-                        : 'bg-blue-600 text-white hover:bg-blue-700'} 
+                      className={`px-4 py-2 rounded-full ${
+                        isPlaying
+                          ? 'bg-gray-200 text-gray-700'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      } 
                         transition-colors`}
                       disabled={isPlaying}
                     >
                       {isPlaying ? 'Playing...' : 'Play'}
                     </button>
                     {isPlaying && (
-                      <button 
+                      <button
                         onClick={handleStopPodcast}
                         className="px-4 py-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                       >
@@ -201,16 +213,36 @@ export default function PodcastPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {podcasts.length > 0 ? (
               podcasts.map((podcast) => (
-                <div 
-                  key={podcast.id} 
+                <div
+                  key={podcast.id}
                   className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
                 >
-                  <div className="relative h-48 bg-gray-200 cursor-pointer" onClick={() => handlePlayPodcast(podcast)}>
+                  <div
+                    className="relative h-48 bg-gray-200 cursor-pointer"
+                    onClick={() => handlePlayPodcast(podcast)}
+                  >
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-16 h-16 rounded-full bg-white/80 flex items-center justify-center shadow-md">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -218,7 +250,7 @@ export default function PodcastPage() {
                   <div className="p-6">
                     <h3 className="text-xl font-semibold mb-2">{podcast.title}</h3>
                     <p className="text-gray-600 mb-4">
-                      With {podcast.participants.map(p => p.name).join(', ')}
+                      With {podcast.participants.map((p) => p.name).join(', ')}
                     </p>
                     <div className="flex items-center text-sm text-gray-500">
                       <span>{podcast.segments?.length || 0} messages</span>
@@ -272,7 +304,9 @@ export default function PodcastPage() {
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-semibold mb-2">Artificial Intelligence & Human Values</h3>
+                    <h3 className="text-xl font-semibold mb-2">
+                      Artificial Intelligence & Human Values
+                    </h3>
                     <p className="text-gray-600 mb-4">With Nick Bostrom and Eliezer Yudkowsky</p>
                     <div className="flex items-center text-sm text-gray-500">
                       <span>63 min</span>
@@ -291,28 +325,28 @@ export default function PodcastPage() {
       <div className="mt-16 bg-gray-50 rounded-xl p-8 text-center">
         <h2 className="text-2xl font-bold mb-4">More episodes coming soon</h2>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          We&apos;re working on bringing you more thought-provoking conversations with the greatest philosophers of all time.
-          Stay tuned for weekly updates!
+          We&apos;re working on bringing you more thought-provoking conversations with the greatest
+          philosophers of all time. Stay tuned for weekly updates!
         </p>
       </div>
 
       <h2 className="text-2xl font-bold mb-6">Generated AI Podcasts</h2>
-      
+
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4">Philosophy Discussions</h3>
         <p className="text-gray-600 mb-4">
-          Explore deep philosophical conversations generated by AI. Each podcast features 
+          Explore deep philosophical conversations generated by AI. Each podcast features
           discussions between renowned philosophers on various topics.
         </p>
         <p className="text-gray-600 mb-4">
-          Choose from different philosophical perspectives and let our AI create an 
-          engaging dialogue that makes complex ideas accessible and thought-provoking.
+          Choose from different philosophical perspectives and let our AI create an engaging
+          dialogue that makes complex ideas accessible and thought-provoking.
         </p>
         <p className="text-gray-600 mb-4">
-          Whether you&apos;re interested in ethics, metaphysics, or political philosophy, 
+          Whether you&apos;re interested in ethics, metaphysics, or political philosophy,
           you&apos;ll find conversations that challenge your thinking and expand your understanding.
         </p>
       </div>
     </div>
   );
-} 
+}

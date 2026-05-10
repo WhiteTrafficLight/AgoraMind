@@ -18,7 +18,7 @@ export const useTypingAnimation = ({
   text,
   speed = 20,
   delay = 0,
-  enabled = true
+  enabled = true,
 }: UseTypingAnimationOptions): UseTypingAnimationReturn => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -28,7 +28,7 @@ export const useTypingAnimation = ({
 
   const startTyping = () => {
     if (!enabled || hasStarted) return;
-    
+
     setHasStarted(true);
     setIsTyping(true);
     setDisplayedText('');
@@ -45,18 +45,18 @@ export const useTypingAnimation = ({
   const beginTyping = () => {
     let index = 0;
     const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    
+
     intervalRef.current = setInterval(() => {
       if (index < text.length) {
         const remainingText = text.slice(index);
         const linkMatch = remainingText.match(linkRegex);
-        
+
         if (linkMatch && remainingText.indexOf(linkMatch[0]) === 0) {
           index += linkMatch[0].length;
         } else {
           index++;
         }
-        
+
         setDisplayedText(text.slice(0, index));
       } else {
         setIsTyping(false);
@@ -72,12 +72,12 @@ export const useTypingAnimation = ({
     setDisplayedText('');
     setIsTyping(false);
     setHasStarted(false);
-    
+
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    
+
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -106,6 +106,6 @@ export const useTypingAnimation = ({
     displayedText: enabled ? displayedText : text,
     isTyping,
     startTyping,
-    resetTyping
+    resetTyping,
   };
-}; 
+};

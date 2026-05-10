@@ -35,37 +35,44 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
-    
+
     const linkText = match[1];
     const linkUrl = match[2];
-    
+
     // citations URL
     let fullUrl = linkUrl;
     if (citations && citations.length > 0) {
-      const matchingCitation = citations.find(citation => {
+      const matchingCitation = citations.find((citation) => {
         if (!citation.url) return false;
-        
+
         try {
           const citationDomain = new URL(citation.url).hostname;
           const simplifiedDomain = citationDomain.replace('www.', '');
-          const linkDomain = linkUrl.replace('www.', '').replace('https://', '').replace('http://', '');
-          
-          return simplifiedDomain === linkDomain || 
-                 citation.url.includes(linkDomain) ||
-                 citation.text === linkText ||
-                 citation.title === linkText;
+          const linkDomain = linkUrl
+            .replace('www.', '')
+            .replace('https://', '')
+            .replace('http://', '');
+
+          return (
+            simplifiedDomain === linkDomain ||
+            citation.url.includes(linkDomain) ||
+            citation.text === linkText ||
+            citation.title === linkText
+          );
         } catch (e) {
-          return citation.url.includes(linkUrl) || 
-                 citation.text === linkText ||
-                 citation.title === linkText;
+          return (
+            citation.url.includes(linkUrl) ||
+            citation.text === linkText ||
+            citation.title === linkText
+          );
         }
       });
-      
+
       if (matchingCitation && matchingCitation.url) {
         fullUrl = matchingCitation.url;
       }
     }
-    
+
     parts.push(
       <a
         key={key++}
@@ -77,7 +84,7 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
           color: '#3b82f6',
           textDecoration: 'underline',
           cursor: 'pointer',
-          fontWeight: '500'
+          fontWeight: '500',
         }}
         onClick={(e) => {
           e.stopPropagation();
@@ -85,16 +92,16 @@ const parseMarkdownToJSX = (text: string, citations: CitationLike[] = []) => {
         title={fullUrl !== linkUrl ? `Link to: ${fullUrl}` : undefined}
       >
         {linkText}
-      </a>
+      </a>,
     );
-    
+
     lastIndex = match.index + match[0].length;
   }
-  
+
   if (lastIndex < text.length) {
     parts.push(text.slice(lastIndex));
   }
-  
+
   return parts.length > 0 ? parts : [text];
 };
 
@@ -109,7 +116,7 @@ const MessageList: React.FC<MessageListProps> = ({
   handleTypingComplete,
   showNextButton,
   onRequestNext,
-  isGeneratingNext
+  isGeneratingNext,
 }) => {
   const renderRagTooltip = (message: ChatMessage) => {
     // RAG information logging
@@ -119,20 +126,20 @@ const MessageList: React.FC<MessageListProps> = ({
       rag_sources: message.rag_sources,
       citations: message.citations,
       hasRagSources: message.rag_sources && message.rag_sources.length > 0,
-      hasCitations: message.citations && message.citations.length > 0
+      hasCitations: message.citations && message.citations.length > 0,
     });
 
     // citations citations , rag_sources ( )
     const hasCitations = message.citations && message.citations.length > 0;
     const hasRagSources = message.rag_sources && message.rag_sources.length > 0;
-    
+
     if (!message.rag_used || (!hasCitations && !hasRagSources)) {
       return null;
     }
 
     const handleSourceClick = (source: RagSource | Citation) => {
       loggers.rag.info('Source clicked', source);
-      
+
       if (hasCitations) {
         // citations : { title, url }
         if (source.url && source.url.startsWith('http')) {
@@ -162,13 +169,18 @@ const MessageList: React.FC<MessageListProps> = ({
         return source.url && source.url.startsWith('http');
       } else {
         const ragSource = source as RagSource;
-        return (ragSource.type === 'web' && ragSource.metadata?.url) ||
-               (ragSource.type === 'context' && ragSource.metadata?.file_path);
+        return (
+          (ragSource.type === 'web' && ragSource.metadata?.url) ||
+          (ragSource.type === 'context' && ragSource.metadata?.file_path)
+        );
       }
     };
 
-    const sourceCount = hasCitations ? (message.citations?.length ?? 0) : (message.rag_source_count ?? 0);
-    const sources: Array<RagSource | Citation> = (hasCitations ? message.citations : message.rag_sources) ?? [];
+    const sourceCount = hasCitations
+      ? (message.citations?.length ?? 0)
+      : (message.rag_source_count ?? 0);
+    const sources: Array<RagSource | Citation> =
+      (hasCitations ? message.citations : message.rag_sources) ?? [];
 
     return (
       <div className="debate-rag-indicator">
@@ -177,13 +189,11 @@ const MessageList: React.FC<MessageListProps> = ({
           <span className="debate-rag-count">{sourceCount}</span>
         </div>
         <div className="debate-rag-tooltip">
-          <div className="debate-rag-tooltip-header">
-            Sources ({sourceCount})
-          </div>
+          <div className="debate-rag-tooltip-header">Sources ({sourceCount})</div>
           <div className="debate-rag-tooltip-content">
             {sources.slice(0, 3).map((source: RagSource | Citation, idx: number) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className={`debate-rag-source-item ${isClickable(source) ? 'clickable' : ''}`}
                 onClick={(e) => {
                   e.preventDefault();
@@ -195,24 +205,22 @@ const MessageList: React.FC<MessageListProps> = ({
                   e.stopPropagation();
                 }}
                 title={isClickable(source) ? 'Click to open source' : ''}
-                style={{ 
+                style={{
                   userSelect: 'none',
-                  ...(isClickable(source) && { cursor: 'pointer' })
+                  ...(isClickable(source) && { cursor: 'pointer' }),
                 }}
               >
                 {hasCitations ? (
                   // Citations
                   <>
-                    <div className="debate-rag-source-type">
-                      🌐 Web Citation
-                    </div>
+                    <div className="debate-rag-source-type">🌐 Web Citation</div>
                     <div className="debate-rag-source-content">
-                      <div className="debate-citation-title">
-                        {source.title || 'Untitled'}
-                      </div>
+                      <div className="debate-citation-title">{source.title || 'Untitled'}</div>
                       {source.url && (
                         <div className="debate-citation-url">
-                          {source.url.length > 60 ? `${source.url.substring(0, 60)}...` : source.url}
+                          {source.url.length > 60
+                            ? `${source.url.substring(0, 60)}...`
+                            : source.url}
                         </div>
                       )}
                     </div>
@@ -220,17 +228,29 @@ const MessageList: React.FC<MessageListProps> = ({
                 ) : (
                   // rag_sources ( )
                   (() => {
-                    const ragSource = source as RagSource & { content?: string; relevance_score?: number; relevance?: number };
+                    const ragSource = source as RagSource & {
+                      content?: string;
+                      relevance_score?: number;
+                      relevance?: number;
+                    };
                     return (
                       <>
                         <div className="debate-rag-source-type">
-                          {ragSource.type === 'web' ? '🌐 Web' :
-                           ragSource.type === 'context' ? '📄 Context' :
-                           ragSource.type === 'dialogue' ? '💬 Dialogue' :
-                           ragSource.type === 'philosopher' ? '🧠 Philosopher' : '📚 Source'}
+                          {ragSource.type === 'web'
+                            ? '🌐 Web'
+                            : ragSource.type === 'context'
+                              ? '📄 Context'
+                              : ragSource.type === 'dialogue'
+                                ? '💬 Dialogue'
+                                : ragSource.type === 'philosopher'
+                                  ? '🧠 Philosopher'
+                                  : '📚 Source'}
                         </div>
                         <div className="debate-rag-source-content">
-                          {ragSource.content ? ragSource.content.substring(0, 100) : 'No content available'}...
+                          {ragSource.content
+                            ? ragSource.content.substring(0, 100)
+                            : 'No content available'}
+                          ...
                         </div>
                         {ragSource.relevance_score && (
                           <div className="debate-rag-source-score">
@@ -249,9 +269,7 @@ const MessageList: React.FC<MessageListProps> = ({
               </div>
             ))}
             {sources.length > 3 && (
-              <div className="debate-rag-more">
-                +{sources.length - 3} more
-              </div>
+              <div className="debate-rag-more">+{sources.length - 3} more</div>
             )}
           </div>
         </div>
@@ -266,10 +284,10 @@ const MessageList: React.FC<MessageListProps> = ({
     const isCurrentUserTurn = isUserTurn && isUser;
     const isTempWaitingMessage = message.id.startsWith('temp-waiting-');
     const isGeneratingMessage = message.isGenerating === true;
-    
+
     return (
-      <div 
-        key={message.id} 
+      <div
+        key={message.id}
         className={`debate-message ${isCurrentUserTurn ? 'user-turn' : ''}`}
         style={{ animationDelay: `${index * 0.1}s` }}
       >
@@ -277,20 +295,23 @@ const MessageList: React.FC<MessageListProps> = ({
           <div className="debate-message-avatar">
             <img src={avatar} alt={senderName} />
           </div>
-          
+
           <div className="debate-message-body">
-            <div className={`debate-message-sender ${message.role === 'moderator' ? 'moderator' : ''}`}>
+            <div
+              className={`debate-message-sender ${message.role === 'moderator' ? 'moderator' : ''}`}
+            >
               {senderName}
               {message.role === 'moderator' && (
                 <span className="debate-moderator-badge">MODERATOR</span>
               )}
               {renderRagTooltip(message)}
             </div>
-            
-            <div className={`debate-message-text ${
-              message.role === 'moderator' ? 'moderator' :
-              isUser ? 'user' : 'system'
-            } ${isTempWaitingMessage ? 'temp-waiting' : ''} ${isGeneratingMessage ? 'generating' : ''}`}>
+
+            <div
+              className={`debate-message-text ${
+                message.role === 'moderator' ? 'moderator' : isUser ? 'user' : 'system'
+              } ${isTempWaitingMessage ? 'temp-waiting' : ''} ${isGeneratingMessage ? 'generating' : ''}`}
+            >
               {isTempWaitingMessage ? (
                 <div className="debate-message-waiting-dots">
                   <div className="debate-waiting-dots">
@@ -345,7 +366,7 @@ const MessageList: React.FC<MessageListProps> = ({
           Please click the &ldquo;Next&rdquo; button to begin the debate.
         </div>
       )}
-      
+
       {showNextButton && (
         <div className="debate-next-button-container">
           <button
@@ -368,10 +389,10 @@ const MessageList: React.FC<MessageListProps> = ({
           </button>
         </div>
       )}
-      
+
       <div ref={messagesEndRef} />
     </div>
   );
 };
 
-export default MessageList; 
+export default MessageList;

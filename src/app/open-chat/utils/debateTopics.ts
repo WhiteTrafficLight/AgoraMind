@@ -30,7 +30,7 @@ const typedDebateTopicsData = debateTopicsData as DebateTopicsData;
 export const getDebateCategories = (): { key: string; category: DebateCategory }[] => {
   return Object.entries(typedDebateTopicsData.categories).map(([key, category]) => ({
     key,
-    category
+    category,
   }));
 };
 
@@ -49,24 +49,24 @@ export const categoryDisplayConfig = {
     title: 'Dilemma Challenge',
     color: 'bg-red-50 border-red-200',
     description: 'Ethical dilemmas that challenge your moral compass',
-    image: '/topic_categories/Dilemma.png'
+    image: '/topic_categories/Dilemma.png',
   },
   self_and_philosophy: {
     title: 'Self & Philosophy',
     color: 'bg-blue-50 border-blue-200',
     description: 'Deep questions about existence and identity',
-    image: '/topic_categories/Philosophy.png'
+    image: '/topic_categories/Philosophy.png',
   },
   global_and_current_affairs: {
     title: 'Global & Current Affairs',
     color: 'bg-green-50 border-green-200',
     description: 'Contemporary issues shaping our world',
-    image: '/topic_categories/Global.png'
+    image: '/topic_categories/Global.png',
   },
   science_and_technology: {
     title: 'Science & Technology',
     color: 'bg-purple-50 border-purple-200',
     description: 'The ethical implications of scientific progress',
-    image: '/topic_categories/Tech.png'
-  }
-}; 
+    image: '/topic_categories/Tech.png',
+  },
+};

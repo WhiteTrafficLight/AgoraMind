@@ -13,11 +13,9 @@ export default function OpenChatPage() {
     <>
       {/* Main container */}
       <OpenChatContainer />
-      
+
       {/* Toast notification */}
       <Toaster position="top-right" />
     </>
   );
 }
-
-

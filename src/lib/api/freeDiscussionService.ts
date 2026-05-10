@@ -3,7 +3,7 @@ import {
   CreateFreeDiscussionResponse,
   FreeDiscussionSession,
   ConversationSummary,
-  FreeDiscussionConfig
+  FreeDiscussionConfig,
 } from '@/app/open-chat/types/freeDiscussion.types';
 import { loggers } from '@/utils/logger';
 import { apiUrl, ENDPOINTS } from './endpoints';

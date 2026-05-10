@@ -39,7 +39,7 @@ export const FreeDiscussionTimeline: React.FC<FreeDiscussionTimelineProps> = ({
     const color = philosopherColors[turn.philosopher] || '#6B7280';
     const isCurrent = turn.turnNumber === currentTurn;
     const isHovered = turn.turnNumber === hoveredTurn;
-    
+
     return {
       backgroundColor: color,
       transform: isCurrent || isHovered ? 'scale(1.2)' : 'scale(1)',
@@ -53,11 +53,11 @@ export const FreeDiscussionTimeline: React.FC<FreeDiscussionTimelineProps> = ({
       <div className="w-full px-4 py-2">
         <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
           {/* Progress track */}
-          <div 
+          <div
             className="absolute left-0 top-0 h-full bg-blue-500 transition-all duration-300"
             style={{ width: `${(currentTurn / turns.length) * 100}%` }}
           />
-          
+
           {/* Markers */}
           <div className="absolute inset-0 flex items-center">
             {turns.map((turn) => (
@@ -66,17 +66,17 @@ export const FreeDiscussionTimeline: React.FC<FreeDiscussionTimelineProps> = ({
                 data-turn={turn.turnNumber}
                 onClick={() => onSeek(turn.turnNumber)}
                 className="absolute transform -translate-x-1/2 cursor-pointer"
-                style={{ 
+                style={{
                   left: `${(turn.turnNumber / turns.length) * 100}%`,
                 }}
                 onMouseEnter={() => setHoveredTurn(turn.turnNumber)}
                 onMouseLeave={() => setHoveredTurn(null)}
               >
-                <div 
+                <div
                   className={`${getMarkerSize(turn)} rounded-full transition-all duration-200`}
                   style={getMarkerStyle(turn)}
                 />
-                
+
                 {/* Tooltip */}
                 {hoveredTurn === turn.turnNumber && (
                   <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
@@ -94,19 +94,19 @@ export const FreeDiscussionTimeline: React.FC<FreeDiscussionTimelineProps> = ({
 
   // Expanded view
   return (
-    <div 
+    <div
       ref={timelineRef}
       className="w-full max-h-40 overflow-y-auto px-4 py-2 bg-gray-50 rounded-lg"
     >
       <div className="relative">
         {/* Vertical line */}
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-300" />
-        
+
         {/* Turn entries */}
         {turns.map((turn, index) => {
           const isCurrent = turn.turnNumber === currentTurn;
           const isPast = turn.turnNumber < currentTurn;
-          
+
           return (
             <div
               key={turn.turnNumber}
@@ -123,29 +123,25 @@ export const FreeDiscussionTimeline: React.FC<FreeDiscussionTimelineProps> = ({
                   style={getMarkerStyle(turn)}
                 />
               </div>
-              
+
               {/* Content */}
               <div className={`flex-1 ${isPast && !isCurrent ? 'opacity-60' : ''}`}>
                 <div className="flex items-center gap-2">
                   <span className={`font-medium text-sm ${isCurrent ? 'text-blue-700' : ''}`}>
                     {turn.philosopher}
                   </span>
-                  <span className="text-xs text-gray-500">
-                    Turn {turn.turnNumber}
-                  </span>
+                  <span className="text-xs text-gray-500">Turn {turn.turnNumber}</span>
                   {turn.isUserTurn && (
                     <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
                       You
                     </span>
                   )}
                 </div>
-                
+
                 {turn.preview && (
-                  <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
-                    {turn.preview}
-                  </p>
+                  <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{turn.preview}</p>
                 )}
-                
+
                 {turn.relevanceScore && turn.relevanceScore > 0.7 && (
                   <div className="flex items-center gap-1 mt-1">
                     <div className="w-2 h-2 bg-yellow-400 rounded-full" />
@@ -153,7 +149,7 @@ export const FreeDiscussionTimeline: React.FC<FreeDiscussionTimelineProps> = ({
                   </div>
                 )}
               </div>
-              
+
               {/* Connector to next */}
               {index < turns.length - 1 && (
                 <div className="absolute left-6 top-8 bottom-0 w-0.5 bg-gray-300" />
@@ -165,5 +161,3 @@ export const FreeDiscussionTimeline: React.FC<FreeDiscussionTimelineProps> = ({
     </div>
   );
 };
-
-

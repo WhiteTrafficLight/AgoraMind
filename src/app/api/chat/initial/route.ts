@@ -18,15 +18,15 @@ function detectLanguage(text: string): string {
   // ( : AC00-D7A3, 1100-11FF)
   const koreanRegex = /[\uAC00-\uD7A3\u1100-\u11FF]/;
   if (koreanRegex.test(text)) return 'Korean';
-  
+
   // (, : 3040-309F, 30A0-30FF)
   const japaneseRegex = /[\u3040-\u309F\u30A0-\u30FF]/;
   if (japaneseRegex.test(text)) return 'Japanese';
-  
+
   // ( : 4E00-9FFF)
   const chineseRegex = /[\u4E00-\u9FFF]/;
   if (chineseRegex.test(text)) return 'Chinese';
-  
+
   return 'English';
 }
 
@@ -36,9 +36,14 @@ function removeNamePrefix(text: string): string {
   return text.replace(prefixRegex, '');
 }
 
-function prepareNpcDescription(philosopher: string, npcData: NpcData | null, isCustomNpc: boolean, language: string): string {
+function prepareNpcDescription(
+  philosopher: string,
+  npcData: NpcData | null,
+  isCustomNpc: boolean,
+  language: string,
+): string {
   let description;
-  
+
   if (isCustomNpc && npcData) {
     description = `Name: ${npcData.name}
 Role: Custom Philosopher
@@ -46,8 +51,11 @@ Voice Style: ${npcData.voice_style || 'conversational'}
 Communication Style: ${npcData.communication_style || 'balanced'}
 Debate Approach: ${npcData.debate_approach || 'dialectical'}
 ${npcData.description ? `Description: ${npcData.description}` : ''}
-${npcData.reference_philosophers && npcData.reference_philosophers.length > 0 ? 
-  `Influenced by: ${npcData.reference_philosophers.join(', ')}` : ''}`;
+${
+  npcData.reference_philosophers && npcData.reference_philosophers.length > 0
+    ? `Influenced by: ${npcData.reference_philosophers.join(', ')}`
+    : ''
+}`;
   } else {
     const profile = resolvePhilosopher(philosopher);
     if (!profile) {
@@ -67,12 +75,12 @@ Personality Traits: critical_thinking: 0.8, creativity: 0.7
 Philosophical Background: ${profile.keyConcepts ? profile.keyConcepts.join(', ') : 'philosophy'}`;
     }
   }
-  
+
   const languageInstruction = `IMPORTANT: Respond in ${language} language to match the topic language.
 DO NOT include your name as a prefix in your response.
 DO NOT start with "${philosopher}: " or any other name prefix.
 Just provide your philosophical response directly.`;
-  
+
   return `${description}\n${languageInstruction}`;
 }
 
@@ -82,34 +90,34 @@ function generateFallbackResponse(topic: string, dialogueType?: string): NextRes
     loggers.chat.info('Skipping fallback response in debate type');
     return NextResponse.json({ text: '' });
   }
-  
+
   const topicLanguage = detectLanguage(topic);
-  
+
   const fallbackResponses: Record<string, string[]> = {
-    'English': [
+    English: [
       `I find this topic of "${topic}" quite fascinating. What aspects of it interest you the most?`,
       `Let's explore "${topic}" together. What questions come to mind when you consider this subject?`,
-      `The question of "${topic}" has intrigued philosophers  centuries. Where shall we begin our inquiry?`
+      `The question of "${topic}" has intrigued philosophers  centuries. Where shall we begin our inquiry?`,
     ],
-    'Korean': [
+    Korean: [
       `"${topic}" is a very interesting topic. Which aspect interests you most?`,
       `Together "${topic}"let's explore. What questions come to mind on this topic?`,
-      `"${topic}" has fascinated philosophers  centuries. Where should we begin?`
+      `"${topic}" has fascinated philosophers  centuries. Where should we begin?`,
     ],
-    'Japanese': [
+    Japanese: [
       `"${topic}"というテーマは非常に興味深いです。どのような側面に最も興味がありますか？`,
       `一緒に"${topic}"について探求しましょう。このテーマについて考えるとき、どのような質問が浮かびますか？`,
-      `"${topic}"に関する問いは何世紀にもわたって哲学者を魅了してきました。どこから始めましょうか？`
+      `"${topic}"に関する問いは何世紀にもわたって哲学者を魅了してきました。どこから始めましょうか？`,
     ],
-    'Chinese': [
+    Chinese: [
       `我发现"${topic}"这个主题非常吸引人。哪些方面最令你感兴趣？`,
       `让我们一起探索"${topic}"。当你思考这个主题时，有哪些问题浮现在脑海中？`,
-      `关于"${topic}"的问题几个世纪以来一直吸引着哲学家。我们从哪里开始探讨呢？`
-    ]
+      `关于"${topic}"的问题几个世纪以来一直吸引着哲学家。我们从哪里开始探讨呢？`,
+    ],
   };
-  
+
   const languageResponses = fallbackResponses[topicLanguage] || fallbackResponses['English'];
-  
+
   const randomResponse = languageResponses[Math.floor(Math.random() * languageResponses.length)];
   loggers.chat.info(`⚠️ Using fallback response due to backend error`);
   return NextResponse.json({ text: randomResponse });
@@ -120,7 +128,7 @@ export async function POST(req: NextRequest) {
     const { philosopher, topic, context, npcData } = await req.json();
 
     loggers.chat.info(`💬 Generating initial message  ${philosopher} on topic: ${topic}`);
-    
+
     // LLM
     const llmProvider = req.headers.get('x-llm-provider') || 'openai';
     const llmModel = req.headers.get('x-llm-model') || '';
@@ -132,16 +140,16 @@ export async function POST(req: NextRequest) {
     loggers.chat.info(`Using ${isCustomNpc ? 'custom' : 'default'} NPC data`);
 
     const npcDescription = prepareNpcDescription(philosopher, npcData, isCustomNpc, topicLanguage);
-    
+
     // API ( )
     const MAX_RETRIES = 3;
     let retryCount = 0;
     let backendData;
-    
+
     while (retryCount < MAX_RETRIES) {
       try {
         loggers.chat.info(`🔄 Calling backend API (attempt ${retryCount + 1}/${MAX_RETRIES})`);
-        
+
         const backendResponse = await fetch(apiUrl(ENDPOINTS.chat.generate), {
           method: 'POST',
           headers: {
@@ -150,13 +158,13 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({
             npc_description: npcDescription,
             topic: topic,
-            context: context || "",
-            previous_dialogue: "",
+            context: context || '',
+            previous_dialogue: '',
             npcs: [isCustomNpc && npcData.id ? npcData.id : philosopher.toLowerCase()],
             llm_provider: llmProvider,
-            llm_model: llmModel || DEFAULT_LLM_MODEL
+            llm_model: llmModel || DEFAULT_LLM_MODEL,
           }),
-          cache: 'no-store'
+          cache: 'no-store',
         });
 
         if (!backendResponse.ok) {
@@ -168,21 +176,21 @@ export async function POST(req: NextRequest) {
       } catch (error) {
         retryCount++;
         loggers.chat.error(`Backend API error (attempt ${retryCount}/${MAX_RETRIES}):`, error);
-        
+
         if (retryCount >= MAX_RETRIES) {
           throw error;
         }
-        
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)));
+
+        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, retryCount - 1)));
       }
     }
-    
+
     let generatedText = backendData.response || backendData.text || backendData.message;
     generatedText = removeNamePrefix(generatedText);
-    
+
     return NextResponse.json({ text: generatedText });
   } catch (error: unknown) {
     loggers.chat.error('Error in POST /api/chat/initial:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

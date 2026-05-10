@@ -12,7 +12,7 @@ import { loggers } from '@/utils/logger';
 // Dynamically import ImageCropModal so its heavy CSS is only loaded when the component is actually rendered (Settings page)
 const ImageCropModal = dynamic(() => import('@/components/ui/ImageCropModal'), {
   ssr: false,
-  loading: () => null
+  loading: () => null,
 });
 
 interface UserProfile {
@@ -37,21 +37,21 @@ export default function SettingsPage() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!session) {
         setIsLoading(false);
         return;
       }
-      
+
       try {
         const response = await fetch('/api/user/profile');
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch user profile');
         }
-        
+
         const data = await response.json();
         setUserProfile(data);
         setEditedUsername(data.username);
@@ -63,20 +63,18 @@ export default function SettingsPage() {
         setIsLoading(false);
       }
     };
-    
+
     fetchUserProfile();
   }, [session]);
-  
+
   const handleUpdateProfile = async (field: 'username' | 'bio') => {
     if (!userProfile) return;
-    
+
     setIsUpdating(true);
-    
+
     try {
-      const updateData = field === 'username' 
-        ? { username: editedUsername }
-        : { bio: editedBio };
-      
+      const updateData = field === 'username' ? { username: editedUsername } : { bio: editedBio };
+
       const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
@@ -84,11 +82,11 @@ export default function SettingsPage() {
         },
         body: JSON.stringify(updateData),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to update profile');
       }
-      
+
       const updatedProfile = await response.json();
       setUserProfile(updatedProfile);
       setIsEditing(null);
@@ -100,21 +98,21 @@ export default function SettingsPage() {
       setIsUpdating(false);
     }
   };
-  
+
   const handleProfileImageClick = () => {
     fileInputRef.current?.click();
   };
-  
+
   const handleCancelCrop = () => {
     setShowCropModal(false);
     setSelectedImageSrc('');
   };
-  
+
   const handleSaveCroppedImage = async (croppedImageBase64: string) => {
     setIsUploadingImage(true);
     setShowCropModal(false);
     setSelectedImageSrc('');
-    
+
     try {
       const response = await fetch('/api/user/profile-image', {
         method: 'POST',
@@ -123,20 +121,20 @@ export default function SettingsPage() {
         },
         body: JSON.stringify({ image: croppedImageBase64 }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to upload image');
       }
-      
+
       const data = await response.json();
-      
+
       if (userProfile) {
         setUserProfile({
           ...userProfile,
-          profileImage: data.profileImageUrl
+          profileImage: data.profileImageUrl,
         });
       }
-      
+
       toast.success('Profile image updated successfully!');
     } catch (error) {
       loggers.ui.error('Error uploading image:', error);
@@ -145,7 +143,7 @@ export default function SettingsPage() {
       setIsUploadingImage(false);
     }
   };
-  
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -202,7 +200,17 @@ export default function SettingsPage() {
                   onClick={handleProfileImageClick}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                     <circle cx="12" cy="13" r="4"></circle>
                   </svg>
@@ -343,5 +351,4 @@ export default function SettingsPage() {
       />
     </div>
   );
-} 
- 
+}

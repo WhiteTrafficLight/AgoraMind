@@ -11,27 +11,23 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/Logo.png', sizes: '32x32', type: 'image/png' },
-      { url: '/Logo.png', sizes: '192x192', type: 'image/png' }
+      { url: '/Logo.png', sizes: '192x192', type: 'image/png' },
     ],
     shortcut: ['/Logo.png'],
-    apple: ['/Logo.png']
-  }
+    apple: ['/Logo.png'],
+  },
 };
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={`${inter.className} flex flex-col min-h-screen`}>
         <Providers>
-        <Header />
-        <main className="flex-grow">{children}</main>
-        {/* <Footer /> */}
+          <Header />
+          <main className="flex-grow">{children}</main>
+          {/* <Footer /> */}
         </Providers>
       </body>
     </html>

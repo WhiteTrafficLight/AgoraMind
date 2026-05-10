@@ -54,8 +54,8 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
       const newY = e.clientY - dragOffset.y;
       // Clamp within viewport
       const padding = 8;
-      const maxX = (typeof window !== 'undefined') ? window.innerWidth - padding - 260 : newX; // approx width
-      const maxY = (typeof window !== 'undefined') ? window.innerHeight - padding - 80 : newY; // approx height
+      const maxX = typeof window !== 'undefined' ? window.innerWidth - padding - 260 : newX; // approx width
+      const maxY = typeof window !== 'undefined' ? window.innerHeight - padding - 80 : newY; // approx height
       setPosition({
         x: Math.max(padding, Math.min(newX, maxX)),
         y: Math.max(padding, Math.min(newY, maxY)),
@@ -106,16 +106,12 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         onClick={handlePlayPause}
         disabled={isProcessing}
         className={`w-10 h-10 rounded-full flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm ${
-          isProcessing 
-            ? 'bg-gray-200 cursor-not-allowed' 
+          isProcessing
+            ? 'bg-gray-200 cursor-not-allowed'
             : 'bg-blue-600 hover:bg-blue-700 text-white'
         }`}
       >
-        {isPaused ? (
-          <PlayIcon className="h-5 w-5 ml-0.5" />
-        ) : (
-          <PauseIcon className="h-5 w-5" />
-        )}
+        {isPaused ? <PlayIcon className="h-5 w-5 ml-0.5" /> : <PauseIcon className="h-5 w-5" />}
       </button>
 
       {/* Progress Bar */}
@@ -126,7 +122,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           <span>of {maxTurns}</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
+          <div
             className="bg-blue-600 h-2 rounded-full transition-all duration-300 shadow-inner"
             style={{ width: `${progressPercentage}%` }}
           />
@@ -146,10 +142,10 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
             <ChevronDownIcon className="h-3 w-3" />
           )}
         </button>
-        
+
         {showSpeedMenu && (
           <div className="absolute bottom-full mb-2 left-0 bg-white rounded-md shadow-lg ring-1 ring-black/5 border border-gray-200 py-1 min-w-[120px] z-50">
-            {SPEED_OPTIONS.map(speed => (
+            {SPEED_OPTIONS.map((speed) => (
               <button
                 key={speed}
                 onClick={() => handleSpeedSelect(speed)}
@@ -168,8 +164,8 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
       <button
         onClick={onToggleAutoPlay}
         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm ${
-          autoPlay 
-            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+          autoPlay
+            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
         }`}
       >

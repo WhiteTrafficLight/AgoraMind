@@ -23,7 +23,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
   onClose,
   topic,
   philosophers = [],
-  customNpcs = []
+  customNpcs = [],
 }) => {
   const router = useRouter();
   const overlay = useLoadingOverlay();
@@ -32,9 +32,11 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
   const [selectedPhilosophers, setSelectedPhilosophers] = useState<string[]>([]);
   const [selectedCustomNpcs, setSelectedCustomNpcs] = useState<string[]>([]);
 
-  const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(null);
+  const [selectedPhilosopherDetails, setSelectedPhilosopherDetails] = useState<Philosopher | null>(
+    null,
+  );
   const [showPhilosopherDetails, setShowPhilosopherDetails] = useState(false);
-  
+
   // Reset selections when modal opens or topic changes
   useEffect(() => {
     if (isOpen) {
@@ -56,29 +58,31 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
   };
 
   const togglePhilosopher = (philosopherId: string) => {
-    setSelectedPhilosophers(prev => prev.includes(philosopherId)
-      ? prev.filter(p => p !== philosopherId)
-      : [...prev, philosopherId]
+    setSelectedPhilosophers((prev) =>
+      prev.includes(philosopherId)
+        ? prev.filter((p) => p !== philosopherId)
+        : [...prev, philosopherId],
     );
   };
 
   const toggleCustomNpc = (npcId: string) => {
-    setSelectedCustomNpcs(prev => prev.includes(npcId)
-      ? prev.filter(p => p !== npcId)
-      : [...prev, npcId]
+    setSelectedCustomNpcs((prev) =>
+      prev.includes(npcId) ? prev.filter((p) => p !== npcId) : [...prev, npcId],
     );
   };
 
   const loadPhilosopherDetails = async (philosopherId: string) => {
     try {
-      const customNpc = customNpcs.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
+      const customNpc = customNpcs.find((p) => p.id.toLowerCase() === philosopherId.toLowerCase());
       if (customNpc) {
         setSelectedPhilosopherDetails(customNpc);
         setShowPhilosopherDetails(true);
         return;
       }
 
-      const existingPhil = philosophers.find(p => p.id.toLowerCase() === philosopherId.toLowerCase());
+      const existingPhil = philosophers.find(
+        (p) => p.id.toLowerCase() === philosopherId.toLowerCase(),
+      );
       if (existingPhil) {
         setSelectedPhilosopherDetails(existingPhil);
         setShowPhilosopherDetails(true);
@@ -88,8 +92,8 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       const response = await fetch('/data/philosophers.json');
       if (response.ok) {
         const data = await response.json();
-        const philosopher = data.philosophers.find((p: { id: string; name?: string }) => 
-          p.id.toLowerCase() === philosopherId.toLowerCase()
+        const philosopher = data.philosophers.find(
+          (p: { id: string; name?: string }) => p.id.toLowerCase() === philosopherId.toLowerCase(),
         );
         if (philosopher) {
           setSelectedPhilosopherDetails(philosopher);
@@ -122,7 +126,10 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
         }
       }
 
-      const username = (typeof window !== 'undefined' && (sessionStorage.getItem('chat_username') || 'Anonymous')) || 'Anonymous';
+      const username =
+        (typeof window !== 'undefined' &&
+          (sessionStorage.getItem('chat_username') || 'Anonymous')) ||
+        'Anonymous';
 
       // 1) Create DB room first
       overlay.show('Creating room…');
@@ -138,8 +145,8 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
           isPublic: true,
           dialogueType: 'free',
           generateInitialMessage: false,
-          username
-        } as Partial<ChatRoomCreationParams>)
+          username,
+        } as Partial<ChatRoomCreationParams>),
       });
       if (!roomResponse.ok) throw new Error('Failed to create chat room');
       const dbRoom = await roomResponse.json();
@@ -148,7 +155,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       if (topic.context.type === 'url') {
         overlay.update(
           'Reading and summarizing the context…',
-          'When the context is long, it might take some time for philosophers to read it.'
+          'When the context is long, it might take some time for philosophers to read it.',
         );
       } else {
         overlay.update('Preparing participants…');
@@ -159,7 +166,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
         context: finalContext,
         user_info: {
           user_id: username,
-          user_name: username
+          user_name: username,
         },
         config: {
           max_turns: 50,
@@ -170,8 +177,8 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
           auto_play: false,
           turn_interval: 3.0,
           allow_user_interruption: true,
-          playback_speed: 1.0
-        }
+          playback_speed: 1.0,
+        },
       });
 
       // 3) Map session id to room (fire-and-forget)
@@ -179,7 +186,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
       fetch(`/api/rooms?id=${encodeURIComponent(dbRoom.id)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ freeDiscussionSessionId: session.session_id })
+        body: JSON.stringify({ freeDiscussionSessionId: session.session_id }),
       }).catch(() => {});
 
       // 4) Route using session id
@@ -203,10 +210,13 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
     <>
       <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose}></div>
 
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-4xl max-h-[85vh] bg-white rounded-2xl shadow-2xl z-50 border border-gray-200 flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-4xl max-h-[85vh] bg-white rounded-2xl shadow-2xl z-50 border border-gray-200 flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-xl font-bold">Start Free Discussion</h2>
-          <button 
+          <button
             onClick={onClose}
             className="inline-flex items-center justify-center rounded-full p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             aria-label="Close"
@@ -228,7 +238,12 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
               </div>
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 {topic.context.type === 'url' ? (
-                  <a href={topic.context.content} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all hover:text-blue-700">
+                  <a
+                    href={topic.context.content}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline break-all hover:text-blue-700"
+                  >
                     {topic.context.content}
                   </a>
                 ) : (
@@ -247,7 +262,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
               <div className="mb-6">
                 <h5 className="font-semibold text-gray-800 mb-3">My Custom Philosophers</h5>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {customNpcs.map(npc => (
+                  {customNpcs.map((npc) => (
                     <div
                       key={npc.id}
                       className={`border rounded-lg p-3 transition select-none ${
@@ -265,7 +280,8 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
                           alt={npc.name}
                           className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=32`;
+                            (e.target as HTMLImageElement).src =
+                              `https://ui-avatars.com/api/?name=${encodeURIComponent(npc.name)}&background=random&size=32`;
                           }}
                         />
                         <span className="text-sm text-gray-800">{npc.name}</span>
@@ -290,7 +306,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
             <div>
               <h5 className="font-semibold text-gray-800 mb-3">Classic Philosophers</h5>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {philosophers.map(philosopher => {
+                {philosophers.map((philosopher) => {
                   const pid = (philosopher.id || '').toLowerCase();
                   const isFineTuned = resolvePhilosopher(pid)?.fineTuned === true;
                   const isDisabled = !isFineTuned;
@@ -299,25 +315,36 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
                     <div
                       key={philosopher.id}
                       className={`border rounded-lg p-3 transition select-none relative ${
-                        isSelected ? 'ring-2 ring-black border-black bg-gray-100' : 'hover:shadow-sm'
+                        isSelected
+                          ? 'ring-2 ring-black border-black bg-gray-100'
+                          : 'hover:shadow-sm'
                       } ${isDisabled ? 'opacity-60 grayscale cursor-not-allowed' : ''}`}
                       aria-disabled={isDisabled}
                     >
                       {isDisabled && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none rounded-lg">
-                          <img src="/lock.png" alt="Locked" className="h-full w-auto max-w-full opacity-20 select-none object-contain" />
+                          <img
+                            src="/lock.png"
+                            alt="Locked"
+                            className="h-full w-auto max-w-full opacity-20 select-none object-contain"
+                          />
                         </div>
                       )}
                       <div
                         className={`flex items-center gap-2 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                        onClick={() => { if (!isDisabled) togglePhilosopher(philosopher.id); }}
+                        onClick={() => {
+                          if (!isDisabled) togglePhilosopher(philosopher.id);
+                        }}
                       >
                         <img
-                          src={philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)}
+                          src={
+                            philosopher.portrait_url || getPhilosopherPortraitPath(philosopher.name)
+                          }
                           alt={philosopher.name}
                           className="w-8 h-8 rounded-full object-cover ring-1 ring-gray-200"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
+                            (e.target as HTMLImageElement).src =
+                              `https://ui-avatars.com/api/?name=${encodeURIComponent(philosopher.name)}&background=random&size=32`;
                           }}
                         />
                         <span className="text-sm text-gray-800">{philosopher.name}</span>
@@ -334,7 +361,9 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
                         disabled={isDisabled}
                         aria-disabled={isDisabled}
                         className={`mt-2 text-xs ${
-                          isDisabled ? 'text-gray-400 cursor-not-allowed pointer-events-none' : 'text-black hover:underline'
+                          isDisabled
+                            ? 'text-gray-400 cursor-not-allowed pointer-events-none'
+                            : 'text-black hover:underline'
                         }`}
                       >
                         View details
@@ -351,7 +380,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
           <button
             onClick={handleCreateDiscussion}
             className="inline-flex items-center gap-2 rounded-md bg-black text-white px-4 py-2 text-sm font-medium shadow hover:bg-gray-900 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-black"
-            disabled={isCreating || (selectedPhilosophers.length + selectedCustomNpcs.length) === 0}
+            disabled={isCreating || selectedPhilosophers.length + selectedCustomNpcs.length === 0}
           >
             {isCreating ? (
               <>
@@ -376,7 +405,7 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
           } else if (selectedCustomNpcs.includes(philosopherId)) {
             toggleCustomNpc(philosopherId);
           } else {
-            const isCustom = customNpcs.some(npc => npc.id === philosopherId);
+            const isCustom = customNpcs.some((npc) => npc.id === philosopherId);
             if (isCustom) {
               toggleCustomNpc(philosopherId);
             } else {
@@ -384,13 +413,13 @@ const FreeDiscussionTopicModal: React.FC<FreeDiscussionTopicModalProps> = ({
             }
           }
         }}
-        isSelected={selectedPhilosophers.includes(selectedPhilosopherDetails?.id || '') || 
-                   selectedCustomNpcs.includes(selectedPhilosopherDetails?.id || '')}
+        isSelected={
+          selectedPhilosophers.includes(selectedPhilosopherDetails?.id || '') ||
+          selectedCustomNpcs.includes(selectedPhilosopherDetails?.id || '')
+        }
       />
     </>
   );
 };
 
 export default FreeDiscussionTopicModal;
-
-

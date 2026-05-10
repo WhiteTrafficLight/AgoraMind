@@ -11,32 +11,32 @@ export async function POST(req: NextRequest) {
     if (!token) {
       return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
     }
-    
+
     const userId = token.sub || token.email;
     const { npcId, portraitUrl } = await req.json();
-    
+
     if (!npcId || !portraitUrl) {
       return NextResponse.json(
-        { message: 'NPC ID and portrait URL are required' }, 
-        { status: 400 }
+        { message: 'NPC ID and portrait URL are required' },
+        { status: 400 },
       );
     }
-    
+
     await connectDB();
-    
+
     // DB NPC ( )
-    const npc = await CustomNpc.findOne({ 
+    const npc = await CustomNpc.findOne({
       backend_id: npcId,
-      created_by: userId 
+      created_by: userId,
     });
-    
+
     if (!npc) {
       return NextResponse.json(
-        { message: 'NPC not found or you do not have permission' }, 
-        { status: 404 }
+        { message: 'NPC not found or you do not have permission' },
+        { status: 404 },
       );
     }
-    
+
     // Backend returns absolute URLs; rewrite to relative so the Next.js
     // /portraits rewrite serves them through the same origin.
     let finalUrl = portraitUrl;
@@ -45,23 +45,19 @@ export async function POST(req: NextRequest) {
     } else if (!portraitUrl.startsWith('/portraits/') && !portraitUrl.startsWith('http')) {
       finalUrl = `/portraits/${portraitUrl}`;
     }
-    
+
     npc.portrait_url = finalUrl;
     await npc.save();
-    
+
     return NextResponse.json({
       message: 'Portrait URL updated successfully',
       npc: {
         id: npc.backend_id || npc._id,
-        portrait_url: npc.portrait_url
-      }
+        portrait_url: npc.portrait_url,
+      },
     });
-    
   } catch (error) {
     loggers.npc.error('Error updating NPC portrait:', error);
-    return NextResponse.json(
-      { message: 'Failed to update NPC portrait' }, 
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Failed to update NPC portrait' }, { status: 500 });
   }
-} 
+}

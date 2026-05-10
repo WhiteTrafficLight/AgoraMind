@@ -16,7 +16,7 @@ const PhilosopherDetailsModal: React.FC<PhilosopherDetailsModalProps> = ({
   isOpen,
   onClose,
   onToggleSelect,
-  isSelected
+  isSelected,
 }) => {
   if (!isOpen || !philosopher) {
     return null;
@@ -65,7 +65,7 @@ const PhilosopherDetailsModal: React.FC<PhilosopherDetailsModalProps> = ({
               <h3 className="text-lg font-semibold text-gray-900">{philosopher.name}</h3>
               {(philosopher.period || philosopher.era) && (
                 <div className="text-sm text-gray-600">
-                  {philosopher.school && (<span>{philosopher.school} • </span>)}
+                  {philosopher.school && <span>{philosopher.school} • </span>}
                   {philosopher.period || philosopher.era}
                 </div>
               )}
@@ -73,9 +73,7 @@ const PhilosopherDetailsModal: React.FC<PhilosopherDetailsModalProps> = ({
           </div>
 
           {philosopher.description && (
-            <div className="text-sm text-gray-800 mb-4">
-              {philosopher.description}
-            </div>
+            <div className="text-sm text-gray-800 mb-4">{philosopher.description}</div>
           )}
 
           {philosopher.key_ideas && philosopher.key_ideas.length > 0 && (
@@ -108,4 +106,4 @@ const PhilosopherDetailsModal: React.FC<PhilosopherDetailsModalProps> = ({
   );
 };
 
-export default PhilosopherDetailsModal; 
+export default PhilosopherDetailsModal;

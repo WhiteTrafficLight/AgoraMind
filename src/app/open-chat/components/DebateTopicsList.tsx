@@ -8,7 +8,7 @@ import { loggers } from '@/utils/logger';
 interface Philosopher {
   id: string;
   name: string;
-  period?: string; 
+  period?: string;
   nationality?: string;
   description?: string;
   key_concepts?: string[];
@@ -24,7 +24,7 @@ interface DebateTopicsListProps {
 const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
   onSelectTopic,
   philosophers = [],
-  customNpcs = []
+  customNpcs = [],
 }) => {
   const [selectedTopic, setSelectedTopic] = useState<{
     topic: DebateTopic;
@@ -33,7 +33,7 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
   } | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showFreeModal, setShowFreeModal] = useState(false);
-  
+
   const debateCategories = getDebateCategories();
 
   // Determine actual context type to display (only if content exists)
@@ -53,7 +53,12 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
     setShowFreeModal(true);
   };
 
-  const handleStartDebate = (categoryKey: string, topicIndex: number, topic: DebateTopic, userPosition: 'pro' | 'con' | 'neutral') => {
+  const handleStartDebate = (
+    categoryKey: string,
+    topicIndex: number,
+    topic: DebateTopic,
+    userPosition: 'pro' | 'con' | 'neutral',
+  ) => {
     setShowModal(false);
     setSelectedTopic(null);
     onSelectTopic(categoryKey, topicIndex, topic);
@@ -78,7 +83,7 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
     const effectiveType = getEffectiveContextType((topic as { context?: TopicContext }).context);
 
     return (
-      <div 
+      <div
         key={topicId}
         className="relative z-10 cursor-pointer border border-gray-200 rounded-md p-3 bg-white hover:shadow-md transition-shadow"
         onClick={() => handleTopicClick(categoryKey, topicIndex, topic)}
@@ -99,20 +104,21 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
         {/* 4-section grid (exactly quartered) */}
         <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-4 p-4 overflow-hidden min-h-0">
           {debateCategories.map(({ key: categoryKey, category }) => {
-            const displayConfig = categoryDisplayConfig[categoryKey as keyof typeof categoryDisplayConfig];
-            
+            const displayConfig =
+              categoryDisplayConfig[categoryKey as keyof typeof categoryDisplayConfig];
+
             return (
-              <div 
+              <div
                 key={categoryKey}
                 className="flex flex-col bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden h-full min-h-0"
               >
                 {/* Section title */}
-                <div 
+                <div
                   className={`${displayConfig?.color || 'bg-gray-50'} flex-shrink-0 p-4 border-b border-gray-200 rounded-t-lg`}
                 >
                   <div className="flex items-center gap-3 h-full">
                     {displayConfig?.image && (
-                      <img 
+                      <img
                         src={displayConfig.image}
                         alt={displayConfig.title || category.name}
                         className="w-18 h-18 object-contain flex-shrink-0"
@@ -130,15 +136,17 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Scrollable topic list */}
                 <div className="flex-1 overflow-y-auto p-2 min-h-0">
                   {category.topics.length > 0 ? (
-                    category.topics.map((topic, index) => renderTopicCard(topic, categoryKey, index))
+                    category.topics.map((topic, index) =>
+                      renderTopicCard(topic, categoryKey, index),
+                    )
                   ) : (
                     <div className="text-center py-8">
                       <p className="text-xs text-gray-400">
-                        No topics available  {displayConfig?.title || category.name}
+                        No topics available {displayConfig?.title || category.name}
                       </p>
                     </div>
                   )}
@@ -164,4 +172,4 @@ const DebateTopicsList: React.FC<DebateTopicsListProps> = ({
   );
 };
 
-export default DebateTopicsList; 
+export default DebateTopicsList;

@@ -30,28 +30,29 @@ export const useSocket = (options: UseSocketOptions = {}) => {
   const socketRef = useRef<Socket | null>(null);
   const hasJoinedRoom = useRef(false);
 
-  const {
-    roomId,
-    userId,
-    onMessage,
-    onUserJoined,
-    onUserLeft,
-    onConnect,
-    onDisconnect
-  } = options;
+  const { roomId, userId, onMessage, onUserJoined, onUserLeft, onConnect, onDisconnect } = options;
 
   /* eslint-disable @typescript-eslint/no-explicit-any -- socket payload shapes vary by event; consumers narrow at use site. */
-  const stableOnMessage = useCallback((data: any) => {
-    onMessage?.(data);
-  }, [onMessage]);
+  const stableOnMessage = useCallback(
+    (data: any) => {
+      onMessage?.(data);
+    },
+    [onMessage],
+  );
 
-  const stableOnUserJoined = useCallback((data: any) => {
-    onUserJoined?.(data);
-  }, [onUserJoined]);
+  const stableOnUserJoined = useCallback(
+    (data: any) => {
+      onUserJoined?.(data);
+    },
+    [onUserJoined],
+  );
 
-  const stableOnUserLeft = useCallback((data: any) => {
-    onUserLeft?.(data);
-  }, [onUserLeft]);
+  const stableOnUserLeft = useCallback(
+    (data: any) => {
+      onUserLeft?.(data);
+    },
+    [onUserLeft],
+  );
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
   const stableOnConnect = useCallback(() => {
@@ -69,17 +70,17 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       setIsConnected(true);
       setTransport(globalSocket.io.engine.transport.name);
       connectionCount++;
-      
+
       // (roomId userId )
       if (roomId && userId && !hasJoinedRoom.current) {
         globalSocket.emit('join_room', {
           room_id: roomId,
-          user_id: userId
+          user_id: userId,
         });
         hasJoinedRoom.current = true;
         loggers.socket.info(`room join: ${roomId} (user: ${userId})`);
       }
-      
+
       return;
     }
 
@@ -96,7 +97,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       withCredentials: false,
       // Engine.IO
       forceBase64: false,
-      timestampRequests: false
+      timestampRequests: false,
     });
 
     globalSocket = socket;
@@ -108,12 +109,12 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       setIsConnected(true);
       setTransport(socket.io.engine.transport.name);
       stableOnConnect();
-      
+
       // (roomId userId )
       if (roomId && userId && !hasJoinedRoom.current) {
         socket.emit('join_room', {
           room_id: roomId,
-          user_id: userId
+          user_id: userId,
         });
         hasJoinedRoom.current = true;
         loggers.socket.info(`room join: ${roomId} (user: ${userId})`);
@@ -166,17 +167,17 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     return () => {
       loggers.socket.debug('Cleaning up Socket.IO connection');
       connectionCount--;
-      
+
       // (roomId userId )
       if (roomId && userId && socket.connected && hasJoinedRoom.current) {
         socket.emit('leave_room', {
           room_id: roomId,
-          user_id: userId
+          user_id: userId,
         });
         hasJoinedRoom.current = false;
         loggers.socket.info(`Leaving room: ${roomId} (user: ${userId})`);
       }
-      
+
       if (connectionCount <= 0) {
         loggers.socket.info('Last connection released - shutting down global socket');
         socket.disconnect();
@@ -190,7 +191,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       loggers.socket.error('Cannot send message: socket, roomId or userId missing', {
         hasSocket: !!socketRef.current,
         roomId,
-        userId
+        userId,
       });
       return false;
     }
@@ -200,7 +201,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       user_id: userId,
       message,
       side,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     loggers.socket.debug('Sending message', { roomId, userId, messageLength: message.length });
@@ -216,9 +217,9 @@ export const useSocket = (options: UseSocketOptions = {}) => {
 
     socketRef.current.emit('join_room', {
       room_id: newRoomId,
-      user_id: newUserId
+      user_id: newUserId,
     });
-    
+
     loggers.socket.info(`room join: ${newRoomId} (user: ${newUserId})`);
     return true;
   };
@@ -231,9 +232,9 @@ export const useSocket = (options: UseSocketOptions = {}) => {
 
     socketRef.current.emit('leave_room', {
       room_id: roomIdToLeave,
-      user_id: userIdToLeave
+      user_id: userIdToLeave,
     });
-    
+
     loggers.socket.info(`Leaving room: ${roomIdToLeave} (user: ${userIdToLeave})`);
     return true;
   };
@@ -244,6 +245,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     transport,
     sendMessage,
     joinRoom,
-    leaveRoom
+    leaveRoom,
   };
 };
