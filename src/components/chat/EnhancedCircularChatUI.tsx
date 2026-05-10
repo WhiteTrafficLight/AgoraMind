@@ -106,6 +106,21 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
   const hasReceivedNonUser = augMessages.some((m) => !m.isUser);
   const MODERATOR_IMAGE = '/moderator_portraits/Moderator_basic.png';
 
+  const fetchUserProfile = async (username: string) => {
+    void username;
+    try {
+      const response = await fetch('/api/user/profile');
+      if (response.ok) {
+        const profileData = await response.json();
+        if (profileData && (profileData.profileImage || profileData.profilePicture)) {
+          setUserProfilePicture(profileData.profileImage || profileData.profilePicture);
+        }
+      }
+    } catch (error) {
+      loggers.ui.error('Error fetching user profile:', error);
+    }
+  };
+
   // Load user information
   useEffect(() => {
     const storedUsername = sessionStorage.getItem('chat_username');
@@ -158,20 +173,6 @@ const EnhancedCircularChatUI: React.FC<EnhancedCircularChatUIProps> = ({
       }
     }
   }, [isFreeDiscussion, chatId, freeDiscussion?.state.sessionId]);
-
-  const fetchUserProfile = async (username: string) => {
-    try {
-      const response = await fetch('/api/user/profile');
-      if (response.ok) {
-        const profileData = await response.json();
-        if (profileData && (profileData.profileImage || profileData.profilePicture)) {
-          setUserProfilePicture(profileData.profileImage || profileData.profilePicture);
-        }
-      }
-    } catch (error) {
-      loggers.ui.error('Error fetching user profile:', error);
-    }
-  };
 
   // Load NPC details
   useEffect(() => {
