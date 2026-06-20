@@ -28,20 +28,27 @@ export default function CriticalLensFlowPage() {
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
-    setError('');
+    let cancelled = false;
     (async () => {
+      setLoading(true);
+      setError('');
       try {
         const res = await fetch(`/api/traces/${id}?philosopher=nietzsche`);
         if (!res.ok) throw new Error('not found');
-        setTrace(await res.json());
+        const data = await res.json();
+        if (!cancelled) setTrace(data);
       } catch {
-        setError('Failed to load this run.');
-        setTrace(null);
+        if (!cancelled) {
+          setError('Failed to load this run.');
+          setTrace(null);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const lens = getLensInfo(ACTIVE_PHILOSOPHER);

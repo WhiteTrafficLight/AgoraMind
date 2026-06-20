@@ -43,6 +43,9 @@ export default function PhilosopherBar({ active }: { active: string }) {
                     : 'cursor-not-allowed border-gray-200 bg-white text-gray-400 opacity-60 grayscale'
               }`}
             >
+              {/* Plain <img>: dynamic portrait with a ui-avatars onError fallback;
+                  next/image would require remote-domain config for the fallback. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={getPhilosopherPortraitPath(p.name)}
                 alt={p.name}
