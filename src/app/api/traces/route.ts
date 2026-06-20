@@ -1,13 +1,14 @@
 /**
  * GET /api/traces?philosopher=nietzsche
  *
- * Lists reasoning-trace runs (latest first) written by the philosopher_agent
- * pipeline to the sibling python repo's `rag_data/<philosopher>/traces/`.
- * Returns lightweight summaries for the Critical Lens trace selector.
+ * Lists reasoning-trace runs (latest first). Reads from MongoDB first
+ * (production); falls back to the sibling pipeline repo's local
+ * `rag_data/<philosopher>/traces/` in dev.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { listTraceSummariesFromDB } from '@/lib/db/criticalLensTraceDB';
 
 interface Summary {
   id: string;
@@ -29,6 +30,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const philosopher = (searchParams.get('philosopher') || 'nietzsche').trim();
   if (!SAFE_PHILO.test(philosopher)) {
     return NextResponse.json({ error: 'invalid philosopher' }, { status: 400 });
+  }
+
+  // DB first (production). Fall back to the local filesystem in dev.
+  const fromDb = await listTraceSummariesFromDB(philosopher);
+  if (fromDb && fromDb.length) {
+    return NextResponse.json({ traces: fromDb });
   }
 
   const dir = tracesDir(philosopher);
