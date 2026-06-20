@@ -20,6 +20,7 @@ export const ROUTES = {
   openChat: '/open-chat',
   chat: (id: string) => `/chat?id=${id}`,
   podcast: '/podcast',
+  criticalLens: '/critical-lens',
   settings: '/settings',
   settingsAccount: '/settings#account',
   settingsCustomNpc: '/settings/custom-npc',
