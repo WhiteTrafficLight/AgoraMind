@@ -2,7 +2,12 @@
 
 import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { HomeIcon, ChatBubbleLeftIcon, SpeakerWaveIcon } from '@heroicons/react/24/outline';
+import {
+  HomeIcon,
+  ChatBubbleLeftIcon,
+  SpeakerWaveIcon,
+  MagnifyingGlassIcon,
+} from '@heroicons/react/24/outline';
 import { ROUTES } from '@/lib/routes';
 
 interface NavigationDrawerProps {
@@ -77,6 +82,15 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
           >
             <SpeakerWaveIcon className="h-5 w-5 text-gray-600" />
             <span className="text-sm font-medium">Podcast</span>
+          </Link>
+
+          <Link
+            href={ROUTES.criticalLens}
+            onClick={onClose}
+            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 text-gray-800"
+          >
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-600" />
+            <span className="text-sm font-medium">Critical Lens</span>
           </Link>
         </div>
       </div>
