@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { getTraceFromDB } from '@/lib/db/criticalLensTraceDB';
 
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
 const SAFE_PHILO = /^[a-z0-9_-]+$/i;
@@ -21,6 +22,12 @@ export async function GET(
 
   if (!SAFE_ID.test(id) || !SAFE_PHILO.test(philosopher)) {
     return NextResponse.json({ error: 'invalid id' }, { status: 400 });
+  }
+
+  // DB first (production). Fall back to the local filesystem in dev.
+  const fromDb = await getTraceFromDB(philosopher, id);
+  if (fromDb) {
+    return NextResponse.json(fromDb);
   }
 
   const file = path.resolve(process.cwd(), '..', 'rag_data', philosopher, 'traces', `${id}.json`);
